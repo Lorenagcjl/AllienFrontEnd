@@ -1,0 +1,38 @@
+<div class="header-button">
+  <button mat-button [matMenuTriggerFor]="user" aria-label="user profile" class="header-item">
+    <a class="pc-head-link">
+      <img src="assets/images/user/avatar-2.jpg" alt="user-image" class="user-avatar" />
+    </a>
+  </button>
+
+  <mat-menu #user="matMenu" xPosition="before" class="dropdown-user-profile">
+    <div class="dropdown-header">
+      <h5 class="user-title">Perfil de Usuario</h5>
+    </div>
+    
+    <div class="dropdown-body">
+      <div class="flex m-b-20 m-t-10 align-items-center">
+        <div class="topic-icon">
+          <img src="assets/images/user/avatar-2.jpg" alt="user-images" class="user-avatar" />
+        </div>
+        <div class="topic-description m-l-15">
+          <h6 class="user-name m-b-0">{{ userName }}</h6>
+          <p class="mat-small text-muted m-b-0">{{ userRole }}</p>
+        </div>
+      </div>
+
+      <mat-divider class="m-b-20"></mat-divider>
+
+      <div class="grid">
+        <button mat-flat-button color="primary" class="user-logout" (click)="handleLogout()">
+          <div class="flex-inline align-item-cente">
+            <svg class="pc-icon m-r-10" style="width: 18px; height: 18px;">
+              <use xlink:href="assets/fonts/custom-icon.svg#custom-logout-1-outline"></use>
+            </svg>
+            Salir del Sistema
+          </div>
+        </button>
+      </div>
+    </div>
+  </mat-menu>
+</div>

@@ -1,0 +1,27 @@
+<ng-scrollbar style="height: calc(100vh - 88px)" visibility="hover" orientation="vertical">
+  <app-card [showHeader]="false" cardClass="user-card" [padding]="20">
+    <div class="flex align-items-center">
+      <div class="flex-shrink-0">
+        <img src="assets/images/user/avatar-1.jpg" alt="user-image" class="user-avatar" />
+      </div>
+      <div class="flex-grow-1 user-details">
+        <h6>{{ userName }}</h6>
+        <small>{{ userRole }}</small>
+      </div>
+    </div>
+  </app-card>
+
+  <div class="navbar-content">
+    <ul class="nav coded-inner-navbar" (click)="fireOutClick()">
+      @for (item of filteredMenus(); track item.id) {
+        @if (item.type === 'group') {
+          <app-menu-group-vertical [item]="item" /> 
+        } @else if (item.type === 'item') {
+          <app-menu-item [item]="item" />
+        } @else if (item.type === 'collapse') {
+          <app-menu-collapse [item]="item" />
+        }
+      }
+    </ul>
+  </div>
+</ng-scrollbar>

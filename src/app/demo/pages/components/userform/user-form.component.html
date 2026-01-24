@@ -1,0 +1,114 @@
+<h2 mat-dialog-title>Nuevo Usuario</h2>
+<mat-dialog-content>
+  <form [formGroup]="userForm" class="row">
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Primer Nombre</mat-label>
+        <input matInput formControlName="primerNombre">
+        @if (userForm.get('primerNombre')?.invalid && userForm.get('primerNombre')?.touched) {
+          <mat-error>
+            {{ userForm.get('primerNombre')?.hasError('pattern') ? 'Solo letras' : 'Requerido' }}
+          </mat-error>
+        }
+      </mat-form-field>
+    </div>
+    
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Segundo Nombre</mat-label>
+        <input matInput formControlName="segundoNombre">
+        @if (userForm.get('segundoNombre')?.invalid && userForm.get('segundoNombre')?.touched) {
+          <mat-error>
+            {{ userForm.get('segundoNombre')?.hasError('pattern') ? 'Solo letras' : 'Requerido' }}
+          </mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Primer Apellido</mat-label>
+        <input matInput formControlName="primerApellido">
+        @if (userForm.get('primerApellido')?.invalid && userForm.get('primerApellido')?.touched) {
+          <mat-error>
+            {{ userForm.get('primerApellido')?.hasError('pattern') ? 'Solo letras' : 'Requerido' }}
+          </mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Segundo Apellido</mat-label>
+        <input matInput formControlName="segundoApellido">
+        @if (userForm.get('segundoApellido')?.invalid && userForm.get('segundoApellido')?.touched) {
+          <mat-error>
+            {{ userForm.get('segundoApellido')?.hasError('pattern') ? 'Solo letras' : 'Requerido' }}
+          </mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Nombre de Usuario</mat-label>
+        <input matInput formControlName="nombreUsuario">
+        <mat-error>Nombre de usuario requerido</mat-error>
+      </mat-form-field>
+    </div>
+    
+    <div class="col-100">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Correo Electrónico</mat-label>
+        <input matInput type="email" formControlName="correoElectronico">
+        <mat-error>Email válido requerido</mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Cédula</mat-label>
+        <input matInput formControlName="cedula" maxlength="10">
+        @if (userForm.get('cedula')?.invalid && userForm.get('cedula')?.touched) {
+          <mat-error>Debe tener 10 dígitos numéricos</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-6">
+  <mat-form-field appearance="outline" class="w-100">
+    <mat-label>Clave</mat-label>
+    <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="clave">
+    
+    <button
+      mat-icon-button
+      matSuffix
+      (click)="hidePassword = !hidePassword"
+      [attr.aria-label]="'Ocultar clave'"
+      [attr.aria-pressed]="hidePassword"
+      type="button" 
+    >
+      <i class="ti" [class.ti-eye]="hidePassword" [class.ti-eye-off]="!hidePassword"></i>
+    </button>
+    
+    <mat-error>Mínimo 6 caracteres</mat-error>
+  </mat-form-field>
+</div>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Rol</mat-label>
+        <mat-select formControlName="rol">
+          <mat-option value="Administrador">Administrador</mat-option>
+          <mat-option value="Empleado">Empleado</mat-option>
+        </mat-select>
+        <mat-error>Seleccione un rol</mat-error>
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="userForm.invalid" (click)="save()">Guardar</button>
+</mat-dialog-actions>

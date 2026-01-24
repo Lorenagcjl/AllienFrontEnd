@@ -1,0 +1,66 @@
+<div class="auth-main">
+  <div class="auth-wrapper version-1">
+    <div class="auth-form">
+      <div class="auth-background">
+        <div class="yellow-circle"></div>
+        <div class="red-circle"></div>
+      </div>
+      <div class="main-form">
+        <app-card [showHeader]="false" class="auth-form-card" [padding]="40">
+          <div class="text-center">
+            <a href="javascript:">
+              <img src="assets/images/logo-dark.svg" alt="logo" />
+            </a>
+          </div>
+          
+          <h4 class="text-center m-t-20 m-b-25 f-20 f-w-500">Inicia Sesión</h4>
+          
+          <form [formGroup]="loginForm" class="text-start">
+            
+            <label class="f-w-500">Correo Electrónico</label>
+            <mat-form-field appearance="outline" class="w-100 m-t-5">
+              <input matInput formControlName="email" placeholder="ejemplo@correo.com" />
+              @if (email?.invalid && email?.touched) {
+                <mat-error>{{ getErrorMessage() }}</mat-error>
+              }
+            </mat-form-field>
+
+            <label class="f-w-500">Contraseña</label>
+            <mat-form-field appearance="outline" class="w-100 m-t-5">
+              <input matInput [type]="hide ? 'password' : 'text'" formControlName="password" />
+              <button mat-icon-button matSuffix (click)="hide = !hide" type="button">
+                <mat-icon>{{ hide ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              @if (password?.invalid && password?.touched) {
+                <mat-error>La contraseña es requerida (min. 4 caracteres)</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="check-me">
+              <mat-checkbox class="float-start" color="primary">Recordarme</mat-checkbox>
+              <a class="f-w-400 f-14 text-primary-500 m-b-0" href="javascript:">¿Olvidaste tu contraseña?</a>
+            </div>
+
+            <div class="grid">
+              <button
+                mat-flat-button
+                color="primary"
+                class="b-rad-20 m-t-15"
+                (click)="login()"
+                [disabled]="loginForm.invalid"
+              >
+                Ingresar
+              </button>
+            </div>
+
+          </form>
+
+          <div class="check-me m-t-20">
+            <h6 class="f-w-400 text-muted m-b-0">¿No tienes cuenta?</h6>
+            <a [routerLink]="['/auth/register']" class="text-primary-500">Crear cuenta</a>
+          </div>
+        </app-card>
+      </div>
+    </div>
+  </div>
+</div>
