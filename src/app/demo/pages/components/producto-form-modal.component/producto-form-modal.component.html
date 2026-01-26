@@ -1,0 +1,78 @@
+<div class="modal-backdrop" role="button" tabindex="0" aria-label="Cerrar modal" (click)="onBackdropClick($event)"
+  (keydown.enter)="onBackdropKeydown($event)" (keydown.space)="onBackdropKeydown($event)">
+  <div class="modal-card" role="dialog" aria-modal="true">
+
+    <div class="modal-header">
+      <h3 class="modal-title">{{ editando ? 'Editar Producto' : 'Nuevo Producto' }}</h3>
+      <button type="button" class="icon-close" (click)="onClose()" aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="modal-body">
+      <form [formGroup]="productoForm" class="row">
+
+        <div class="col-md-6">
+          <label class="lbl" for="nombre">Nombre</label>
+          <input id="nombre" class="inp" formControlName="nombre" />
+          @if (productoForm.get('nombre')?.invalid && productoForm.get('nombre')?.touched) {
+          <div class="err">Nombre requerido (mín. 2)</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="precioVenta">Precio Venta</label>
+          <input id="precioVenta" class="inp" type="number" formControlName="precioVenta" />
+          @if (productoForm.get('precioVenta')?.invalid && productoForm.get('precioVenta')?.touched) {
+          <div class="err">Precio válido requerido</div>
+          }
+        </div>
+
+        <div class="col-12">
+          <label class="lbl" for="descripcion">Descripción</label>
+          <input id="descripcion" class="inp" formControlName="descripcion" />
+          @if (productoForm.get('descripcion')?.invalid && productoForm.get('descripcion')?.touched) {
+          <div class="err">Descripción requerida</div>
+          }
+        </div>
+
+        <div class="col-12">
+          <label class="lbl" for="foto">Foto (URL o ruta)</label>
+          <input id="foto" class="inp" formControlName="foto" />
+          @if (productoForm.get('foto')?.invalid && productoForm.get('foto')?.touched) {
+          <div class="err">Foto requerida</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="esConSerial">¿Con Serial?</label>
+          <select id="esConSerial" class="inp" formControlName="esConSerial">
+            <option [ngValue]="null" disabled>Seleccione</option>
+            <option [ngValue]="true">Sí</option>
+            <option [ngValue]="false">No</option>
+          </select>
+          @if (productoForm.get('esConSerial')?.invalid && productoForm.get('esConSerial')?.touched) {
+          <div class="err">Seleccione una opción</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="porcentajeComision">Comisión (%)</label>
+          <input id="porcentajeComision" class="inp" type="number" formControlName="porcentajeComision" />
+          @if (productoForm.get('porcentajeComision')?.invalid && productoForm.get('porcentajeComision')?.touched) {
+          <div class="err">Debe estar entre 0 y 100</div>
+          }
+        </div>
+
+        <!-- No se muestra pero se envía -->
+        <input type="hidden" id="fechaCreacion" formControlName="fechaCreacion" />
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="onClose()">Cancelar</button>
+      <button type="button" class="btn btn-primary" [disabled]="productoForm.invalid" (click)="save()">
+        Guardar
+      </button>
+    </div>
+
+  </div>
+</div>

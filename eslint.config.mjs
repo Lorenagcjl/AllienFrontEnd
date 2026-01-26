@@ -25,6 +25,8 @@ export default [{
     files: ["**/*.ts"],
 
     rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+
         "@angular-eslint/directive-selector": ["error", {
             type: "attribute",
             prefix: "app",
