@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, Inject, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatNativeDateModule, MatOptionModule } from '@angular/material/core';
@@ -13,7 +14,7 @@ import Swal from 'sweetalert2';
 @Component({
     selector: 'app-movimiento-form',
     standalone: true,
-    imports: [SharedModule, MatDialogModule, ReactiveFormsModule, MatSelectModule, MatOptionModule, MatDatepickerModule, MatNativeDateModule],
+    imports: [SharedModule, MatDialogModule, ReactiveFormsModule, MatSelectModule, MatOptionModule, MatDatepickerModule, MatNativeDateModule, CommonModule],
     templateUrl: './movimiento-form.component.html'
 })
 export class MovimientoFormComponent implements OnInit {
@@ -43,25 +44,37 @@ export class MovimientoFormComponent implements OnInit {
             next: (data) => this.ubicaciones = data,
             error: (err) => console.error('Error al cargar ubicaciones', err)
         });
+
         this.usuarioService.listarUsuarios().subscribe({
             next: (data) => this.usuarios = data,
             error: (err) => console.error('Error al cargar usuarios', err)
         });
+
         if (this.data) {
-            // MODO EDICIÓN: Asegurarse de que los selects reciban solo el id
+            // MODO EDICIÓN
             const patch = { ...this.data };
+
+            // 1. Corregir el Usuario (Viene como fkUsuario en tu DTO)
+            if (this.data.fkUsuario) {
+                patch.idUsuario = this.data.fkUsuario.idUsuario;
+            }
+
+            // 2. Corregir Ubicaciones (Asegurar que tomamos el ID plano si vienen como objetos)
             if (patch.idUbicacionOrigen && typeof patch.idUbicacionOrigen === 'object') {
                 patch.idUbicacionOrigen = patch.idUbicacionOrigen.idUbicacion;
             }
             if (patch.idUbicacionDestino && typeof patch.idUbicacionDestino === 'object') {
                 patch.idUbicacionDestino = patch.idUbicacionDestino.idUbicacion;
             }
-            if (patch.idUsuario && typeof patch.idUsuario === 'object') {
-                patch.idUsuario = patch.idUsuario.idUsuario;
+
+            // 3. Importante: Si la fecha viene como string de API, 
+            // a veces MatDatepicker necesita un objeto Date real
+            if (patch.fechaMovimiento) {
+                patch.fechaMovimiento = new Date(patch.fechaMovimiento);
             }
+
             this.movimientoForm.patchValue(patch);
         } else {
-            // MODO CREACIÓN
             this.movimientoForm.reset();
         }
     }
