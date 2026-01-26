@@ -14,4 +14,11 @@ export class MovimientoService {
         return this.http.get<MovimientoModel[]>(this.apiUrl);
     }
 
+    guardar(movimiento: MovimientoModel): Observable<any> {
+        return this.http.post(this.apiUrl, movimiento);
+    }
+
+    actualizar(id: number, movimiento: MovimientoModel): Observable<any> {
+        return this.http.put(`${this.apiUrl}/${id}`, movimiento);
+    }
 }

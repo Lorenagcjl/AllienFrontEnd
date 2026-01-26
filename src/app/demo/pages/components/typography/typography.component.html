@@ -1,42 +1,39 @@
 <mat-form-field appearance="outline" class="w-100">
   <mat-label>Buscar usuario</mat-label>
-  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. Lorena" #input>
+  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. Lorena" #input />
 </mat-form-field>
-<button mat-raised-button color="primary" (click)="abrirFormulario()">
-    <i class="ti ti-plus"></i> Nuevo Usuario
-  </button>
+<button mat-raised-button color="primary" (click)="abrirFormulario()"> <i class="ti ti-plus"></i> Nuevo Usuario </button>
 <div class="mat-elevation-z8">
   <table mat-table [dataSource]="dataSource" matSort>
-
     <ng-container matColumnDef="idUsuario">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
-      <td mat-cell *matCellDef="let row"> {{row.idUsuario}} </td>
+      <td mat-cell *matCellDef="let row"> {{ row.idUsuario }} </td>
     </ng-container>
 
     <ng-container matColumnDef="nombreCompleto">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Nombre </th>
-      <td mat-cell *matCellDef="let row"> {{row.primerNombre}} {{row.primerApellido}} </td>
+      <td mat-cell *matCellDef="let row"> {{ row.primerNombre }} {{ row.primerApellido }} </td>
     </ng-container>
 
     <ng-container matColumnDef="nombreUsuario">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Usuario </th>
-      <td mat-cell *matCellDef="let row"> {{row.nombreUsuario}} </td>
+      <td mat-cell *matCellDef="let row"> {{ row.nombreUsuario }} </td>
     </ng-container>
 
     <ng-container matColumnDef="correoElectronico">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Email </th>
-      <td mat-cell *matCellDef="let row"> {{row.correoElectronico}} </td>
+      <td mat-cell *matCellDef="let row"> {{ row.correoElectronico }} </td>
     </ng-container>
 
     <ng-container matColumnDef="cedula">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Cédula </th>
-      <td mat-cell *matCellDef="let row"> {{row.cedula}} </td>
+      <td mat-cell *matCellDef="let row"> {{ row.cedula }} </td>
     </ng-container>
 
     <ng-container matColumnDef="rol">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Rol </th>
-      <td mat-cell *matCellDef="let row"> 
-        <span class="badge bg-light-primary text-primary">{{row.rol}}</span>
+      <td mat-cell *matCellDef="let row">
+        <span class="badge bg-light-primary text-primary">{{ row.rol }}</span>
       </td>
     </ng-container>
 
@@ -52,25 +49,27 @@
     </ng-container>
 
     <ng-container matColumnDef="acciones">
-  <th mat-header-cell *matHeaderCellDef> Acciones </th>
-  <td mat-cell *matCellDef="let row">
-    <button mat-icon-button color="primary" (click)="abrirFormulario(row)" matTooltip="Editar">
-      <i class="ti ti-edit f-18"></i>
-    </button>
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let row">
+        <button mat-icon-button color="primary" (click)="abrirFormulario(row)" matTooltip="Editar">
+          <i class="ti ti-edit f-18"></i>
+        </button>
 
-    <button mat-icon-button 
-            [color]="row.esActivo ? 'warn' : 'success'" 
-            (click)="cambiarEstado(row)"
-            [matTooltip]="row.esActivo ? 'Desactivar Usuario' : 'Activar Usuario'">
-      <i class="ti f-18" [class.ti-user-off]="row.esActivo" [class.ti-user-check]="!row.esActivo"></i>
-    </button>
-  </td>
-</ng-container>
+        <button
+          mat-icon-button
+          [color]="row.esActivo ? 'warn' : 'success'"
+          (click)="cambiarEstado(row)"
+          [matTooltip]="row.esActivo ? 'Desactivar Usuario' : 'Activar Usuario'"
+        >
+          <i class="ti f-18" [class.ti-user-off]="row.esActivo" [class.ti-user-check]="!row.esActivo"></i>
+        </button>
+      </td>
+    </ng-container>
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
 
     <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="8">No hay datos que coincidan con "{{input.value}}"</td>
+      <td class="mat-cell" colspan="8">No hay datos que coincidan con "{{ input.value }}"</td>
     </tr>
   </table>
 

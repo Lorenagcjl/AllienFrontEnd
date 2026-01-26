@@ -81,15 +81,15 @@ export const menus: Navigation[] = [
         roles: ['Administrador']
 
       },
-      {
-        id: 'movimiento-detalle',
-        title: 'Movimiento Detalle',
-        type: 'item',
-        classes: 'nav-item',
-        url: '/component/movimiento-detalle',
-        icon: '#custom-text-block',
-        roles: ['Administrador']
-      },
+      // {
+      //   id: 'movimiento-detalle',
+      //   title: 'Movimiento Detalle',
+      //   type: 'item',
+      //   classes: 'nav-item',
+      //   url: '/component/movimiento-detalle',
+      //   icon: '#custom-text-block',
+      //   roles: ['Administrador']
+      // },
       {
         id: 'venta-detalle-serial',
         title: 'Venta Detalle Serial',

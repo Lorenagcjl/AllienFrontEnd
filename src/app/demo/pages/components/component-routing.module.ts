@@ -17,10 +17,10 @@ const routes: Routes = [
         path: 'movimiento',
         loadComponent: () => import('./movimiento/movimiento')
       },
-      {
-        path: 'movimiento-detalle',
-        loadComponent: () => import('./movimiento-detalle/movimiento-detalle')
-      },
+      // {
+      //   path: 'movimiento-detalle',
+      //   loadComponent: () => import('./movimiento-detalle/movimiento-detalle')
+      // },
       {
         path: 'venta-detalle-serial',
         loadComponent: () => import('./venta-detalle-serial/venta-detalle-serial')
