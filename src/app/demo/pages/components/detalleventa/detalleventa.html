@@ -1,0 +1,115 @@
+<h2 mat-dialog-title class="text-primary">
+  <i class="ti ti-file-description me-2"></i>Detalle de Factura: {{data.numeroFactura}}
+</h2>
+
+<mat-dialog-content>
+  <div class="row g-3 mb-4 border p-3 rounded bg-light shadow-sm">
+    <div class="col-md-12">
+  <mat-form-field appearance="outline" class="w-100">
+    <mat-label>Producto</mat-label>
+    <mat-select [formControl]="$any(form.get('idProducto'))">
+      @for (p of productos; track p.idProducto) {
+        <mat-option [value]="p.idProducto">{{p.nombre}}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
+<input type="hidden" [formControl]="$any(form.get('idUbicacion'))">
+
+    @if (stockDisponible !== null) {
+      <div class="col-12 mt-0">
+        <div class="alert py-1 px-3 mb-2 d-flex align-items-center" 
+             [ngClass]="stockDisponible > 0 ? 'alert-info' : 'alert-danger'" 
+             style="font-size: 0.85rem;">
+          <i class="ti" [ngClass]="stockDisponible > 0 ? 'ti-check' : 'ti-alert-triangle'"></i>
+          <span class="ms-2">
+            Stock actual en esta ubicación: <strong>{{ stockDisponible }}</strong> unidades.
+          </span>
+        </div>
+      </div>
+    }
+
+    <div class="col-md-3">
+  <mat-form-field appearance="outline" class="w-100">
+    <mat-label>Cantidad</mat-label>
+    <input matInput type="number" [formControl]="$any(form.get('cantidad'))">
+    
+    @if (stockDisponible !== null && form.get('cantidad')?.value >= stockDisponible && stockDisponible > 0) {
+      <mat-hint style="color: #ff9800;">Máximo alcanzado</mat-hint>
+    }
+    
+    @if (stockDisponible === 0) {
+      <mat-error>Producto sin stock</mat-error>
+    }
+  </mat-form-field>
+</div>
+
+    <div class="col-md-3">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Precio U.</mat-label>
+        <input matInput type="number" [formControl]="$any(form.get('precioUnitario'))" readonly>
+        <span matPrefix>$&nbsp;</span>
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-3">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>% Comisión</mat-label>
+        <input matInput type="number" [formControl]="$any(form.get('porcentajeComision'))" readonly>
+        <span matSuffix>%</span>
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-center">
+      <button mat-raised-button color="primary" class="w-100 py-2" 
+              (click)="agregarItem()" 
+              [disabled]="form.invalid || (stockDisponible !== null && form.get('cantidad')?.value > stockDisponible)">
+        <i class="ti ti-plus me-1"></i> AGREGAR
+      </button>
+    </div>
+  </div>
+
+  <div class="table-responsive border rounded">
+    <table class="table table-hover mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>Producto</th>
+          <th class="text-center">Cant.</th>
+          <th class="text-end">Precio</th>
+          <th class="text-end">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (d of detalles; track d.idDetalleVenta) {
+          <tr>
+            <td>{{d.fkProducto?.nombre}}</td>
+            <td class="text-center">{{d.cantidad}}</td>
+            <td class="text-end">{{d.precioUnitario | currency}}</td>
+            <td class="text-end"><strong>{{d.subtotal | currency}}</strong></td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="4" class="text-center py-4 text-muted">No hay productos en esta venta</td>
+          </tr>
+        }
+      </tbody>
+      @if (detalles.length > 0) {
+        <tfoot class="table-light">
+          <tr>
+            <td colspan="3" class="text-end align-middle text-uppercase fw-bold">Total Factura:</td>
+            <td class="text-end">
+              <span class="badge bg-primary fs-6 p-2 w-100">
+                {{ totalFactura | currency }}
+              </span>
+            </td>
+          </tr>
+        </tfoot>
+      }
+    </table>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="border-top p-3">
+  <button mat-stroked-button mat-dialog-close color="warn">Cerrar Detalle</button>
+</mat-dialog-actions>

@@ -1,0 +1,22 @@
+// Limita la altura de la tabla para que siempre veas el formulario arriba
+.table-container {
+  max-height: 300px;
+  overflow-y: auto;
+  background: white;
+
+  .sticky-top {
+    top: -1px;
+    z-index: 10;
+  }
+}
+
+// Estilo para los inputs de Angular Material dentro del modal
+mat-form-field {
+  margin-bottom: 2px;
+}
+
+// Ajuste del título
+.mat-mdc-dialog-title {
+  margin: 0 !important;
+  padding: 15px 24px !important;
+}

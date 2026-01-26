@@ -39,6 +39,7 @@ export default class LoginComponent {
 
       this.loginService.login(email!, password!).subscribe({
         next: (usuario) => {
+          localStorage.setItem('usuario', JSON.stringify(usuario));
           localStorage.setItem('role', usuario.rol);
           localStorage.setItem('username', usuario.nombreUsuario);
 

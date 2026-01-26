@@ -29,16 +29,16 @@ export const menus: Navigation[] = [
   },
   {
     id: 'ui-component',
-    title: 'Componentes',
+    title: 'Usuarios',
     type: 'group',
     icon: 'icon-navigation',
     children: [
       {
-        id: 'typography',
+        id: 'usuarios',
         title: 'Usuarios',
         type: 'item',
         classes: 'nav-item',
-        url: '/component/typography',
+        url: '/component/usuarios',
         icon: '#custom-text-block',
         roles: ['Administrador']
       },
@@ -50,136 +50,23 @@ export const menus: Navigation[] = [
         url: '/component/color',
         icon: '#custom-clipboard',
         roles: ['Administrador', 'Empleado']
-      },
-      {
-        id: 'table',
-        title: 'Productos',
-        type: 'item',
-        classes: 'nav-item',
-        url: 'https://tabler-icons.io/',
-        icon: '#custom-mouse-circle',
-        target: true,
-        external: true
-      },
-      {
-        id: 'table',
-        title: 'Ubicaciones',
-        type: 'item',
-        classes: 'nav-item',
-        url: 'https://tabler-icons.io/',
-        icon: '#custom-mouse-circle',
-        target: true,
-        external: true
       }
     ]
   },
   {
     id: 'other',
-    title: 'Other',
+    title: 'Ventas',
     type: 'group',
     icon: 'icon-navigation',
     children: [
       {
-        id: 'menu-levels',
-        title: 'Menu levels',
-        type: 'collapse',
-        icon: '#custom-level',
-        children: [
-          {
-            id: 'level-2-1',
-            title: 'Level 2.1',
-            type: 'item',
-            url: 'javascript:'
-          },
-          {
-            id: 'menu-level-2.2',
-            title: 'Menu Level 2.2',
-            type: 'collapse',
-            classes: 'edge',
-            children: [
-              {
-                id: 'menu-level-3.1',
-                title: 'Menu Level 3.1',
-                type: 'item',
-                url: 'javascript:'
-              },
-              {
-                id: 'menu-level-3.2',
-                title: 'Menu Level 3.2',
-                type: 'item',
-                url: 'javascript:'
-              },
-              {
-                id: 'menu-level-3.3',
-                title: 'Menu Level 3.3',
-                type: 'collapse',
-                classes: 'edge',
-                children: [
-                  {
-                    id: 'menu-level-4.1',
-                    title: 'Menu Level 4.1',
-                    type: 'item',
-                    url: 'javascript:'
-                  },
-                  {
-                    id: 'menu-level-4.2',
-                    title: 'Menu Level 4.2',
-                    type: 'item',
-                    url: 'javascript:'
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            id: 'menu-level-2.3',
-            title: 'Menu Level 2.3',
-            type: 'collapse',
-            classes: 'edge',
-            children: [
-              {
-                id: 'menu-level-3.1',
-                title: 'Menu Level 3.1',
-                type: 'item',
-                url: 'javascript:'
-              },
-              {
-                id: 'menu-level-3.2',
-                title: 'Menu Level 3.2',
-                type: 'item',
-                url: 'javascript:'
-              },
-              {
-                id: 'menu-level-3.3',
-                title: 'Menu Level 3.3',
-                type: 'collapse',
-                classes: 'edge',
-                children: [
-                  {
-                    id: 'menu-level-4.1',
-                    title: 'Menu Level 4.1',
-                    type: 'item',
-                    url: 'javascript:'
-                  },
-                  {
-                    id: 'menu-level-4.2',
-                    title: 'Menu Level 4.2',
-                    type: 'item',
-                    url: 'javascript:'
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'sample-page',
-        title: 'Sample Page',
+        id: 'venta',
+        title: 'Ventas',
         type: 'item',
         classes: 'nav-item',
-        url: '/sample-page',
-        icon: '#custom-notification-status'
+        url: '/component/venta',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
       }
     ]
   }

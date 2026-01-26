@@ -38,7 +38,7 @@ const routes: Routes = [
       {
         path: 'empleado-dashboard',
         loadComponent: () => import('./demo/pages/empl-dashboard/empl-dashboard.component'),
-        data: { roles: ['Empleado'] } // 👈 Solo Empleado
+        data: { roles: ['Empleado'] } 
       },
       {
         path: 'component',

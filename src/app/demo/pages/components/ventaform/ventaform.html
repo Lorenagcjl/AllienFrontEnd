@@ -1,0 +1,38 @@
+<h2 mat-dialog-title class="text-primary">Registrar Nueva Venta</h2>
+<mat-dialog-content>
+  <form [formGroup]="ventaForm" class="pt-2">
+    <div class="row">
+      
+      <div class="col-12 mb-3">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Seleccionar Cliente</mat-label>
+          <mat-select formControlName="idCliente">
+            @for (c of clientes; track c.idCliente) {
+              <mat-option [value]="c.idCliente">
+                {{c.primerNombre}} {{c.primerApellido}} - {{c.documento}}
+              </mat-option>
+            }
+          </mat-select>
+          @if (ventaForm.get('idCliente')?.invalid && ventaForm.get('idCliente')?.touched) {
+            <mat-error>El cliente es obligatorio</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="col-12 mb-3">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Observaciones</mat-label>
+          <textarea matInput formControlName="observaciones" rows="3" placeholder="Detalles de la venta..."></textarea>
+        </mat-form-field>
+      </div>
+
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="pb-3 pe-3">
+  <button mat-button (click)="dialogRef.close()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="guardar()" [disabled]="ventaForm.invalid">
+    <i class="ti ti-device-floppy me-1"></i> Guardar Venta
+  </button>
+</mat-dialog-actions>

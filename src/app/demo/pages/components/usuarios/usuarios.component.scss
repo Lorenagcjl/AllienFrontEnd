@@ -71,3 +71,20 @@ table {
 .mat-success {
   color: #28a745 !important;
 }
+.position-relative {
+  position: relative;
+}
+
+.z-index-1 {
+  z-index: 1;
+}
+
+.loading-table {
+  opacity: 0.6;
+  pointer-events: none; // Deshabilita clics en toda la tabla
+  transition: opacity 0.2s ease-in-out;
+}
+
+.top-0 {
+  top: 0;
+}
