@@ -1,0 +1,69 @@
+<!-- <mat-form-field appearance="outline" class="w-100">
+  <mat-label>Buscar usuario</mat-label>
+  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. Lorena" #input>
+</mat-form-field> -->
+<!-- <button mat-raised-button color="primary" (click)="abrirFormulario()">
+    <i class="ti ti-plus"></i> Nuevo Usuario
+  </button> -->
+<div class="mat-elevation-z8">
+  <table mat-table [dataSource]="dataSource" matSort>
+    <!-- ID -->
+    <ng-container matColumnDef="idMovimiento">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+      <td mat-cell *matCellDef="let row">{{ row.idMovimiento }}</td>
+    </ng-container>
+
+    <!-- Fecha Movimiento -->
+    <ng-container matColumnDef="fechaMovimiento">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Fecha Movimiento </th>
+      <td mat-cell *matCellDef="let row">{{ row.fechaMovimiento | date:'short' }}</td>
+    </ng-container>
+
+    <!-- Observaciones -->
+    <ng-container matColumnDef="observaciones">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Observaciones </th>
+      <td mat-cell *matCellDef="let row">{{ row.observaciones }}</td>
+    </ng-container>
+
+    <!-- Tipo -->
+    <ng-container matColumnDef="tipo">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Tipo </th>
+      <td mat-cell *matCellDef="let row">{{ row.tipo }}</td>
+    </ng-container>
+
+    <!-- Ubicación Destino -->
+    <ng-container matColumnDef="idUbicacionDestino">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Ubicación Destino </th>
+      <td mat-cell *matCellDef="let row">{{ getNombreUbicacion(row.idUbicacionDestino) }}</td>
+    </ng-container>
+
+    <!-- Ubicación Origen -->
+    <ng-container matColumnDef="idUbicacionOrigen">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Ubicación Origen </th>
+      <td mat-cell *matCellDef="let row">{{ getNombreUbicacion(row.idUbicacionOrigen) }}</td>
+    </ng-container>
+
+    <!-- Usuario -->
+    <ng-container matColumnDef="idUsuario">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Usuario </th>
+      <td mat-cell *matCellDef="let row">{{ row.fkUsuario?.primerNombre + ' ' + row.fkUsuario?.primerApellido }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let row">
+        <button mat-icon-button color="primary" (click)="abrirFormulario(row)" matTooltip="Editar">
+          <i class="ti ti-edit f-18"></i>
+        </button>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" colspan="8">No hay datos que coincidan con "{{input.value}}"</td>
+    </tr>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
+</div>

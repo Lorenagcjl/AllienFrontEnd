@@ -16,15 +16,15 @@ export const menus: Navigation[] = [
         icon: '#custom-status-up',
         roles: ['Administrador']
       },
-      
-{
-  id: 'inicio-empl',
-  title: 'Inicio',
-  type: 'item',
-  url: '/empleado-dashboard',
-  icon: '#custom-status-up',
-  roles: ['Empleado']
-}
+
+      {
+        id: 'inicio-empl',
+        title: 'Inicio',
+        type: 'item',
+        url: '/empleado-dashboard',
+        icon: '#custom-status-up',
+        roles: ['Empleado']
+      }
     ]
   },
   {
@@ -70,6 +70,34 @@ export const menus: Navigation[] = [
         icon: '#custom-mouse-circle',
         target: true,
         external: true
+      },
+      {
+        id: 'movimiento',
+        title: 'Movimiento',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/movimiento',
+        icon: '#custom-text-block',
+        roles: ['Administrador']
+
+      },
+      {
+        id: 'movimiento-detalle',
+        title: 'Movimiento Detalle',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/movimiento-detalle',
+        icon: '#custom-text-block',
+        roles: ['Administrador']
+      },
+      {
+        id: 'venta-detalle-serial',
+        title: 'Venta Detalle Serial',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/venta-detalle-serial',
+        icon: '#custom-text-block',
+        roles: ['Administrador']
       }
     ]
   },
