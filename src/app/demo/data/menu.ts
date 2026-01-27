@@ -44,7 +44,7 @@ export const menus: Navigation[] = [
       },
       {
         id: 'color',
-        title: 'Clientes',
+        title: 'Cliente',
         type: 'item',
         classes: 'nav-item',
         url: '/component/color',
@@ -52,24 +52,22 @@ export const menus: Navigation[] = [
         roles: ['Administrador', 'Empleado']
       },
       {
-        id: 'table',
-        title: 'Productos',
+        id: 'ubicacion',
+        title: 'Ubicacion',
         type: 'item',
         classes: 'nav-item',
-        url: 'https://tabler-icons.io/',
-        icon: '#custom-mouse-circle',
-        target: true,
-        external: true
+        url: '/component/ubicacion',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
       },
       {
-        id: 'table',
-        title: 'Ubicaciones',
+        id: 'ventaDetalleSerial',
+        title: 'VentaDetalleSerial',
         type: 'item',
         classes: 'nav-item',
-        url: 'https://tabler-icons.io/',
-        icon: '#custom-mouse-circle',
-        target: true,
-        external: true
+        url: '/component/ventaDetalleSerial',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
       }
     ]
   },

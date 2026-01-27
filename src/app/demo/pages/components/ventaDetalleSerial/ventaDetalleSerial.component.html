@@ -1,0 +1,58 @@
+<mat-form-field appearance="outline" class="w-100">
+  <mat-label>Buscar Cliente</mat-label>
+  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. Producto" #input>
+</mat-form-field>
+
+<button mat-raised-button color="primary" (click)="abrirFormulario()">
+  <i class="ti ti-plus"></i> Nuevo
+</button>
+
+<div class="mat-elevation-z8 mt-2">
+  <table mat-table [dataSource]="dataSource" matSort>
+
+    <!-- ID -->
+    <ng-container matColumnDef="idVentaDetalleSerial">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Id </th>
+      <td mat-cell *matCellDef="let row"> {{row.idVentaDetalleSerial}} </td>
+    </ng-container>
+
+
+    <ng-container matColumnDef="idDetalleVenta">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Id Detalle Venta </th>
+      <td mat-cell *matCellDef="let row"> {{ row.fkDetalleVenta?.idDetalleVenta }} </td>
+    </ng-container>
+
+  
+    <ng-container matColumnDef="idProductoSerial">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Id Serial </th>
+      <td mat-cell *matCellDef="let row"> {{ row.fkProductoSerial?.idProductoSerial }} </td>
+    </ng-container>
+
+    <!-- Acciones -->
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let row">
+        <button mat-icon-button color="primary" (click)="abrirFormulario(row)" matTooltip="Editar">
+          <i class="ti ti-edit f-18"></i>
+        </button>
+
+        <button mat-icon-button color="warn" (click)="eliminar(row)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <!-- Header y filas -->
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+    <!-- Fila vacía -->
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" colspan="10">
+        No hay datos que coincidan con "{{input.value}}"
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
+</div>

@@ -12,7 +12,16 @@ const routes: Routes = [
       {
         path: 'color',
         loadComponent: () => import('./color/color.component')
+      },
+      {
+        path: 'ubicacion',
+        loadComponent: () => import('./ubicacion/ubicacion.component')
+      },
+       {
+        path: 'ventaDetalleSerial',
+        loadComponent: () => import('./ventaDetalleSerial/ventaDetalleSerial.component')
       }
+      
     ]
   }
 ];

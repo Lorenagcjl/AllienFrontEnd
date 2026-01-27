@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>Nuevo </h2>
+
+<mat-dialog-content> 
+  <form [formGroup]="vtsForm" class="row">
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Id Detalle Venta</mat-label>
+        <input matInput formControlName="idDetalleVenta">
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Id Serial</mat-label>
+        <input matInput formControlName="idProductoSerial">
+      </mat-form-field>
+    </div>
+
+  
+    <!-- mismo lugar donde tú tienes el mat-error -->
+    <mat-error *ngIf="vtsForm.invalid">
+      Complete los campos obligatorios correctamente
+    </mat-error>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancelar</button>
+  <button mat-raised-button
+          color="primary"
+          [disabled]="vtsForm.invalid"
+          (click)="save()">
+    Guardar
+  </button>
+</mat-dialog-actions>
