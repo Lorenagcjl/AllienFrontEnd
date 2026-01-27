@@ -133,17 +133,17 @@ export const menus: Navigation[] = [
         icon: '#custom-level',
         children: [
           {
-            id: 'compra',
-            title: 'Compra',
+            id: 'compraProducto',
+            title: 'Compra Producto',
             type: 'item',
-            url: '/component/compra',
+            url: '/component/compra-producto',
             roles: ['Administrador', 'Empleado']
           },
           {
-            id: 'detalleCompra',
-            title: 'Detalle Compra',
+            id: 'compraProductoDetalle',
+            title: 'Detalle Compra Producto',
             type: 'item',
-            url: '/component/detalle-compra',
+            url: '/component/compra-producto-detalle',
             roles: ['Administrador', 'Empleado']
           }
         ]

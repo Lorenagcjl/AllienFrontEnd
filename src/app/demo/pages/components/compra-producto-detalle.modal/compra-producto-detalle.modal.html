@@ -1,0 +1,81 @@
+<div class="backdrop" *ngIf="open" (click)="cerrar()"></div>
+
+<div class="modal" *ngIf="open" (click)="$event.stopPropagation()">
+  <div class="header">
+    <h3>{{ isEdit ? 'Editar Detalle' : 'Nuevo Detalle' }}</h3>
+    <button mat-button type="button" (click)="cerrar()">X</button>
+  </div>
+
+  <div class="body">
+    <!-- ✅ Compra (solo si NO viene fija por ruta) -->
+    <mat-form-field appearance="outline" class="w-100" *ngIf="!idCompraProductoFijo">
+      <mat-label>Compra</mat-label>
+      <mat-select [formControl]="form.controls.idCompraProducto">
+        <mat-option [value]="0" disabled>Seleccione...</mat-option>
+
+        <mat-option *ngFor="let c of compras" [value]="c.idCompraProducto">
+          #{{ c.idCompraProducto }} - Usuario: {{ c.fkUsuario?.idUsuario ?? '' }} - {{ c.fechaIngreso ?? '' }}
+        </mat-option>
+      </mat-select>
+
+      <mat-error *ngIf="form.controls.idCompraProducto.touched && form.controls.idCompraProducto.invalid">
+        Compra inválida.
+      </mat-error>
+    </mat-form-field>
+
+    <!-- ✅ Producto -->
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Producto</mat-label>
+      <mat-select [formControl]="form.controls.idProducto">
+        <mat-option [value]="0" disabled>Seleccione...</mat-option>
+
+        <mat-option *ngFor="let p of productos" [value]="p.idProducto">
+          {{ p.nombre }} (ID: {{ p.idProducto }})
+        </mat-option>
+      </mat-select>
+
+      <mat-error *ngIf="form.controls.idProducto.touched && form.controls.idProducto.invalid">
+        Producto inválido.
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Ubicación (sin servicio aún) -->
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>ID Ubicación</mat-label>
+      <input matInput type="number" [formControl]="form.controls.idUbicacion" />
+      <mat-error *ngIf="form.controls.idUbicacion.touched && form.controls.idUbicacion.invalid">
+        Ubicación inválida.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Cantidad</mat-label>
+      <input matInput type="number" [formControl]="form.controls.cantidad" />
+      <mat-error *ngIf="form.controls.cantidad.touched && form.controls.cantidad.invalid">
+        Cantidad inválida (mínimo 1).
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Costo Unitario</mat-label>
+      <input matInput type="number" [formControl]="form.controls.costoUnitario" />
+      <mat-error *ngIf="form.controls.costoUnitario.touched && form.controls.costoUnitario.invalid">
+        Costo inválido (mínimo 0).
+      </mat-error>
+    </mat-form-field>
+
+    <div class="mt-2">
+      <strong>Subtotal:</strong> {{ subtotal }}
+    </div>
+  </div>
+
+  <div class="footer">
+    <button mat-stroked-button type="button" (click)="cerrar()" [disabled]="loading">
+      Cancelar
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="guardar()" [disabled]="loading">
+      {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Guardar') }}
+    </button>
+  </div>
+</div>

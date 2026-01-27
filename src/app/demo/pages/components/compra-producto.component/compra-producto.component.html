@@ -1,35 +1,33 @@
 <mat-form-field appearance="outline" class="w-100">
-  <mat-label>Buscar serial</mat-label>
-  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. ABC123" #input>
+  <mat-label>Buscar compra</mat-label>
+  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. 12, usuario, fecha..." #input>
 </mat-form-field>
 
 <button mat-raised-button color="primary" (click)="abrirFormulario()">
-  <i class="ti ti-plus"></i> Nuevo Serial
+  <i class="ti ti-plus"></i> Nueva Compra
 </button>
 
 <div class="mat-elevation-z8">
   <table mat-table [dataSource]="dataSource" matSort>
 
-    <ng-container matColumnDef="idProducto">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>ID Producto</th>
-      <td mat-cell *matCellDef="let row">{{ row.idProducto }}</td>
+    <ng-container matColumnDef="idCompraProducto">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+      <td mat-cell *matCellDef="let row">{{ row.idCompraProducto }}</td>
     </ng-container>
 
-    <ng-container matColumnDef="producto">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Producto</th>
-      <td mat-cell *matCellDef="let row">{{ getNombreProducto(row.idProducto) }}</td>
+    <ng-container matColumnDef="fechaIngreso">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha</th>
+      <td mat-cell *matCellDef="let row">{{ row.fechaIngreso }}</td>
     </ng-container>
 
-    <ng-container matColumnDef="serial">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Serial</th>
-      <td mat-cell *matCellDef="let row">{{ row.serial }}</td>
+    <ng-container matColumnDef="usuario">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Usuario</th>
+      <td mat-cell *matCellDef="let row">{{ row.fkUsuario?.idUsuario ?? '' }}</td>
     </ng-container>
 
-    <ng-container matColumnDef="estado">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
-      <td mat-cell *matCellDef="let row">
-        <span class="badge bg-light-primary text-primary">{{ row.estado }}</span>
-      </td>
+    <ng-container matColumnDef="observaciones">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Observaciones</th>
+      <td mat-cell *matCellDef="let row">{{ row.observaciones }}</td>
     </ng-container>
 
     <ng-container matColumnDef="acciones">
@@ -56,7 +54,7 @@
   <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
 </div>
 
-<!-- ✅ MODAL -->
-<app-producto-serial-modal [open]="modalOpen" [seleccionado]="serialSeleccionado" (closed)="cerrarModal()"
+<!-- MODAL -->
+<app-compra-producto-modal [open]="modalOpen" [seleccionado]="seleccionado" (closed)="cerrarModal()"
   (saved)="onSaved()">
-</app-producto-serial-modal>
+</app-compra-producto-modal>

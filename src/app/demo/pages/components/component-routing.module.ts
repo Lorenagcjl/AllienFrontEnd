@@ -26,12 +26,8 @@ const routes: Routes = [
         loadComponent: () => import('./producto-serial.component/producto-serial.component')
       },
       {
-        path: 'compra',
-        loadComponent: () => import('./compra.component/compra.component')
-      },
-      {
-        path: 'detalle-compra',
-        loadComponent: () => import('./compra-detalle.component/compra-detalle.component')
+        path: 'compra-producto',
+        loadComponent: () => import('./compra-producto.component/compra-producto.component'),
       },
       {
         path: 'movimiento',
@@ -48,7 +44,17 @@ const routes: Routes = [
       {
         path: 'ubicacion',
         loadComponent: () => import('./ubicacion/ubicacion.component')
-      }
+      },
+      {
+        path: 'compra-producto-detalle',
+        loadComponent: () => import('./compra-producto-detalle.component/compra-producto-detalle.component'),
+      },
+
+      // ✅ OPCIONAL: ver detalles filtrados por compra
+      {
+        path: 'compra-producto-detalle/:idCompraProducto',
+        loadComponent: () => import('./compra-producto-detalle.component/compra-producto-detalle.component'),
+      },
     ]
   }
 ];

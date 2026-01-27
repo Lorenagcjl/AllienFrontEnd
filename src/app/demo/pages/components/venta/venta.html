@@ -19,7 +19,7 @@
   }
 
   <table mat-table [dataSource]="dataSource" matSort [class.loading-table]="cargando">
-
+    
     <ng-container matColumnDef="numeroFactura">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Factura </th>
       <td mat-cell *matCellDef="let row"> <b>{{row.numeroFactura}}</b> </td>
@@ -63,7 +63,7 @@
       <td class="mat-cell" colspan="6">
         <div class="text-center py-4">
           @if (cargando) {
-            <span class="text-muted">Cargando datos, por favor espere...</span>
+            <span class="text-muted">Cargando datos...</span>
           } @else {
             <span class="text-muted">No hay datos que coincidan con "{{input.value}}"</span>
           }
@@ -72,7 +72,7 @@
     </tr>
   </table>
 
-  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página" [disabled]="cargando"></mat-paginator>
+  <mat-paginator [pageSizeOptions]="[5, 10, 25]" [disabled]="cargando"></mat-paginator>
 </div>
 
 @if (modalOpen) {

@@ -27,7 +27,7 @@ import DetalleventaComponent from '../detalleventa/detalleventa';
     MatPaginatorModule, 
     MatDialogModule, 
     MatProgressBarModule,
-    VentaformComponent
+    VentaformComponent // Importante para usarlo en el HTML
   ],
   templateUrl: './venta.html',
   styleUrls: ['./venta.scss'],
@@ -39,7 +39,7 @@ export default class VentaComponent implements OnInit, AfterViewInit {
 
   // Propiedades de estado idénticas a Usuarios
   modalOpen = false;
-  ventaParaEditar?: VentaResponse; // Por si necesitas editar en el futuro
+  ventaParaEditar?: VentaResponse;
   cargando: boolean = false;
 
   displayedColumns: string[] = ['numeroFactura', 'fechaVenta', 'cliente', 'usuario', 'total', 'acciones'];
@@ -61,26 +61,18 @@ export default class VentaComponent implements OnInit, AfterViewInit {
       },
       error: (err) => {
         this.cargando = false;
-        const msg = this.alertService.getErrorMessage(err);
-        this.alertService.error('Error', msg || 'No se pudieron cargar las ventas');
+        this.alertService.error('Error', 'No se pudieron cargar las ventas');
       }
     });
   }
 
-  // Ajustado a la lógica de abrirFormulario de Usuarios
-  nuevaVenta() {
-    const dialogRef = this.dialog.open(VentaformComponent, {
-      width: '700px',
-      disableClose: true
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.cargarVentas();
-      }
-    });
+  // Ahora funciona igual que abrirFormulario(usuario)
+  nuevaVenta(venta?: VentaResponse) {
+    this.ventaParaEditar = venta;
+    this.modalOpen = true;
   }
 
+  // Mantenemos MatDialog solo para el detalle (que suele ser más complejo/grande)
   verDetalle(venta: VentaResponse) {
     const dialogRef = this.dialog.open(DetalleventaComponent, {
       width: '1000px',
@@ -93,7 +85,6 @@ export default class VentaComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // Métodos de control de modal consistentes con Usuarios
   cerrarModal() {
     this.modalOpen = false;
     this.ventaParaEditar = undefined;

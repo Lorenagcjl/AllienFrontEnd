@@ -1,4 +1,5 @@
 import { AfterViewInit, Component, ViewChild, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -7,38 +8,42 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { SharedModule } from 'src/app/demo/shared/shared.module';
 import { ClienteService } from 'src/app/@theme/services/cliente.service';
 import { Cliente } from 'src/app/demo/models/cliente.model';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { AlertService } from 'src/app/@theme/services/alert.service';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ClienteFormComponent } from '../cliform/cliente-form.component';
-import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-cliente',
+  standalone: true,
   imports: [
+    CommonModule,
     SharedModule,
     MatFormFieldModule,
     MatInputModule,
     MatTableModule,
     MatSortModule,
     MatPaginatorModule,
-    MatDialogModule
+    MatProgressBarModule,
+    ClienteFormComponent // El formulario manual
   ],
   templateUrl: './color.component.html',
   styleUrls: ['./color.component.scss']
 })
 export default class ClienteComponent implements OnInit, AfterViewInit {
-  private dialog = inject(MatDialog);
+  private clienteService = inject(ClienteService);
+  private alertService = inject(AlertService);
 
-  // Columnas que coinciden con la entidad Cliente
+  // Propiedades de estado idénticas a Usuarios
+  modalOpen = false;
+  clienteParaEditar?: Cliente;
+  cargando: boolean = false;
+
   displayedColumns: string[] = [
     'idCliente',
-    'primerNombre',
-    'segundoNombre',
-    'primerApellido',
-    'segundoApellido',
+    'nombreCompleto', // Sugerencia: combinar nombres en el HTML
     'documento',
     'telefono',
     'email',
-    'direccion',
     'acciones'
   ];
 
@@ -47,90 +52,68 @@ export default class ClienteComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  private clienteService = inject(ClienteService);
-
   ngOnInit() {
     this.cargarClientes();
   }
 
   cargarClientes() {
+    this.cargando = true;
     this.clienteService.listarClientes().subscribe({
       next: (data) => {
         this.dataSource.data = data;
-      },
-      error: (err) => console.error('Error al cargar clientes', err)
-    });
-  }
-
-  abrirFormulario(cliente?: Cliente) {
-    const dialogRef = this.dialog.open(ClienteFormComponent, {
-      width: '600px',
-      disableClose: true,
-      data: cliente || null
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-  if (result) {
-    const observable = result.idCliente
-      ? this.clienteService.actualizar(result.idCliente, result)
-      : this.clienteService.guardar(result);
-
-    observable.subscribe({
-      next: () => {
-        Swal.fire({
-          toast: true,
-          position: 'top-end',
-          icon: 'success',
-          title: `Cliente ${result.idCliente ? 'actualizado' : 'guardado'}`,
-          showConfirmButton: false,
-          timer: 2000
-        });
-        this.cargarClientes();
+        this.cargando = false;
       },
       error: (err) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo guardar el cliente: ' + (err.error?.message || err.message)
-        });
+        this.cargando = false;
+        this.alertService.error('Error', 'No se pudieron cargar los clientes');
       }
     });
   }
-});
 
+  // Abrir formulario manual (igual que Usuarios)
+  abrirFormulario(cliente?: Cliente) {
+    this.clienteParaEditar = cliente;
+    this.modalOpen = true;
   }
 
-  eliminar(cliente: Cliente) {
-    if (!cliente?.idCliente) {
-      console.error('ID de cliente inválido', cliente);
-      return;
+  cerrarModal() {
+    this.modalOpen = false;
+    this.clienteParaEditar = undefined;
+  }
+
+  onSaved(exito: boolean) {
+    if (exito) {
+      this.cerrarModal();
+      this.cargarClientes();
     }
+  }
 
-    Swal.fire({
-      title: '¿Eliminar cliente?',
-      text: `Se eliminará "${cliente.primerNombre} ${cliente.primerApellido}"`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonText: 'Cancelar',
-      confirmButtonText: 'Sí, eliminar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        this.clienteService.eliminar(cliente.idCliente!).subscribe(() => {
-          Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'success',
-            title: 'Cliente eliminado',
-            showConfirmButton: false,
-            timer: 3000
-          });
+  async eliminar(cliente: Cliente) {
+    if (!cliente?.idCliente) return;
 
+    const confirmado = await this.alertService.confirm(
+      '¿Eliminar cliente?',
+      `¿Estás seguro de eliminar a ${cliente.primerNombre} ${cliente.primerApellido}?`,
+      'Sí, eliminar'
+    );
+
+    if (confirmado) {
+      this.cargando = true;
+      const loadingId = this.alertService.loading('Eliminando...', 'Procesando solicitud');
+
+      this.clienteService.eliminar(cliente.idCliente).subscribe({
+        next: () => {
+          this.alertService.close(loadingId);
+          this.alertService.toast('success', 'Cliente eliminado correctamente');
           this.cargarClientes();
-        });
-
-      }
-    });
+        },
+        error: (err) => {
+          this.cargando = false;
+          this.alertService.close(loadingId);
+          this.alertService.error('Error', this.alertService.getErrorMessage(err));
+        }
+      });
+    }
   }
 
   ngAfterViewInit() {

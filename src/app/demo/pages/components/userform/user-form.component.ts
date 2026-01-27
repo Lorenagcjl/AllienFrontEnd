@@ -20,7 +20,7 @@ export class UserFormComponent implements OnInit {
   private usuarioService = inject(UsuarioService);
   private alertService = inject(AlertService);
 
-  @Input() usuarioSeleccionado?: Usuario; // Recibe datos para editar
+  @Input() usuarioSeleccionado?: Usuario;
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<boolean>();
 
