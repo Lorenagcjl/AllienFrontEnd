@@ -45,6 +45,10 @@ const routes: Routes = [
         path: 'venta-detalle-serial',
         loadComponent: () => import('./venta-detalle-serial/venta-detalle-serial')
       },
+      {
+        path: 'ubicacion',
+        loadComponent: () => import('./ubicacion/ubicacion.component')
+      }
     ]
   }
 ];

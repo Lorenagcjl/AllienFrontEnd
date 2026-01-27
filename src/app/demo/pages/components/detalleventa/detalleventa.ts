@@ -121,7 +121,7 @@ private verificarStock() {
     next: (res) => this.productos = res
   });
 
-  this.ubicacionService.listar().subscribe({
+  this.ubicacionService.listarUbicacions().subscribe({
     next: (res) => {
       this.ubicaciones = res;
       const uLocal = res.find(u => u.nombre.toLowerCase() === 'local');

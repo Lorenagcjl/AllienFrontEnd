@@ -44,7 +44,7 @@ export const menus: Navigation[] = [
       },
       {
         id: 'color',
-        title: 'Clientes',
+        title: 'Cliente',
         type: 'item',
         classes: 'nav-item',
         url: '/component/color',
@@ -59,7 +59,16 @@ export const menus: Navigation[] = [
         url: '/component/movimiento',
         icon: '#custom-text-block',
         roles: ['Administrador']
+      },
+      {
 
+        id: 'ubicacion',
+        title: 'Ubicacion',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/ubicacion',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
       },
       // {
       //   id: 'movimiento-detalle',
