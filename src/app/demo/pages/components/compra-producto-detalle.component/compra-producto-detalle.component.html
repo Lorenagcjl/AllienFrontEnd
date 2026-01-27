@@ -1,0 +1,75 @@
+<mat-form-field appearance="outline" class="w-100">
+  <mat-label>Buscar detalle</mat-label>
+  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. producto, ubicacion, compra..." #input>
+</mat-form-field>
+
+<button mat-raised-button color="primary" (click)="abrirFormulario()">
+  <i class="ti ti-plus"></i> Nuevo Detalle
+</button>
+
+<div class="mat-elevation-z8">
+  <table mat-table [dataSource]="dataSource" matSort>
+
+    <ng-container matColumnDef="idCompraProductoDetalle">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+      <td mat-cell *matCellDef="let row">{{ row.idCompraProductoDetalle }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="idCompraProducto">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Compra</th>
+      <td mat-cell *matCellDef="let row">{{ row.fkCompraProducto?.idCompraProducto }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="idProducto">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Producto</th>
+      <td mat-cell *matCellDef="let row">{{ row.fkProducto?.idProducto }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="idUbicacion">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Ubicación</th>
+      <td mat-cell *matCellDef="let row">{{ row.fkUbicacion?.idUbicacion }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="cantidad">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Cantidad</th>
+      <td mat-cell *matCellDef="let row">{{ row.cantidad }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="costoUnitario">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Costo</th>
+      <td mat-cell *matCellDef="let row">{{ row.costoUnitario }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="subtotal">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Subtotal</th>
+      <td mat-cell *matCellDef="let row">{{ (row.cantidad ?? 0) * (row.costoUnitario ?? 0) }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef>Acciones</th>
+      <td mat-cell *matCellDef="let row">
+        <button mat-icon-button color="primary" (click)="editar(row)" matTooltip="Editar">
+          <i class="ti ti-edit f-18"></i>
+        </button>
+
+        <button mat-icon-button color="warn" (click)="eliminar(row)" matTooltip="Eliminar">
+          <i class="ti ti-trash f-18"></i>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" colspan="8">No hay datos que coincidan con "{{ input.value }}"</td>
+    </tr>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
+</div>
+
+<!-- MODAL -->
+<app-compra-producto-detalle-modal [open]="modalOpen" [seleccionado]="seleccionado"
+  [idCompraProductoFijo]="idCompraProductoFijo" (closed)="cerrarModal()" (saved)="onSaved()">
+</app-compra-producto-detalle-modal>

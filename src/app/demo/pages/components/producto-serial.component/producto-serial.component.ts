@@ -1,6 +1,5 @@
 import { AfterViewInit, Component, ViewChild, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
@@ -8,10 +7,14 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 
 import { ProductoSerialService } from 'src/app/@theme/services/producto-serial.service';
-import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
-import { ProductoSerialFormDialog } from '../producto-serial-form.dialog/producto-serial-form.dialog';
 import { ProductoService } from 'src/app/@theme/services/producto.service';
+import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
 import { Producto } from 'src/app/demo/models/producto.model';
+
+import { ProductoSerialModal } from '../producto-serial.modal/producto-serial.modal';
+
+// ✅ AlertService
+import { AlertService } from 'src/app/@theme/services/alert.service'; // ajusta ruta
 
 @Component({
   selector: 'app-producto-serial',
@@ -23,15 +26,15 @@ import { Producto } from 'src/app/demo/models/producto.model';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatDialogModule
+    ProductoSerialModal,
   ],
   templateUrl: './producto-serial.component.html',
   styleUrls: ['./producto-serial.component.scss'],
 })
 export default class ProductoSerialComponent implements AfterViewInit {
   private readonly productoSerialService = inject(ProductoSerialService);
-  private readonly dialog = inject(MatDialog);
   private readonly productoService = inject(ProductoService);
+  private readonly alert = inject(AlertService); // ✅
 
   displayedColumns: string[] = ['idProducto', 'producto', 'serial', 'estado', 'acciones'];
   dataSource = new MatTableDataSource<ProductoSerial>([]);
@@ -40,11 +43,13 @@ export default class ProductoSerialComponent implements AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
+  modalOpen = false;
+  serialSeleccionado?: ProductoSerial;
+
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
 
-    // filtro: por serial/estado/idProducto
     this.dataSource.filterPredicate = (row, filter) => {
       const f = filter.trim().toLowerCase();
       const nombre = (this.productosMap.get(row.idProducto)?.nombre ?? '').toLowerCase();
@@ -61,25 +66,26 @@ export default class ProductoSerialComponent implements AfterViewInit {
     this.cargarSeriales();
   }
 
-  cargarSeriales(): void {
+  cargarSeriales(showLoading = true): void {
+    const loadingId = showLoading ? this.alert.loading('Cargando...', 'Listando seriales...') : undefined;
+
     this.productoSerialService.listarProductosSerial().subscribe({
       next: (data: any[]) => {
-        console.log('listarProductosSerial() raw =>', data);
-
         const mapped: ProductoSerial[] = (data ?? []).map(x => ({
           idProductoSerial: x.idProductoSerial,
-          idProducto: x.fkProducto?.idProducto,   // <- AQUÍ está el id
+          idProducto: x.fkProducto?.idProducto,
           serial: x.serial,
           estado: x.estado
         }));
 
-        console.table(mapped);
         this.dataSource.data = mapped;
+
+        if (showLoading) this.alert.close(loadingId);
       },
-      error: (err) => {
-        console.error('Error listando producto-serial', err);
-        console.error('Detalle backend:', err?.error);
+      error: async (err) => {
+        if (showLoading) this.alert.close(loadingId);
         this.dataSource.data = [];
+        await this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudieron listar seriales.'));
       }
     });
   }
@@ -90,19 +96,6 @@ export default class ProductoSerialComponent implements AfterViewInit {
     this.dataSource.paginator?.firstPage();
   }
 
-  abrirFormulario(row?: ProductoSerial): void {
-    const ref = this.dialog.open(ProductoSerialFormDialog, {
-      width: '800px',
-      data: { productoSerial: row }
-    });
-
-    ref.afterClosed().subscribe((ok) => {
-      if (ok) this.cargarSeriales();
-    });
-  }
-
-
-
   getNombreProducto(idProducto: number): string {
     return this.productosMap.get(idProducto)?.nombre ?? '';
   }
@@ -110,65 +103,55 @@ export default class ProductoSerialComponent implements AfterViewInit {
   private cargarProductosParaMap(): void {
     this.productoService.listarProductos().subscribe({
       next: (prods) => {
-        console.log('listarProductos() =>', prods);
-        console.table(prods);
-
         this.productosMap = new Map((prods ?? []).map(p => [p.idProducto, p]));
-        console.log('productosMap keys =>', Array.from(this.productosMap.keys()));
-
-        // refresco visual
         this.dataSource.data = [...this.dataSource.data];
       },
       error: (err) => console.error('Error cargando productos', err)
     });
   }
 
-  editar(row: ProductoSerial): void {
-    const id = row?.idProductoSerial;
-    if (!id) return;
-
-    // 1) Consultar por id para traer los datos reales
-    this.productoSerialService.obtenerPorId(id).subscribe({
-      next: (full: any) => {
-        // 2) Mapear (porque el backend trae fkProducto.idProducto)
-        const mapped: ProductoSerial = {
-          idProductoSerial: full.idProductoSerial,
-          idProducto: full.fkProducto?.idProducto,
-          serial: full.serial,
-          estado: full.estado
-        };
-
-        // 3) Abrir modal con datos
-        const ref = this.dialog.open(ProductoSerialFormDialog, {
-          width: '800px',
-          data: { productoSerial: mapped }
-        });
-
-        ref.afterClosed().subscribe((ok) => {
-          if (ok) this.cargarSeriales();
-        });
-      },
-      error: (err) => {
-        console.error('Error consultando producto-serial por id', err);
-        console.error('Detalle backend:', err?.error);
-      }
-    });
+  abrirFormulario(): void {
+    this.serialSeleccionado = undefined;
+    this.modalOpen = true;
   }
 
-  eliminar(row: ProductoSerial): void {
+  editar(row: ProductoSerial): void {
+    this.serialSeleccionado = row;
+    this.modalOpen = true;
+  }
+
+  async eliminar(row: ProductoSerial): Promise<void> {
     const id = row?.idProductoSerial;
     if (!id) return;
 
-    const ok = confirm(`¿Eliminar el serial "${row.serial}"?`);
+    const ok = await this.alert.confirm(
+      'Eliminar serial',
+      `¿Eliminar el serial "${row.serial}"?`,
+      'Sí, eliminar',
+      'Cancelar'
+    );
     if (!ok) return;
 
+    const loadingId = this.alert.loading('Eliminando...', 'Por favor espera.');
     this.productoSerialService.eliminarProductoSerial(id).subscribe({
-      next: () => this.cargarSeriales(),
-      error: (err) => {
-        console.error('Error eliminando producto-serial', err);
-        console.error('Detalle backend:', err?.error);
+      next: async () => {
+        this.alert.close(loadingId);
+        await this.alert.toast('success', 'Eliminado');
+        this.cargarSeriales();
+      },
+      error: async (err) => {
+        this.alert.close(loadingId);
+        await this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo eliminar.'));
       }
     });
   }
 
+  cerrarModal(): void {
+    this.modalOpen = false;
+  }
+
+  onSaved(): void {
+    this.cargarSeriales(false); // ✅ no abre loading Swal
+    this.cerrarModal();
+  }
 }

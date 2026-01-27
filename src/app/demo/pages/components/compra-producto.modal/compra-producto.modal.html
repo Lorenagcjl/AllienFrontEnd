@@ -1,0 +1,44 @@
+<div class="backdrop" *ngIf="open" (click)="cerrar()"></div>
+
+<div class="modal" *ngIf="open" (click)="$event.stopPropagation()">
+  <div class="header">
+    <h3>{{ isEdit ? 'Editar Compra' : 'Nueva Compra' }}</h3>
+    <button mat-button type="button" (click)="cerrar()">X</button>
+  </div>
+
+  <div class="body">
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Fecha ingreso</mat-label>
+      <input matInput type="datetime-local" [formControl]="form.controls.fechaIngreso" />
+      <mat-error *ngIf="form.controls.fechaIngreso.touched && form.controls.fechaIngreso.hasError('required')">
+        La fecha es obligatoria.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>ID Usuario</mat-label>
+      <input matInput type="number" [formControl]="form.controls.idUsuario" />
+      <mat-error *ngIf="form.controls.idUsuario.touched && form.controls.idUsuario.invalid">
+        Usuario inválido.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Observaciones</mat-label>
+      <input matInput [formControl]="form.controls.observaciones" />
+      <mat-error *ngIf="form.controls.observaciones.touched && form.controls.observaciones.hasError('maxlength')">
+        Máximo 500 caracteres.
+      </mat-error>
+    </mat-form-field>
+  </div>
+
+  <div class="footer">
+    <button mat-stroked-button type="button" (click)="cerrar()" [disabled]="loading">
+      Cancelar
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="guardar()" [disabled]="loading">
+      {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Guardar') }}
+    </button>
+  </div>
+</div>

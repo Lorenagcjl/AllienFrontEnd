@@ -1,0 +1,60 @@
+<div class="backdrop" *ngIf="open" (click)="cerrar()"></div>
+
+<div class="modal" *ngIf="open" (click)="$event.stopPropagation()">
+  <div class="header">
+    <h3>{{ isEdit ? 'Editar Serial' : 'Nuevo Serial' }}</h3>
+    <button mat-button type="button" (click)="cerrar()">X</button>
+  </div>
+
+  <div class="body">
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Producto</mat-label>
+      <mat-select [formControl]="form.controls.idProducto">
+        <mat-option [value]="0" disabled>Seleccione...</mat-option>
+        <mat-option *ngFor="let p of productosConSerial" [value]="p.idProducto">
+          {{ p.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="form.controls.idProducto.touched && form.controls.idProducto.invalid">
+        Seleccione un producto válido.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Serial</mat-label>
+      <input matInput [formControl]="form.controls.serial" placeholder="Ej. SN-ABC-002" />
+      <mat-error *ngIf="form.controls.serial.touched && form.controls.serial.hasError('required')">
+        El serial es obligatorio.
+      </mat-error>
+      <mat-error *ngIf="form.controls.serial.touched && form.controls.serial.hasError('maxlength')">
+        Máximo 80 caracteres.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Estado</mat-label>
+      <mat-select [formControl]="form.controls.estado">
+        <mat-option value="" disabled>Seleccione...</mat-option>
+        <mat-option *ngFor="let e of estados" [value]="e">
+          {{ e }}
+        </mat-option>
+      </mat-select>
+
+      <mat-error *ngIf="form.controls.estado.touched && form.controls.estado.hasError('required')">
+        El estado es obligatorio.
+      </mat-error>
+    </mat-form-field>
+
+    <div class="error" *ngIf="errorMsg">{{ errorMsg }}</div>
+  </div>
+
+  <div class="footer">
+    <button mat-stroked-button type="button" (click)="cerrar()" [disabled]="loading">
+      Cancelar
+    </button>
+
+    <button mat-raised-button color="primary" type="button" (click)="guardar()" [disabled]="loading">
+      {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Guardar') }}
+    </button>
+  </div>
+</div>
