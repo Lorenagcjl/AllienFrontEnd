@@ -17,7 +17,6 @@ export class VentaService {
   }
   
   guardarVenta(venta: VentaRequest, idUsuario: number): Observable<VentaResponse> {
-    // Enviamos el idUsuario como Query Parameter (?idUsuario=X)
     return this.http.post<VentaResponse>(`${this.apiUrl}?idUsuario=${idUsuario}`, venta);
   }
 }

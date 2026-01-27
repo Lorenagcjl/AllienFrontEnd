@@ -28,3 +28,19 @@
 
 // grid
 @import './app/@theme/styles/grid';
+
+
+/* Se aplica porque el container tendrá la clase swal-above-cdk */
+.swal-above-cdk.swal2-container {
+  z-index: 2147483647 !important;
+}
+
+/* Popup */
+.swal-above-cdk .swal2-popup {
+  z-index: 2147483647 !important;
+}
+
+/* Backdrop (es un elemento dentro del container con esta clase) */
+.swal-above-cdk .swal2-backdrop-show {
+  z-index: 2147483646 !important;
+}

@@ -117,7 +117,7 @@ private verificarStock() {
   }
 }
   cargarCatalogos() {
-  this.productoService.listar().subscribe({
+  this.productoService.listarProductos().subscribe({
     next: (res) => this.productos = res
   });
 
