@@ -83,6 +83,17 @@ export default class Movimiento {
       data: movimiento // Aquí pasas el objeto de la fila
     });
   }
+
+  eliminarMovimiento(movimiento: MovimientoModel) {
+    if (confirm('¿Está seguro de que desea eliminar este movimiento?')) {
+      this.movimientoService.eliminar(movimiento.idMovimiento).subscribe({
+        next: () => {
+          this.cargarMovimientos();
+        },
+        error: (err) => console.error('Error al eliminar movimiento', err)
+      });
+    }
+  }
   ngAfterViewInit() {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;

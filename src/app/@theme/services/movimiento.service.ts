@@ -14,11 +14,15 @@ export class MovimientoService {
         return this.http.get<MovimientoModel[]>(this.apiUrl);
     }
 
-    guardar(movimiento: MovimientoModel): Observable<any> {
+    guardar(movimiento: Partial<MovimientoModel> | Record<string, unknown>): Observable<any> {
         return this.http.post(this.apiUrl, movimiento);
     }
 
-    actualizar(id: number, movimiento: MovimientoModel): Observable<any> {
+    actualizar(id: number, movimiento: Partial<MovimientoModel> | Record<string, unknown>): Observable<any> {
         return this.http.put(`${this.apiUrl}/${id}`, movimiento);
+    }
+
+    eliminar(id: number): Observable<any> {
+        return this.http.delete(`${this.apiUrl}/${id}`);
     }
 }

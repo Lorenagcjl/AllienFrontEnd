@@ -52,39 +52,62 @@ export class MovimientoFormComponent implements OnInit {
 
         if (this.data) {
             // MODO EDICIÓN
-            const patch = { ...this.data };
+            console.log('📋 Datos recibidos del backend:', this.data); // 🔍 DEBUG
 
-            // 1. Corregir el Usuario (Viene como fkUsuario en tu DTO)
-            if (this.data.fkUsuario) {
+            const patch: any = {
+                idMovimiento: this.data.idMovimiento,
+                fechaMovimiento: this.data.fechaMovimiento ? new Date(this.data.fechaMovimiento) : null,
+                tipo: this.data.tipo,
+                observaciones: this.data.observaciones,
+                idUbicacionOrigen: null,
+                idUbicacionDestino: null,
+                idUsuario: null
+            };
+
+            // Extraer ID del Usuario
+            if (this.data.fkUsuario?.idUsuario) {
                 patch.idUsuario = this.data.fkUsuario.idUsuario;
             }
 
-            // 2. Corregir Ubicaciones (Asegurar que tomamos el ID plano si vienen como objetos)
-            if (patch.idUbicacionOrigen && typeof patch.idUbicacionOrigen === 'object') {
-                patch.idUbicacionOrigen = patch.idUbicacionOrigen.idUbicacion;
-            }
-            if (patch.idUbicacionDestino && typeof patch.idUbicacionDestino === 'object') {
-                patch.idUbicacionDestino = patch.idUbicacionDestino.idUbicacion;
-            }
+            // Extraer IDs de Ubicaciones
+            // El backend puede enviar solo el ID (Long) o un objeto completo
+            patch.idUbicacionOrigen = this.data.idUbicacionOrigen;
+            patch.idUbicacionDestino = this.data.idUbicacionDestino;
 
-            // 3. Importante: Si la fecha viene como string de API, 
-            // a veces MatDatepicker necesita un objeto Date real
-            if (patch.fechaMovimiento) {
-                patch.fechaMovimiento = new Date(patch.fechaMovimiento);
-            }
+            console.log('🔧 Patch aplicado al formulario:', patch); // 🔍 DEBUG
 
             this.movimientoForm.patchValue(patch);
-        } else {
-            this.movimientoForm.reset();
         }
     }
 
     save() {
         if (this.movimientoForm.valid) {
-            const movimiento = this.movimientoForm.value;
-            const request = movimiento.idMovimiento
-                ? this.movimientoService.actualizar(movimiento.idMovimiento, movimiento)
-                : this.movimientoService.guardar(movimiento);
+            const formValue = this.movimientoForm.value;
+
+            // Construir el objeto que espera el backend
+            const movimientoRequest: {
+                idMovimiento: number | null;
+                fechaMovimiento: Date;
+                tipo: string;
+                observaciones: string;
+                idUbicacionOrigen: number;
+                idUbicacionDestino: number;
+                fkUsuario: { idUsuario: number };
+            } = {
+                idMovimiento: formValue.idMovimiento,
+                fechaMovimiento: formValue.fechaMovimiento,
+                tipo: formValue.tipo,
+                observaciones: formValue.observaciones,
+                idUbicacionOrigen: formValue.idUbicacionOrigen,
+                idUbicacionDestino: formValue.idUbicacionDestino,
+                fkUsuario: {
+                    idUsuario: formValue.idUsuario
+                }
+            };
+
+            const request = movimientoRequest.idMovimiento
+                ? this.movimientoService.actualizar(movimientoRequest.idMovimiento, movimientoRequest)
+                : this.movimientoService.guardar(movimientoRequest);
 
             request.subscribe({
                 next: () => {
@@ -102,7 +125,7 @@ export class MovimientoFormComponent implements OnInit {
                     });
                     Toast.fire({
                         icon: 'success',
-                        title: movimiento.idMovimiento ? 'Movimiento actualizado' : 'Movimiento guardado'
+                        title: movimientoRequest.idMovimiento ? 'Movimiento actualizado' : 'Movimiento guardado'
                     });
                 },
                 error: (err: any) => {
