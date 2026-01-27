@@ -8,22 +8,40 @@ import { SharedModule } from 'src/app/demo/shared/shared.module';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { VentaService } from 'src/app/@theme/services/venta.service';
 import { CommonModule } from '@angular/common';
-import { VentaResponse } from 'src/app/demo/models/venta.model'; // Crea este modelo
-//import { VentaFormComponent } from '../venta-form/venta-form.component'; // El que crearemos
-import Swal from 'sweetalert2';
+import { VentaResponse } from 'src/app/demo/models/venta.model';
+import { AlertService } from 'src/app/@theme/services/alert.service';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { VentaformComponent } from '../ventaform/ventaform';
 import DetalleventaComponent from '../detalleventa/detalleventa';
 
 @Component({
   selector: 'app-venta',
-  imports: [CommonModule, SharedModule, MatFormFieldModule, MatInputModule, MatTableModule, MatSortModule, MatPaginatorModule, MatDialogModule],
+  standalone: true,
+  imports: [
+    CommonModule, 
+    SharedModule, 
+    MatFormFieldModule, 
+    MatInputModule, 
+    MatTableModule, 
+    MatSortModule, 
+    MatPaginatorModule, 
+    MatDialogModule, 
+    MatProgressBarModule,
+    VentaformComponent
+  ],
   templateUrl: './venta.html',
   styleUrls: ['./venta.scss'],
 })
-export default class VentaComponent implements OnInit, AfterViewInit{
-private dialog = inject(MatDialog);
+export default class VentaComponent implements OnInit, AfterViewInit {
+  private dialog = inject(MatDialog);
   private ventaService = inject(VentaService);
-  // Columnas para la tabla de ventas
+  private alertService = inject(AlertService);
+
+  // Propiedades de estado idénticas a Usuarios
+  modalOpen = false;
+  ventaParaEditar?: VentaResponse; // Por si necesitas editar en el futuro
+  cargando: boolean = false;
+
   displayedColumns: string[] = ['numeroFactura', 'fechaVenta', 'cliente', 'usuario', 'total', 'acciones'];
   dataSource = new MatTableDataSource<VentaResponse>([]);
 
@@ -33,16 +51,23 @@ private dialog = inject(MatDialog);
   ngOnInit() {
     this.cargarVentas();
   }
-  cargarVentas() {
-  this.ventaService.listarVentas().subscribe({
-    next: (data: VentaResponse[]) => {
-      this.dataSource.data = data;
-    },
-    error: (err) => console.error(err)
-  });
-}
 
- // Sigue la lógica de tu abrirFormulario de Usuarios
+  cargarVentas() {
+    this.cargando = true;
+    this.ventaService.listarVentas().subscribe({
+      next: (data: VentaResponse[]) => {
+        this.dataSource.data = data;
+        this.cargando = false;
+      },
+      error: (err) => {
+        this.cargando = false;
+        const msg = this.alertService.getErrorMessage(err);
+        this.alertService.error('Error', msg || 'No se pudieron cargar las ventas');
+      }
+    });
+  }
+
+  // Ajustado a la lógica de abrirFormulario de Usuarios
   nuevaVenta() {
     const dialogRef = this.dialog.open(VentaformComponent, {
       width: '700px',
@@ -51,24 +76,35 @@ private dialog = inject(MatDialog);
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.cargarVentas(); // Recarga la tabla si se guardó la venta
+        this.cargarVentas();
       }
     });
   }
 
-  // En venta.ts
-verDetalle(venta: VentaResponse) {
-  const dialogRef = this.dialog.open(DetalleventaComponent, {
-    width: '1000px',
-    data: venta,
-    disableClose: true
-  });
+  verDetalle(venta: VentaResponse) {
+    const dialogRef = this.dialog.open(DetalleventaComponent, {
+      width: '1000px',
+      data: venta,
+      disableClose: true
+    });
 
-  // ESTO ES LO NUEVO:
-  dialogRef.afterClosed().subscribe(() => {
-    this.cargarVentas(); // Esto vuelve a traer las ventas del backend con sus totales actualizados
-  });
-}
+    dialogRef.afterClosed().subscribe(() => {
+      this.cargarVentas();
+    });
+  }
+
+  // Métodos de control de modal consistentes con Usuarios
+  cerrarModal() {
+    this.modalOpen = false;
+    this.ventaParaEditar = undefined;
+  }
+
+  onSaved(exito: boolean) {
+    if (exito) {
+      this.cerrarModal();
+      this.cargarVentas();
+    }
+  }
 
   ngAfterViewInit() {
     this.dataSource.paginator = this.paginator;
