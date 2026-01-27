@@ -50,6 +50,34 @@ export const menus: Navigation[] = [
         url: '/component/color',
         icon: '#custom-clipboard',
         roles: ['Administrador', 'Empleado']
+      },
+      {
+        id: 'movimiento',
+        title: 'Movimiento',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/movimiento',
+        icon: '#custom-text-block',
+        roles: ['Administrador']
+
+      },
+      // {
+      //   id: 'movimiento-detalle',
+      //   title: 'Movimiento Detalle',
+      //   type: 'item',
+      //   classes: 'nav-item',
+      //   url: '/component/movimiento-detalle',
+      //   icon: '#custom-text-block',
+      //   roles: ['Administrador']
+      // },
+      {
+        id: 'venta-detalle-serial',
+        title: 'Venta Detalle Serial',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/venta-detalle-serial',
+        icon: '#custom-text-block',
+        roles: ['Administrador']
       }
     ]
   },

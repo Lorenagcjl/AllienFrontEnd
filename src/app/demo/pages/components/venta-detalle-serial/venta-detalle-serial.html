@@ -1,0 +1,74 @@
+<!-- <mat-form-field appearance="outline" class="w-100">
+  <mat-label>Buscar usuario</mat-label>
+  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. Lorena" #input>
+</mat-form-field> -->
+<!-- <button mat-raised-button color="primary" (click)="abrirFormulario()">
+    <i class="ti ti-plus"></i> Nuevo Usuario
+  </button> -->
+<div class="mat-elevation-z8">
+  <table mat-table [dataSource]="dataSource" matSort>
+    <!-- ID Serial -->
+    <ng-container matColumnDef="idVentaDetalleSerial">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+      <td mat-cell *matCellDef="let row">{{ row.idVentaDetalleSerial }}</td>
+    </ng-container>
+
+    <!-- Producto -->
+    <ng-container matColumnDef="producto">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Producto </th>
+      <td mat-cell *matCellDef="let row">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <img
+            *ngIf="row.fkProductoSerial?.fkProducto?.foto"
+            [src]="row.fkProductoSerial.fkProducto.foto"
+            alt="{{row.fkProductoSerial.fkProducto.nombre}}"
+            width="40"
+            height="40"
+            style="object-fit: cover; border-radius: 4px"
+          />
+          <div>
+            <div><strong>{{row.fkProductoSerial?.fkProducto?.nombre}}</strong></div>
+            <div>{{row.fkProductoSerial?.fkProducto?.descripcion}}</div>
+          </div>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Serial -->
+    <ng-container matColumnDef="serial">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Serial </th>
+      <td mat-cell *matCellDef="let row">{{ row.fkProductoSerial?.serial }}</td>
+    </ng-container>
+
+    <!-- Cliente -->
+    <ng-container matColumnDef="cliente">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Cliente </th>
+      <td mat-cell *matCellDef="let row"
+        >{{ row.fkDetalleVenta?.fkVenta?.fkCliente.primerNombre }} {{ row.fkDetalleVenta?.fkVenta?.fkCliente.primerApellido }}</td
+      >
+    </ng-container>
+
+    <!-- Usuario -->
+    <ng-container matColumnDef="usuario">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Usuario </th>
+      <td mat-cell *matCellDef="let row"
+        >{{ row.fkDetalleVenta?.fkVenta?.fkUsuario.primerNombre }} {{ row.fkDetalleVenta?.fkVenta?.fkUsuario.primerApellido }}</td
+      >
+    </ng-container>
+
+    <!-- Cantidad -->
+    <ng-container matColumnDef="cantidad">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Cantidad </th>
+      <td mat-cell *matCellDef="let row">{{ row.fkDetalleVenta?.cantidad }}</td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell" colspan="8">No hay datos que coincidan con "{{input.value}}"</td>
+    </tr>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
+</div>

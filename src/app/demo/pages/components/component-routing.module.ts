@@ -32,7 +32,19 @@ const routes: Routes = [
       {
         path: 'detalle-compra',
         loadComponent: () => import('./compra-detalle.component/compra-detalle.component')
-      }
+      },
+      {
+        path: 'movimiento',
+        loadComponent: () => import('./movimiento/movimiento')
+      },
+      // {
+      //   path: 'movimiento-detalle',
+      //   loadComponent: () => import('./movimiento-detalle/movimiento-detalle')
+      // },
+      {
+        path: 'venta-detalle-serial',
+        loadComponent: () => import('./venta-detalle-serial/venta-detalle-serial')
+      },
     ]
   }
 ];
@@ -41,4 +53,4 @@ const routes: Routes = [
   imports: [RouterModule.forChild(routes)],
   exports: [RouterModule]
 })
-export class ComponentRoutingModule {}
+export class ComponentRoutingModule { }
