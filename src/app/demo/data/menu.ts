@@ -61,11 +61,11 @@ export const menus: Navigation[] = [
         roles: ['Administrador', 'Empleado']
       },
       {
-        id: 'ventaDetalleSerial',
-        title: 'VentaDetalleSerial',
+        id: 'movimientoDetalleSerial',
+        title: 'MovimientoDetalleSerial',
         type: 'item',
         classes: 'nav-item',
-        url: '/component/ventaDetalleSerial',
+        url: '/component/movimientoDetalleSerial',
         icon: '#custom-clipboard',
         roles: ['Administrador', 'Empleado']
       }

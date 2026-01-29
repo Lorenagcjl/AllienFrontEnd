@@ -17,39 +17,39 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
     MatButtonModule,
     MatDialogModule
   ],
-  templateUrl: './vts-form.component.html',
-  styleUrls: ['./vts-form.component.scss']
+  templateUrl: './mds-form.component.html',
+  styleUrls: ['./mds-form.component.scss']
 })
-export class vtsFormComponent implements OnInit {
-  vtsForm!: FormGroup;
+export class mdsFormComponent implements OnInit {
+  mdsForm!: FormGroup;
 
   constructor(
     private fb: FormBuilder,
-    private dialogRef: MatDialogRef<vtsFormComponent>,
+    private dialogRef: MatDialogRef<mdsFormComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
   ) { }
 
   ngOnInit(): void {
-    this.vtsForm = this.fb.group({
-      idVentaDetalleSerial: [null],
+    this.mdsForm = this.fb.group({
+      idMovimientoDetalleSerial: [null],
       idDetalleVenta: [null, Validators.required],
       idProductoSerial: [null, Validators.required]
 
     });
 
     if (this.data) {
-      this.vtsForm.patchValue(this.data);
+      this.mdsForm.patchValue(this.data);
     }
   }
 
   save() {
-    if (this.vtsForm.invalid) return;
+    if (this.mdsForm.invalid) return;
 
-    const formValue = this.vtsForm.value;
+    const formValue = this.mdsForm.value;
 
     const payload = {
-      idVentaDetalleSerial: formValue.idVentaDetalleSerial ?? undefined,
-      fkDetalleVenta: {
+      idMovimientoDetalleSerial: formValue.idMovimientoDetalleSerial ?? undefined,
+      fkMovimientoDetalle: {
         idDetalleVenta: formValue.idDetalleVenta
       },
       fkProductoSerial: {

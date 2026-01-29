@@ -5,10 +5,10 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { SharedModule } from 'src/app/demo/shared/shared.module';
-import { vtsService } from 'src/app/@theme/services/vts.service';
-import { Vts } from 'src/app/demo/models/vts.model';
+import { mdsService } from 'src/app/@theme/services/mds.service';
+import { Mds } from 'src/app/demo/models/mds.model';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { vtsFormComponent } from '../vtsform/vts-form.component';
+import { mdsFormComponent } from '../mdsform/mds-form.component';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -22,41 +22,41 @@ import Swal from 'sweetalert2';
     MatPaginatorModule,
     MatDialogModule
   ],
-  templateUrl: './ventaDetalleSerial.component.html',
-  styleUrls: ['./ventaDetalleSerial.component.scss']
+  templateUrl: './movimientoDetalleSerial.component.html',
+  styleUrls: ['./movimientoDetalleSerial.component.scss']
 })
 export default class vtsComponent implements OnInit, AfterViewInit {
   private dialog = inject(MatDialog);
 
   // Columnas que coinciden con la entidad vts
   displayedColumns: string[] = [
-    'idVentaDetalleSerial',
-    'idDetalleVenta',
+    'idMovimientoDetalleSerial',
+    'idMovimientoDetalle',
     'idProductoSerial'
   ];
 
-  dataSource = new MatTableDataSource<Vts>([]);
+  dataSource = new MatTableDataSource<Mds>([]);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  private vtsService = inject(vtsService);
+  private mdsService = inject(mdsService);
 
   ngOnInit() {
-    this.cargarvtss();
+    this.cargarMds();
   }
 
-  cargarvtss() {
-    this.vtsService.listarvtss().subscribe({
+  cargarMds() {
+    this.mdsService.listarMds().subscribe({
       next: (data) => {
         this.dataSource.data = data;
       },
-      error: (err) => console.error('Error al cargar Venta', err)
+      error: (err) => console.error('Error al cargar Movimiento', err)
     });
   }
 
-  abrirFormulario(vts?: Vts) {
-    const dialogRef = this.dialog.open(vtsFormComponent, {
+  abrirFormulario(vts?: Mds) {
+    const dialogRef = this.dialog.open(mdsFormComponent, {
       width: '600px',
       disableClose: true,
       data: vts || null
@@ -65,8 +65,8 @@ export default class vtsComponent implements OnInit, AfterViewInit {
       if (result) {
 
         const payload = {
-          idVentaDetalleSerial: result.idVentaDetalleSerial ?? null,
-          fkDetalleVenta: {
+          idMovimientoDetalleSerial: result.idMovimientoDetalleSerial ?? null,
+          fkMovimientoDetalle: {
             idDetalleVenta: result.idDetalleVenta
           },
           fkProductoSerial: {
@@ -74,9 +74,9 @@ export default class vtsComponent implements OnInit, AfterViewInit {
           }
         };
 
-        const observable = payload.idVentaDetalleSerial
-          ? this.vtsService.actualizar(payload.idVentaDetalleSerial, payload)
-          : this.vtsService.guardar(payload);
+        const observable = payload.idMovimientoDetalleSerial
+          ? this.mdsService.actualizar(payload.idMovimientoDetalleSerial, payload)
+          : this.mdsService.guardar(payload);
 
         observable.subscribe({
           next: () => {
@@ -84,11 +84,11 @@ export default class vtsComponent implements OnInit, AfterViewInit {
               toast: true,
               position: 'top-end',
               icon: 'success',
-              title: `Serial ${payload.idVentaDetalleSerial ? 'actualizado' : 'guardado'}`,
+              title: `Serial ${payload.idMovimientoDetalleSerial ? 'actualizado' : 'guardado'}`,
               showConfirmButton: false,
               timer: 2000
             });
-            this.cargarvtss();
+            this.cargarMds();
           },
           error: (err) => {
             Swal.fire({
@@ -104,9 +104,9 @@ export default class vtsComponent implements OnInit, AfterViewInit {
 
   }
 
-  eliminar(vts: Vts) {
-    if (!vts?.idVentaDetalleSerial) {
-      console.error('ID de vts inválido', vts);
+  eliminar(mds: Mds) {
+    if (!mds?.idMovimientoDetalleSerial) {
+      console.error('ID de vts inválido', mds);
       return;
     }
 
@@ -119,7 +119,7 @@ export default class vtsComponent implements OnInit, AfterViewInit {
       confirmButtonText: 'Sí, eliminar'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.vtsService.eliminar(vts.idVentaDetalleSerial!).subscribe(() => {
+        this.mdsService.eliminar(mds.idMovimientoDetalleSerial!).subscribe(() => {
           Swal.fire({
             toast: true,
             position: 'top-end',
@@ -129,7 +129,7 @@ export default class vtsComponent implements OnInit, AfterViewInit {
             timer: 3000
           });
 
-          this.cargarvtss();
+          this.cargarMds();
         });
 
       }

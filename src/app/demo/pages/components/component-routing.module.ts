@@ -18,8 +18,8 @@ const routes: Routes = [
         loadComponent: () => import('./ubicacion/ubicacion.component')
       },
        {
-        path: 'ventaDetalleSerial',
-        loadComponent: () => import('./ventaDetalleSerial/ventaDetalleSerial.component')
+        path: 'movimientoDetalleSerial',
+        loadComponent: () => import('./movimientoDetalleSerial/movimientoDetalleSerial.component')
       }
       
     ]

@@ -1,7 +1,7 @@
-export interface Vts {
-  idVentaDetalleSerial?: number;
+export interface Mds {
+  idMovimientoDetalleSerial?: number;
 
-  fkDetalleVenta: {
+   fkMovimientoDetalle: {
     idDetalleVenta: number;
   };
 
