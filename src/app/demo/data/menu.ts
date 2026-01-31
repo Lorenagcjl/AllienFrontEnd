@@ -43,6 +43,15 @@ export const menus: Navigation[] = [
         roles: ['Administrador']
       },
       {
+        id: 'nuevacompra',
+        title: 'Compras Producto',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/nueva-compra',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
+      },
+      {
         id: 'color',
         title: 'Clientes',
         type: 'item',

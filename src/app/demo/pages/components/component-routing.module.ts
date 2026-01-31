@@ -10,6 +10,10 @@ const routes: Routes = [
         loadComponent: () => import('./usuarios/usuarios.component') 
       },
       {
+        path: 'nueva-compra',
+        loadComponent: () => import('./nueva-compra/nueva-compra')
+      },
+      {
         path: 'color',
         loadComponent: () => import('./color/color.component')
       },
