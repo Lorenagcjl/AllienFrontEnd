@@ -1,27 +1,42 @@
-<h2 mat-dialog-title>{{ movimientoForm.value.idMovimiento ? 'Editar Movimiento' : 'Nuevo Movimiento' }}</h2>
+<h2 mat-dialog-title>
+  {{ movimientoForm.value.idMovimiento ? 'Editar Movimiento' : 'Nuevo Movimiento' }}
+</h2>
+
 <form [formGroup]="movimientoForm" (ngSubmit)="save()" autocomplete="off">
   <mat-dialog-content>
     <div class="row">
+      <!-- Fecha Movimiento -->
       <div class="col-12 col-md-6">
         <mat-form-field appearance="outline" class="w-100">
           <mat-label>Fecha Movimiento</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="fechaMovimiento" required />
+          <input matInput [matDatepicker]="picker" formControlName="fechaMovimiento" required [disabled]="esNuevo" />
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="movimientoForm.get('fechaMovimiento')?.hasError('required')"> La fecha es requerida </mat-error>
         </mat-form-field>
       </div>
+
+      <!-- Tipo -->
       <div class="col-12 col-md-6">
         <mat-form-field appearance="outline" class="w-100">
           <mat-label>Tipo</mat-label>
-          <input matInput formControlName="tipo" required />
+          <input matInput formControlName="tipo" required placeholder="Ej: TRANSFERENCIA" />
+          <mat-error *ngIf="movimientoForm.get('tipo')?.hasError('required')"> El tipo es requerido </mat-error>
+          <mat-error *ngIf="movimientoForm.get('tipo')?.hasError('minlength')"> El tipo debe tener al menos 3 caracteres </mat-error>
         </mat-form-field>
       </div>
+
+      <!-- Observaciones -->
       <div class="col-12">
         <mat-form-field appearance="outline" class="w-100">
           <mat-label>Observaciones</mat-label>
-          <textarea matInput formControlName="observaciones"></textarea>
+          <textarea matInput formControlName="observaciones" rows="3" placeholder="Ingrese observaciones del movimiento"></textarea>
+          <mat-hint align="end"> {{ movimientoForm.get('observaciones')?.value?.length || 0 }} / 500 </mat-hint>
+          <mat-error *ngIf="movimientoForm.get('observaciones')?.hasError('maxlength')"> Máximo 500 caracteres </mat-error>
         </mat-form-field>
       </div>
+
+      <!-- Ubicación Origen -->
       <div class="col-12 col-md-6">
         <mat-form-field appearance="outline" class="w-100">
           <mat-label>Ubicación Origen</mat-label>
@@ -30,8 +45,11 @@
               {{ ubicacion.nombre }}
             </mat-option>
           </mat-select>
+          <mat-error *ngIf="movimientoForm.get('idUbicacionOrigen')?.hasError('required')"> La ubicación origen es requerida </mat-error>
         </mat-form-field>
       </div>
+
+      <!-- Ubicación Destino -->
       <div class="col-12 col-md-6">
         <mat-form-field appearance="outline" class="w-100">
           <mat-label>Ubicación Destino</mat-label>
@@ -40,22 +58,35 @@
               {{ ubicacion.nombre }}
             </mat-option>
           </mat-select>
+          <mat-error *ngIf="movimientoForm.get('idUbicacionDestino')?.hasError('required')"> La ubicación destino es requerida </mat-error>
         </mat-form-field>
       </div>
+
+      <!-- Error de ubicaciones iguales -->
+      <div class="col-12" *ngIf="movimientoForm.errors?.['ubicacionesIguales'] && movimientoForm.touched">
+        <mat-error class="d-block mb-3 text-danger"> ⚠️ Las ubicaciones de origen y destino deben ser diferentes </mat-error>
+      </div>
+
+      <!-- Usuario -->
       <div class="col-12">
         <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Usuario</mat-label>
+          <mat-label>Usuario Responsable</mat-label>
           <mat-select formControlName="idUsuario" required>
             <mat-option *ngFor="let usuario of usuarios" [value]="usuario.idUsuario">
               {{ usuario.primerNombre }} {{ usuario.primerApellido }}
             </mat-option>
           </mat-select>
+          <mat-error *ngIf="movimientoForm.get('idUsuario')?.hasError('required')"> El usuario es requerido </mat-error>
         </mat-form-field>
       </div>
     </div>
   </mat-dialog-content>
+
   <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Cancelar</button>
-    <button mat-flat-button color="primary" type="submit" [disabled]="movimientoForm.invalid">Guardar</button>
+    <button mat-button type="button" (click)="cancelar()" [disabled]="isLoading"> Cancelar </button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="movimientoForm.invalid || isLoading">
+      <span *ngIf="!isLoading">Guardar</span>
+      <span *ngIf="isLoading">Guardando...</span>
+    </button>
   </mat-dialog-actions>
 </form>

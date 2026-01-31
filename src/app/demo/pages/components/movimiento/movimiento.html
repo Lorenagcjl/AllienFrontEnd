@@ -1,9 +1,46 @@
 <div class="mat-elevation-z8">
-  <!-- Campo de búsqueda -->
-  <mat-form-field appearance="outline" class="w-100 mb-3">
-    <mat-label>Buscar</mat-label>
-    <input matInput (keyup)="applyFilter($event)" placeholder="Buscar movimiento..." #input />
-  </mat-form-field>
+  <!-- Barra superior con búsqueda y botón -->
+  <div class="d-flex justify-content-between align-items-center mb-3 p-3">
+    <!-- Campo de búsqueda -->
+    <mat-form-field appearance="outline" class="flex-grow-1 me-3" style="max-width: 400px">
+      <mat-label>Buscar</mat-label>
+      <input matInput (keyup)="applyFilter($event)" placeholder="Buscar movimiento..." #input />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+    <button
+      mat-fab
+      color="primary"
+      style="margin-left: 12px; box-shadow: 0 4px 16px rgba(60, 80, 200, 0.18)"
+      (click)="abrirFormulario()"
+      matTooltip="Nuevo Movimiento"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  <style>
+    .fab-btn {
+      /* Removed fixed positioning */
+      box-shadow: 0 4px 16px rgba(60, 80, 200, 0.18);
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      transition: box-shadow 0.2s;
+    }
+    .fab-btn:hover {
+      box-shadow: 0 8px 24px rgba(60, 80, 200, 0.28);
+    }
+    @media (max-width: 600px) {
+      .fab-btn {
+        width: 56px;
+        height: 56px;
+        font-size: 1.5rem;
+      }
+    }
+  </style>
 
   <table mat-table [dataSource]="dataSource" matSort>
     <!-- ID -->
