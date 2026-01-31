@@ -1,0 +1,89 @@
+<div class="modal-backdrop" role="button" tabindex="0" aria-label="Cerrar modal" (click)="onBackdropClick($event)"
+  (keydown.enter)="onBackdropKeydown($event)" (keydown.space)="onBackdropKeydown($event)">
+
+  <div class="modal-card" role="dialog" aria-modal="true">
+
+    <div class="modal-header">
+      <h3 class="modal-title">{{ editando ? 'Editar Cliente' : 'Nuevo Cliente' }}</h3>
+      <button type="button" class="icon-close" (click)="onClose()" aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="modal-body">
+      <form [formGroup]="form" class="row">
+
+        <div class="col-md-6">
+          <label class="lbl" for="primerNombre">Primer Nombre</label>
+          <input id="primerNombre" class="inp" formControlName="primerNombre" />
+          @if (form.get('primerNombre')?.invalid && form.get('primerNombre')?.touched) {
+          <div class="err">Requerido</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="segundoNombre">Segundo Nombre</label>
+          <input id="segundoNombre" class="inp" formControlName="segundoNombre" />
+          @if (form.get('segundoNombre')?.invalid && form.get('segundoNombre')?.touched) {
+          <div class="err">Requerido</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="primerApellido">Primer Apellido</label>
+          <input id="primerApellido" class="inp" formControlName="primerApellido" />
+          @if (form.get('primerApellido')?.invalid && form.get('primerApellido')?.touched) {
+          <div class="err">Requerido</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="segundoApellido">Segundo Apellido</label>
+          <input id="segundoApellido" class="inp" formControlName="segundoApellido" />
+          @if (form.get('segundoApellido')?.invalid && form.get('segundoApellido')?.touched) {
+          <div class="err">Requerido</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="documento">Documento</label>
+          <input id="documento" class="inp" formControlName="documento" />
+          @if (form.get('documento')?.invalid && form.get('documento')?.touched) {
+          <div class="err">Requerido</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="telefono">Teléfono</label>
+          <input id="telefono" class="inp" formControlName="telefono" />
+          @if (form.get('telefono')?.invalid && form.get('telefono')?.touched) {
+          <div class="err">Requerido</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="email">Email</label>
+          <input id="email" class="inp" formControlName="email" />
+          @if (form.get('email')?.invalid && form.get('email')?.touched) {
+          <div class="err">Email requerido</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="direccion">Dirección</label>
+          <input id="direccion" class="inp" formControlName="direccion" />
+          @if (form.get('direccion')?.invalid && form.get('direccion')?.touched) {
+          <div class="err">Requerido</div>
+          }
+        </div>
+
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="onClose()">Cancelar</button>
+      <button type="button" class="btn btn-primary" [disabled]="form.invalid" (click)="save()">
+        Guardar
+      </button>
+    </div>
+
+  </div>
+</div>

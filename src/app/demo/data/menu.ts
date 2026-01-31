@@ -166,5 +166,22 @@ export const menus: Navigation[] = [
         roles: ['Administrador', 'Empleado']
       }
     ]
+  },
+  {
+    id: 'other',
+    title: 'Nuevo Movimiento',
+    type: 'group',
+    icon: 'icon-navigation',
+    children: [
+      {
+        id: 'nuevoMovimiento',
+        title: 'Nuevo Movimiento',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/nuevo-movimiento',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
+      }
+    ]
   }
 ];

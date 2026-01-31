@@ -7,11 +7,11 @@ const routes: Routes = [
     children: [
       {
         path: 'usuarios',
-        loadComponent: () => import('./usuarios/usuarios.component') 
+        loadComponent: () => import('./usuarios/usuarios.component')
       },
       {
         path: 'color',
-        loadComponent: () => import('./color/color.component')
+        loadComponent: () => import('./cliente.component/cliente.component')
       },
       {
         path: 'venta',
@@ -32,6 +32,10 @@ const routes: Routes = [
       {
         path: 'movimiento',
         loadComponent: () => import('./movimiento/movimiento')
+      },
+      {
+        path: 'nuevo-movimiento',
+        loadComponent: () => import('./nuevo-movimiento.component/nuevo-movimiento.component')
       },
       // {
       //   path: 'movimiento-detalle',

@@ -1,0 +1,49 @@
+<div class="modal-backdrop" role="button" tabindex="0" aria-label="Cerrar modal" (click)="onBackdropClick($event)"
+  (keydown.enter)="onBackdropKeydown($event)" (keydown.space)="onBackdropKeydown($event)">
+
+  <div class="modal-card" role="dialog" aria-modal="true">
+
+    <div class="modal-header">
+      <h3 class="modal-title">{{ editando ? 'Editar Ubicación' : 'Nueva Ubicación' }}</h3>
+      <button type="button" class="icon-close" (click)="onClose()" aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="modal-body">
+      <form [formGroup]="form" class="row">
+
+        <div class="col-md-6">
+          <label class="lbl" for="nombre">Nombre</label>
+          <input id="nombre" class="inp" formControlName="nombre" />
+          @if (form.get('nombre')?.invalid && form.get('nombre')?.touched) {
+          <div class="err">Nombre requerido</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="tipo">Tipo</label>
+          <input id="tipo" class="inp" formControlName="tipo" />
+          @if (form.get('tipo')?.invalid && form.get('tipo')?.touched) {
+          <div class="err">Tipo requerido</div>
+          }
+        </div>
+
+        <div class="col-12">
+          <label class="lbl" for="descripcion">Descripción</label>
+          <input id="descripcion" class="inp" formControlName="descripcion" />
+          @if (form.get('descripcion')?.invalid && form.get('descripcion')?.touched) {
+          <div class="err">Descripción requerida</div>
+          }
+        </div>
+
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="onClose()">Cancelar</button>
+      <button type="button" class="btn btn-primary" [disabled]="form.invalid" (click)="save()">
+        Guardar
+      </button>
+    </div>
+
+  </div>
+</div>

@@ -7,12 +7,12 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MovimientoService } from 'src/app/@theme/services/movimiento.service';
-import { UbicacionesService } from 'src/app/@theme/services/ubicaciones.service';
 import { UsuarioService } from 'src/app/@theme/services/user.service';
 import { MovimientoModel } from 'src/app/demo/models/movimiento.model';
 import { SharedModule } from 'src/app/demo/shared/shared.module';
 import { MovimientoModalComponent } from '../movimiento-detalle/movimiento-modal.component';
 import { MovimientoFormComponent } from './movimiento-form.component';
+import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 
 @Component({
   selector: 'app-movimiento',
@@ -32,7 +32,7 @@ export default class Movimiento {
 
   private usuarioService = inject(UsuarioService);
   private movimientoService = inject(MovimientoService);
-  private ubicacionService = inject(UbicacionesService);
+  private ubicacionService = inject(UbicacionService);
   ubicaciones: any[] = [];
 
   ngOnInit() {

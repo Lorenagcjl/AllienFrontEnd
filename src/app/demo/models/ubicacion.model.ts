@@ -1,6 +1,6 @@
-export interface UbicacionModel {
-    idUbicacion: number;
-    descripcion: string;
-    nombre: string;
-    tipo: string;
+export interface Ubicacion {
+  idUbicacion?: number;
+  nombre: string;
+  tipo: string;
+  descripcion: string;
 }

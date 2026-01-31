@@ -6,7 +6,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MovimientoService } from 'src/app/@theme/services/movimiento.service';
-import { UbicacionesService } from 'src/app/@theme/services/ubicaciones.service';
+import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 import { UsuarioService } from 'src/app/@theme/services/user.service';
 import { SharedModule } from 'src/app/demo/shared/shared.module';
 import Swal from 'sweetalert2';
@@ -20,7 +20,7 @@ import Swal from 'sweetalert2';
 export class MovimientoFormComponent implements OnInit {
     private fb = inject(FormBuilder);
     private movimientoService = inject(MovimientoService);
-    private ubicacionService = inject(UbicacionesService);
+    private ubicacionService = inject(UbicacionService);
     private usuarioService = inject(UsuarioService);
     private dialogRef = inject(MatDialogRef<MovimientoFormComponent>);
 
@@ -67,7 +67,7 @@ export class MovimientoFormComponent implements OnInit {
                 patch.idUbicacionDestino = patch.idUbicacionDestino.idUbicacion;
             }
 
-            // 3. Importante: Si la fecha viene como string de API, 
+            // 3. Importante: Si la fecha viene como string de API,
             // a veces MatDatepicker necesita un objeto Date real
             if (patch.fechaMovimiento) {
                 patch.fechaMovimiento = new Date(patch.fechaMovimiento);

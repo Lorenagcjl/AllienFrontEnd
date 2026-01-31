@@ -8,12 +8,12 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 
 import { AlertService } from 'src/app/@theme/services/alert.service';
-import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
-import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
-import { UbicacionFormModalComponent } from '../ubicacion-form-modal.component/ubicacion-form-modal.component';
+import { ClienteService } from 'src/app/@theme/services/cliente.service';
+import { Cliente } from 'src/app/demo/models/cliente.model';
+import { ClienteFormModalComponent } from '../cliente-form-modal.component/cliente-form-modal.component';
 
 @Component({
-  selector: 'app-ubicacion',
+  selector: 'app-cliente',
   standalone: true,
   imports: [
     CommonModule,
@@ -23,35 +23,49 @@ import { UbicacionFormModalComponent } from '../ubicacion-form-modal.component/u
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    UbicacionFormModalComponent,
+    ClienteFormModalComponent,
   ],
-  templateUrl: './ubicacion.component.html',
-  styleUrl: './ubicacion.component.scss',
+  templateUrl: './cliente.component.html',
+  styleUrl: './cliente.component.scss',
 })
-export default class UbicacionComponent {
-  private readonly ubicacionService = inject(UbicacionService);
+export default class ClienteComponent {
+  private readonly clienteService = inject(ClienteService);
   private readonly alert = inject(AlertService);
 
-  displayedColumns: string[] = ['idUbicacion', 'nombre', 'tipo', 'descripcion', 'acciones'];
-  dataSource = new MatTableDataSource<Ubicacion>([]);
+  displayedColumns: string[] = [
+    'idCliente',
+    'nombres',
+    'apellidos',
+    'documento',
+    'telefono',
+    'email',
+    'direccion',
+    'acciones'
+  ];
+
+  dataSource = new MatTableDataSource<Cliente>([]);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   modalOpen = false;
-  ubicacionSeleccionada?: Ubicacion;
+  clienteSeleccionado?: Cliente;
   isEditing = false;
 
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
 
-    this.dataSource.filterPredicate = (row: Ubicacion, filter: string) => {
+    this.dataSource.filterPredicate = (row: Cliente, filter: string) => {
       const f = filter.trim().toLowerCase();
+      const fullName = `${row.primerNombre ?? ''} ${row.segundoNombre ?? ''} ${row.primerApellido ?? ''} ${row.segundoApellido ?? ''}`.toLowerCase();
+
       return (
-        (row.nombre ?? '').toLowerCase().includes(f) ||
-        (row.tipo ?? '').toLowerCase().includes(f) ||
-        (row.descripcion ?? '').toLowerCase().includes(f)
+        fullName.includes(f) ||
+        (row.documento ?? '').toLowerCase().includes(f) ||
+        (row.telefono ?? '').toLowerCase().includes(f) ||
+        (row.email ?? '').toLowerCase().includes(f) ||
+        (row.direccion ?? '').toLowerCase().includes(f)
       );
     };
 
@@ -59,9 +73,9 @@ export default class UbicacionComponent {
   }
 
   cargar(): void {
-    this.alert.loading('Cargando ubicaciones...', 'Consultando lista de ubicaciones.');
+    this.alert.loading('Cargando clientes...', 'Consultando lista de clientes.');
 
-    this.ubicacionService.listarUbicaciones().subscribe({
+    this.clienteService.listarClientes().subscribe({
       next: (data) => {
         this.dataSource.data = data ?? [];
         this.alert.close();
@@ -70,7 +84,7 @@ export default class UbicacionComponent {
         console.error(err);
         this.dataSource.data = [];
         this.alert.close();
-        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar la lista de ubicaciones.'));
+        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar la lista de clientes.'));
       },
     });
   }
@@ -81,18 +95,18 @@ export default class UbicacionComponent {
     this.dataSource.paginator?.firstPage();
   }
 
-  abrirFormulario(row?: Ubicacion): void {
-    this.ubicacionSeleccionada = row;
+  abrirFormulario(row?: Cliente): void {
+    this.clienteSeleccionado = row;
     this.modalOpen = true;
   }
 
-  editar(row: Ubicacion): void {
+  editar(row: Cliente): void {
     this.abrirFormulario(row);
   }
 
   cerrarModal(): void {
     this.modalOpen = false;
-    this.ubicacionSeleccionada = undefined;
+    this.clienteSeleccionado = undefined;
   }
 
   async onSaved(ok: boolean): Promise<void> {
@@ -103,30 +117,32 @@ export default class UbicacionComponent {
     this.cargar();
   }
 
-  async eliminar(row: Ubicacion): Promise<void> {
-    const id = row?.idUbicacion;
+  async eliminar(row: Cliente): Promise<void> {
+    const id = row?.idCliente;
     if (!id) return;
+
+    const fullName = `${row.primerNombre} ${row.segundoNombre} ${row.primerApellido} ${row.segundoApellido}`.trim();
 
     const confirmado = await this.alert.confirm(
       'Confirmar eliminación',
-      `¿Eliminar la ubicación "${row.nombre}"?`,
+      `¿Eliminar el cliente "${fullName}"?`,
       'Sí, eliminar',
       'Cancelar'
     );
     if (!confirmado) return;
 
-    this.alert.loading('Eliminando...', 'Procesando la eliminación de la ubicación.');
+    this.alert.loading('Eliminando...', 'Procesando la eliminación del cliente.');
 
-    this.ubicacionService.eliminarUbicacion(id).subscribe({
+    this.clienteService.eliminarCliente(id).subscribe({
       next: async () => {
         this.alert.close();
-        await this.alert.success('Eliminado', 'La ubicación fue eliminada correctamente.');
+        await this.alert.success('Eliminado', 'El cliente fue eliminado correctamente.');
         this.cargar();
       },
       error: async (err) => {
         console.error(err);
         this.alert.close();
-        await this.alert.error('Error al eliminar', this.alert.getErrorMessage(err, 'No se pudo eliminar la ubicación.'));
+        await this.alert.error('Error al eliminar', this.alert.getErrorMessage(err, 'No se pudo eliminar el cliente.'));
       },
     });
   }

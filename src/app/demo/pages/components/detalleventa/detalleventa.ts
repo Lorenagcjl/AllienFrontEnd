@@ -20,15 +20,15 @@ import Swal from 'sweetalert2';
   selector: 'app-detalleventa',
   standalone: true,
   imports: [
-    CommonModule, 
-    SharedModule, 
-    ReactiveFormsModule, 
+    CommonModule,
+    SharedModule,
+    ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
-    MatInputModule, 
-    MatSelectModule, 
-    MatTableModule 
+    MatInputModule,
+    MatSelectModule,
+    MatTableModule
   ],
   templateUrl: './detalleventa.html',
   styleUrls: ['./detalleventa.scss']
@@ -45,7 +45,7 @@ export default class DetalleventaComponent implements OnInit {
   ubicaciones: any[] = [];
   form: FormGroup;
   totalFactura: number = 0;
-  
+
   // Nueva variable para controlar el stock en la UI
   stockDisponible: number | null = null;
 
@@ -83,7 +83,7 @@ export default class DetalleventaComponent implements OnInit {
     if (this.stockDisponible !== null && valor > this.stockDisponible) {
       // Si pone 5 y hay 3, le seteamos 3 automáticamente
       this.form.get('cantidad')?.patchValue(this.stockDisponible, { emitEvent: false });
-      
+
       // Opcional: un pequeño toast para avisar por qué cambió
       const Toast = Swal.mixin({
         toast: true,
@@ -121,14 +121,14 @@ private verificarStock() {
     next: (res) => this.productos = res
   });
 
-  this.ubicacionService.listarUbicacions().subscribe({
+  this.ubicacionService.listarUbicaciones().subscribe({
     next: (res) => {
       this.ubicaciones = res;
       const uLocal = res.find(u => u.nombre.toLowerCase() === 'local');
-      
+
       if (uLocal) {
         this.form.get('idUbicacion')?.setValue(uLocal.idUbicacion);
-        this.form.get('idUbicacion')?.disable(); 
+        this.form.get('idUbicacion')?.disable();
         this.verificarStock();
       }
     }
@@ -171,28 +171,28 @@ private verificarStock() {
         cantidadEntrada: 0,
         cantidadSalida: val.cantidad,
         referenciaTipo: 'VentaDetalle',
-        referenciaId: detalleGuardado.idVentaDetalle, 
+        referenciaId: detalleGuardado.idVentaDetalle,
         fkProducto: { idProducto: val.idProducto },
         fkUbicacion: { idUbicacion: val.idUbicacion },
-        fkProductoSerial: null 
+        fkProductoSerial: null
       };
 
       this.movimientoService.guardar(movimiento).subscribe({
         next: () => {
-          this.listarDetalles(); 
+          this.listarDetalles();
           // Resetamos pero manteniendo el ID de ubicación
           const idUbiActual = this.form.get('idUbicacion')?.value;
-          this.form.reset({ 
-            idUbicacion: idUbiActual, 
-            cantidad: 1, 
-            precioUnitario: 0, 
-            porcentajeComision: 0 
+          this.form.reset({
+            idUbicacion: idUbiActual,
+            cantidad: 1,
+            precioUnitario: 0,
+            porcentajeComision: 0
           });
           // Importante: volver a deshabilitar tras el reset si es necesario
           this.form.get('idUbicacion')?.disable();
-          
-          this.stockDisponible = null; 
-          
+
+          this.stockDisponible = null;
+
           Swal.fire({
             icon: 'success',
             title: 'Agregado a la venta',

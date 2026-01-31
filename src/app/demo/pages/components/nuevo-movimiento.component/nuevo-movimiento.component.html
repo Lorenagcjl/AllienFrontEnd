@@ -1,0 +1,242 @@
+<div class="inv-mov__container" (click)="closeAutocomplete()">
+  <div class="inv-mov__header">
+    <h1 class="inv-mov__title">Nuevo Movimiento</h1>
+    <p class="inv-mov__subtitle">Traslado de inventario entre ubicaciones</p>
+  </div>
+
+  <div class="inv-mov__content" (click)="$event.stopPropagation()">
+    <!-- Sección 1 -->
+    <div class="inv-mov__section">
+      <h2 class="inv-mov__section-title">1. Información del Movimiento</h2>
+
+      <div class="inv-mov__form-grid">
+        <div class="inv-mov__form-group">
+          <label class="inv-mov__label">
+            Ubicación de Origen <span class="inv-mov__required">*</span>
+          </label>
+
+          <select class="inv-mov__control"
+            [class.inv-mov__input-error]="!!locationError() || (form.controls.origen.touched && form.controls.origen.invalid)"
+            [formControl]="form.controls.origen">
+            <option [ngValue]="null">Seleccionar origen...</option>
+
+            <option *ngIf="ubicacionesLoading()" [ngValue]="null" disabled>Cargando...</option>
+
+            <option *ngFor="let u of ubicaciones(); trackBy: trackByUbicacionId" [ngValue]="u.idUbicacion ?? null"
+              [disabled]="u.idUbicacion == null || form.controls.destino.value === u.idUbicacion">
+              {{ u.nombre }}
+            </option>
+          </select>
+
+          <span class="inv-mov__error" *ngIf="ubicacionesError()">
+            {{ ubicacionesError() }}
+          </span>
+
+          <span class="inv-mov__error" *ngIf="form.controls.origen.touched && form.controls.origen.invalid">
+            Debe seleccionar una ubicación de origen
+          </span>
+        </div>
+
+        <div class="inv-mov__form-group">
+          <label class="inv-mov__label">
+            Ubicación de Destino <span class="inv-mov__required">*</span>
+          </label>
+
+          <select class="inv-mov__control"
+            [class.inv-mov__input-error]="!!locationError() || (form.controls.destino.touched && form.controls.destino.invalid)"
+            [formControl]="form.controls.destino">
+            <option [ngValue]="null">Seleccionar destino...</option>
+
+            <option *ngIf="ubicacionesLoading()" [ngValue]="null" disabled>Cargando...</option>
+
+            <option *ngFor="let u of ubicaciones(); trackBy: trackByUbicacionId" [ngValue]="u.idUbicacion ?? null"
+              [disabled]="u.idUbicacion == null || form.controls.origen.value === u.idUbicacion">
+              {{ u.nombre }}
+            </option>
+          </select>
+
+          <span class="inv-mov__error" *ngIf="locationError()">
+            {{ locationError() }}
+          </span>
+
+          <span class="inv-mov__error" *ngIf="!locationError() && form.controls.destino.touched && form.controls.destino.invalid">
+            Debe seleccionar una ubicación de destino
+          </span>
+        </div>
+
+        <div class="inv-mov__form-group">
+          <label class="inv-mov__label">Tipo de Movimiento</label>
+          <select class="inv-mov__control" [formControl]="form.controls.tipo">
+            <option value="traslado">Traslado</option>
+            <option value="ajuste">Ajuste de Inventario</option>
+            <option value="devolucion">Devolución</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="inv-mov__form-group">
+        <label class="inv-mov__label">Observaciones</label>
+        <textarea class="inv-mov__control inv-mov__textarea" [formControl]="form.controls.observaciones"
+          placeholder="Ingrese cualquier nota o comentario sobre este movimiento..."></textarea>
+      </div>
+    </div>
+
+    <!-- Sección 2 -->
+    <div class="inv-mov__section">
+      <h2 class="inv-mov__section-title">2. Productos a Mover</h2>
+
+      <table class="inv-mov__products-table">
+        <thead>
+          <tr>
+            <th style="width: 30%;">Producto</th>
+            <th style="width: 15%;">Stock Disponible</th>
+            <th style="width: 15%;">Cantidad</th>
+            <th style="width: 20%;">Seriales</th>
+            <th style="width: 10%;"></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngIf="productsFA.length === 0">
+            <td colspan="5" class="inv-mov__empty-state">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+                </path>
+              </svg>
+              <p>No hay productos agregados</p>
+            </td>
+          </tr>
+
+          <tr class="inv-mov__product-row"
+            *ngFor="let row of productsFA.controls; let i = index; trackBy: trackByIndex">
+            <!-- Producto + autocomplete -->
+            <td (click)="$event.stopPropagation()">
+              <div class="inv-mov__autocomplete-wrapper">
+                <input type="text" class="inv-mov__autocomplete-input" placeholder="Buscar producto..."
+                  [formControl]="row.controls.productQuery" (focus)="openAutocomplete(i)"
+                  (input)="openAutocomplete(i)" />
+
+                <div class="inv-mov__autocomplete-results" [class.inv-mov__show]="isAutocompleteOpen(i)">
+                  <button type="button" class="inv-mov__autocomplete-item" *ngFor="let p of filteredProducts(i)"
+                    (click)="selectProduct(i, p); $event.stopPropagation()">
+                    <span>{{ p.nombre }}</span>
+                    <span class="inv-mov__badge" *ngIf="p.esConSerial">Serial</span>
+                  </button>
+
+                  <div class="inv-mov__autocomplete-empty" *ngIf="filteredProducts(i).length === 0">
+                    Escribe para buscar...
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Stock -->
+            <td>
+              <span class="inv-mov__stock-label">N/D</span>
+            </td>
+
+            <!-- Cantidad -->
+            <td>
+              <input type="number" class="inv-mov__quantity-input" min="1" [formControl]="row.controls.quantity"
+                (change)="onQuantityChanged(i)" />
+            </td>
+
+            <!-- Seriales -->
+            <td>
+              <ng-container *ngIf="findProduct(row.controls.productId.value) as p; else serialDash">
+                <ng-container *ngIf="p.esConSerial; else serialNA">
+                  <button type="button" class="inv-mov__btn inv-mov__btn-secondary" (click)="openSerialModal(i)"
+                    [disabled]="!row.controls.productId.value">
+                    <ng-container
+                      *ngIf="row.controls.serials.value?.length === row.controls.quantity.value; else pickSerials">
+                      {{ row.controls.serials.value.length }} seleccionados ✓
+                    </ng-container>
+                    <ng-template #pickSerials>Seleccionar Seriales</ng-template>
+                  </button>
+                </ng-container>
+                <ng-template #serialNA>N/A</ng-template>
+              </ng-container>
+              <ng-template #serialDash>-</ng-template>
+            </td>
+
+            <!-- Remove -->
+            <td>
+              <button type="button" class="inv-mov__btn inv-mov__btn-danger" (click)="removeProductRow(i)"
+                aria-label="Eliminar">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <button type="button" class="inv-mov__btn inv-mov__btn-link inv-mov__add-product-btn" (click)="addProductRow()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Agregar Producto
+      </button>
+    </div>
+
+    <!-- Acciones -->
+    <div class="inv-mov__actions">
+      <button type="button" class="inv-mov__btn inv-mov__btn-secondary" (click)="cancel()">Cancelar</button>
+      <button type="button" class="inv-mov__btn inv-mov__btn-primary" (click)="saveMovement()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        Guardar Movimiento
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="inv-mov__modal-overlay" [class.inv-mov__show]="isModalOpen()" (click)="closeSerialModal()">
+  <div class="inv-mov__modal" (click)="$event.stopPropagation()">
+    <div class="inv-mov__modal-header">
+      <h3 class="inv-mov__modal-title">Seleccionar Seriales</h3>
+      <button type="button" class="inv-mov__modal-close" (click)="closeSerialModal()">&times;</button>
+    </div>
+
+    <div class="inv-mov__modal-body">
+      <div class="inv-mov__modal-info">
+        <strong>Producto:</strong> <span>{{ modalProductName() }}</span><br />
+        <strong>Cantidad requerida:</strong> <span>{{ modalRequiredCount() }}</span> unidades
+      </div>
+
+      <div class="inv-mov__serials-list">
+        <div class="inv-mov__empty-serials" *ngIf="modalSerials().length === 0">
+          No hay seriales disponibles para este producto.
+        </div>
+
+        <label class="inv-mov__serial-item" *ngFor="let s of modalSerials(); trackBy: trackByIndex"
+          [class.inv-mov__serial-selected]="isSerialSelected(s)">
+          <input type="checkbox" class="inv-mov__serial-checkbox" [checked]="isSerialSelected(s)"
+            (change)="toggleSerial(s)" />
+          <span class="inv-mov__serial-code">{{ s }}</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="inv-mov__modal-footer">
+      <div class="inv-mov__selection-count">
+        Seleccionados:
+        <span class="inv-mov__count">{{ modalSelectedCount() }}</span>
+        / <span>{{ modalRequiredCount() }}</span>
+      </div>
+
+      <div>
+        <button type="button" class="inv-mov__btn inv-mov__btn-secondary inv-mov__mr8" (click)="closeSerialModal()">
+          Cancelar
+        </button>
+        <button type="button" class="inv-mov__btn inv-mov__btn-primary" (click)="confirmSerials()">
+          Confirmar Selección
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

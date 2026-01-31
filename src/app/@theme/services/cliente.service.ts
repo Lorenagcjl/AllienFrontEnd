@@ -8,27 +8,25 @@ import { Cliente } from 'src/app/demo/models/cliente.model';
 })
 export class ClienteService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/cliente'; 
+  private apiUrl = 'http://localhost:8080/api/cliente';
 
   listarClientes(): Observable<Cliente[]> {
     return this.http.get<Cliente[]>(this.apiUrl);
   }
-actualizar(id: number, cliente: Cliente): Observable<any> {
-  cliente.idCliente = id; // ✅ number válido
-  return this.http.put(`${this.apiUrl}/${id}`, cliente);
-}
 
-
-guardar(cliente: Cliente): Observable<any> {
-  cliente.idCliente = undefined; // o undefined
-  return this.http.post(this.apiUrl, cliente);
-}
-
-  eliminar(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/${id}`);
+  obtenerPorId(idCliente: number): Observable<Cliente> {
+    return this.http.get<Cliente>(`${this.apiUrl}/${idCliente}`);
   }
 
-  buscarPorNombre(nombre: string): Observable<Cliente[]> {
-    return this.http.get<Cliente[]>(`${this.apiUrl}/cliente/${nombre}`);
+  crearCliente(payload: Partial<Cliente>): Observable<Cliente> {
+    return this.http.post<Cliente>(this.apiUrl, payload);
+  }
+
+  actualizarCliente(idCliente: number, payload: Partial<Cliente>): Observable<Cliente> {
+    return this.http.put<Cliente>(`${this.apiUrl}/${idCliente}`, payload);
+  }
+
+  eliminarCliente(idCliente: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${idCliente}`);
   }
 }
