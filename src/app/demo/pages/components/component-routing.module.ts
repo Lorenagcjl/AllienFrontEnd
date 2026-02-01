@@ -37,6 +37,14 @@ const routes: Routes = [
         path: 'nuevo-movimiento',
         loadComponent: () => import('./nuevo-movimiento.component/nuevo-movimiento.component')
       },
+      {
+        path: 'nueva-venta',
+        loadComponent: () => import('./nueva-venta.component/nueva-venta.component')
+      },
+      {
+        path: 'nueva-compra',
+        loadComponent: () => import('./nueva-compra.component/nueva-compra.component')
+      },
       // {
       //   path: 'movimiento-detalle',
       //   loadComponent: () => import('./movimiento-detalle/movimiento-detalle')

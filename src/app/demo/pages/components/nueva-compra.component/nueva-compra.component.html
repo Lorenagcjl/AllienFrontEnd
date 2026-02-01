@@ -1,0 +1,229 @@
+<div class="nc20-container" #host>
+  <div class="nc20-header">
+    <h1>Nueva Compra</h1>
+    <p>Registro de entrada de inventario al sistema</p>
+  </div>
+
+  <div class="nc20-content">
+    <!-- Sección 1 -->
+    <div class="nc20-section">
+      <h2 class="nc20-section-title">1. Información General</h2>
+
+      <div class="nc20-form-grid">
+        <div class="nc20-form-group">
+          <label>Fecha</label>
+          <input type="text" [value]="form.controls.fecha.value ?? ''" disabled />
+        </div>
+
+        <div class="nc20-form-group">
+          <label>Usuario</label>
+          <input type="text" [value]="form.controls.usuario.value ?? ''" disabled />
+        </div>
+
+        <div class="nc20-form-group">
+          <label>
+            Ubicación de Ingreso <span class="nc20-required">*</span>
+          </label>
+          <select [formControl]="form.controls.ubicacion">
+            <option value="">Seleccionar ubicación...</option>
+            <option value="almacen-principal">Almacén Principal</option>
+            <option value="sucursal-norte">Sucursal Norte</option>
+            <option value="sucursal-sur">Sucursal Sur</option>
+            <option value="bodega-1">Bodega 1</option>
+            <option value="bodega-2">Bodega 2</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="nc20-form-group">
+        <label>Observaciones</label>
+        <textarea [formControl]="form.controls.observaciones"
+          placeholder="Ingrese cualquier nota sobre esta compra (proveedor, orden de compra, etc.)..."></textarea>
+      </div>
+    </div>
+
+    <!-- Sección 2 -->
+    <div class="nc20-section">
+      <h2 class="nc20-section-title">2. Productos</h2>
+
+      <table class="nc20-products-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Producto</th>
+            <th style="width: 10%;">Con Serial</th>
+            <th style="width: 10%;">Cantidad</th>
+            <th style="width: 12%;">Costo Unit.</th>
+            <th style="width: 20%;">Seriales</th>
+            <th style="width: 5%;"></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @if (isEmptyState()) {
+          <tr>
+            <td colspan="6" class="nc20-empty-state">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+                </path>
+              </svg>
+              <p>No hay productos agregados</p>
+            </td>
+          </tr>
+          } @else {
+          @for (row of rows.controls; track trackByIndex($index)) {
+          <tr class="nc20-product-row" [class.nc20-incomplete]="isRowIncomplete($index)">
+            <td>
+              <div class="nc20-autocomplete-wrapper">
+                <input type="text" class="nc20-autocomplete-input" placeholder="Buscar producto..."
+                  [formControl]="row.controls.productName" (focus)="openAutocomplete($index)" />
+
+                <div class="nc20-autocomplete-results" [class.nc20-show]="row.controls.autocompleteOpen.value">
+                  @for (p of filteredProductsForRow($index); track p.id) {
+                  <div class="nc20-autocomplete-item" (click)="selectProduct($index, p)">
+                    {{ p.name }}
+                    @if (p.serialized) {
+                    <span class="nc20-badge nc20-badge-yes">Serial</span>
+                    }
+                  </div>
+                  }
+                </div>
+              </div>
+            </td>
+
+            <td>
+              @if (productForRow($index)?.serialized === true) {
+              <span class="nc20-badge nc20-badge-yes">Sí</span>
+              } @else if (productForRow($index)?.serialized === false) {
+              <span class="nc20-badge nc20-badge-no">No</span>
+              } @else {
+              <span class="nc20-badge nc20-badge-no">-</span>
+              }
+            </td>
+
+            <td>
+              <input type="number" class="nc20-number-input" min="1" [formControl]="row.controls.quantity" />
+            </td>
+
+            <td>
+              <input type="number" class="nc20-cost-input" min="0" step="0.01" placeholder="0.00"
+                [formControl]="row.controls.cost" />
+            </td>
+
+            <td>
+              @switch (rowSerialStatus($index)) {
+              @case ('na') { <span>N/A</span> }
+              @case ('complete') {
+              <button class="nc20-btn nc20-btn-success nc20-btn-small" (click)="openSerialModal($index)">
+                ✓ {{ row.controls.serials.value.length }} seriales
+              </button>
+              }
+              @case ('partial') {
+              <button class="nc20-btn nc20-btn-warning nc20-btn-small" (click)="openSerialModal($index)">
+                ⚠ {{ rowFilledSerialsCount($index) }}/{{ row.controls.quantity.value }} seriales
+              </button>
+              }
+              @default {
+              <button class="nc20-btn nc20-btn-secondary nc20-btn-small" (click)="openSerialModal($index)">
+                Gestionar Seriales
+              </button>
+              }
+              }
+            </td>
+
+            <td>
+              <button class="nc20-btn nc20-btn-danger" (click)="removeProductRow($index)" aria-label="Eliminar fila">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          }
+          }
+        </tbody>
+      </table>
+
+      <button class="nc20-btn nc20-btn-link nc20-add-product-btn" (click)="addProductRow()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Agregar Producto
+      </button>
+    </div>
+
+    <!-- Acciones -->
+    <div class="nc20-actions">
+      <button class="nc20-btn nc20-btn-secondary" type="button">Cancelar</button>
+
+      <button class="nc20-btn nc20-btn-primary" type="button" [disabled]="!canSave()" (click)="savePurchase()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        Guardar Compra
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal seriales -->
+  <div class="nc20-modal-overlay" [class.nc20-show]="serialModalOpen()" (click)="closeSerialModal()">
+    <div class="nc20-modal" (click)="$event.stopPropagation()">
+      <div class="nc20-modal-header">
+        <h3>Gestionar Seriales</h3>
+        <button class="nc20-modal-close" type="button" (click)="closeSerialModal()">&times;</button>
+      </div>
+
+      <div class="nc20-modal-body">
+        <div class="nc20-modal-info">
+          <strong>Producto: <span>{{ modalProductName() }}</span></strong>
+          Debes ingresar exactamente <strong>{{ modalQuantity() }}</strong> números de serie únicos.
+        </div>
+
+        <div class="nc20-serials-grid">
+          @for (i of modalIndexes(); track i) {
+          <div class="nc20-serial-input-group">
+            <label>Serial {{ $index + 1 }}</label>
+
+            <div class="nc20-serial-input-wrapper">
+              <input #serialEl type="text" class="nc20-serial-input" [class.nc20-duplicate]="modalDuplicateIndexes().has(i)"
+                [value]="modalSerials()[i] ?? ''" placeholder="Ingrese número de serie" (input)="setModalSerial(i, serialEl.value)"
+                (paste)="handlePasteSerials($event, i)" />
+
+              <button class="nc20-btn-scan" type="button" (click)="simulateScan($index)" title="Simular escaneo">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
+                  </path>
+                </svg>
+              </button>
+            </div>
+
+            <span class="nc20-duplicate-warning" [class.nc20-show]="modalDuplicateIndexes().has($index)">
+              Este serial ya está ingresado
+            </span>
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="nc20-modal-footer">
+        <div class="nc20-serial-count" [class.nc20-complete]="modalComplete()"
+          [class.nc20-incomplete]="enteredCount() > 0 && !modalComplete()">
+          Ingresados: <span class="nc20-count">{{ enteredCount() }}</span> / <span>{{ modalQuantity() }}</span>
+        </div>
+
+        <div>
+          <button class="nc20-btn nc20-btn-secondary" type="button" (click)="closeSerialModal()"
+            style="margin-right: 8px;">
+            Cancelar
+          </button>
+
+          <button class="nc20-btn nc20-btn-primary" type="button" [disabled]="!modalComplete()"
+            (click)="confirmSerials()">
+            Confirmar Seriales
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

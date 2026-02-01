@@ -1,0 +1,258 @@
+<div class="nv-container">
+  <div class="nv-header">
+    <h1 class="nv-header__title">Nueva Venta</h1>
+    <p class="nv-header__subtitle">Punto de venta - Registro de transacciones</p>
+  </div>
+
+  <div class="nv-content">
+    <!-- Sección 1 -->
+    <div class="nv-section">
+      <h2 class="nv-section-title">1. Información de la Venta</h2>
+
+      <div class="nv-form-grid">
+        <div class="nv-form-group">
+          <label class="nv-label">
+            Cliente <span class="nv-required">*</span>
+          </label>
+
+          <div class="nv-autocomplete-wrapper">
+            <input class="nv-autocomplete-input" type="text" placeholder="Buscar cliente..." [(ngModel)]="clientQuery"
+              (input)="onClientInputChange()" (focus)="onClientInputFocus()" />
+
+            <div class="nv-autocomplete-results" [class.nv-show]="showClientResults">
+              <button type="button" class="nv-autocomplete-item" *ngFor="let c of filteredClients"
+                (click)="selectClient(c)">
+                <span>{{ c.name }}</span>
+                <span class="nv-item-meta">{{ c.cedula }}</span>
+              </button>
+
+              <div class="nv-autocomplete-item nv-autocomplete-item--empty" *ngIf="filteredClients.length === 0">
+                No hay resultados
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nv-form-group">
+          <label class="nv-label">Número de Factura</label>
+          <input class="nv-input" type="text" [value]="invoiceNumber" disabled />
+        </div>
+
+        <div class="nv-form-group">
+          <label class="nv-label">Fecha</label>
+          <input class="nv-input" type="text" [value]="dateText" disabled />
+        </div>
+
+        <div class="nv-form-group">
+          <label class="nv-label">Ubicación de Despacho</label>
+          <input class="nv-input" type="text" [(ngModel)]="locationText" disabled />
+        </div>
+      </div>
+
+      <div class="nv-form-group">
+        <label class="nv-label">Observaciones</label>
+        <textarea class="nv-textarea" placeholder="Notas adicionales sobre la venta..."
+          [(ngModel)]="observaciones"></textarea>
+      </div>
+    </div>
+
+    <!-- Sección 2 -->
+    <div class="nv-section">
+      <h2 class="nv-section-title">2. Carrito de Compras</h2>
+
+      <table class="nv-cart-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Producto</th>
+            <th style="width: 10%;">Stock</th>
+            <th style="width: 10%;">Cantidad</th>
+            <th style="width: 12%;">Precio Unit.</th>
+            <th style="width: 12%;">Subtotal</th>
+            <th style="width: 18%;">Seriales</th>
+            <th style="width: 5%;"></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngIf="cartRows.length === 0">
+            <td colspan="7">
+              <div class="nv-empty-cart">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z">
+                  </path>
+                </svg>
+                <h3>Carrito vacío</h3>
+                <p>Agrega productos para comenzar la venta</p>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="nv-cart-row" *ngFor="let row of cartRows; trackBy: trackByRowId"
+            [class.nv-cart-row--no-serials]="getRowProduct(row)?.serialized && row.serials.length !== row.quantity">
+
+            <td>
+              <div class="nv-autocomplete-wrapper">
+                <input class="nv-autocomplete-input" type="text" placeholder="Buscar producto..."
+                  [(ngModel)]="row.productQuery" (input)="onProductChange(row)" (focus)="onProductFocus(row)" />
+
+                <div class="nv-autocomplete-results" [class.nv-show]="row.showProductResults">
+                  <button type="button" class="nv-autocomplete-item" *ngFor="let p of filteredProductsForRow(row)"
+                    (click)="selectProduct(row, p)">
+                    <span>{{ p.name }}</span>
+                    <span class="nv-item-meta">Stock: {{ p.stock }}</span>
+                  </button>
+
+                  <div class="nv-autocomplete-item nv-autocomplete-item--empty"
+                    *ngIf="row.productQuery && filteredProductsForRow(row).length === 0">
+                    No hay productos disponibles
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <span class="nv-stock-badge" [class]="rowStockBadgeClass(row)">
+                {{ rowStockText(row) }}
+              </span>
+            </td>
+
+            <td>
+              <input class="nv-number-input" type="number" min="1" [(ngModel)]="row.quantity"
+                (change)="onQuantityChange(row)" />
+            </td>
+
+            <td>
+              <input class="nv-price-input" type="number" min="0" step="0.01" [(ngModel)]="row.price" />
+            </td>
+
+            <td class="nv-subtotal-cell">
+              ${{ rowSubtotal(row).toFixed(2) }}
+            </td>
+
+            <td>
+              <ng-container *ngIf="getRowProduct(row) as p; else serialDash">
+                <ng-container *ngIf="p.serialized; else serialNA">
+                  <button type="button" class="nv-btn nv-btn--small"
+                    [class.nv-btn--success]="row.serials.length === row.quantity && row.quantity > 0"
+                    [class.nv-btn--warning]="row.serials.length > 0 && row.serials.length !== row.quantity"
+                    [class.nv-btn--secondary]="row.serials.length === 0" (click)="openSerialModal(row)">
+                    <ng-container *ngIf="row.serials.length === row.quantity && row.quantity > 0">
+                      ✓ {{ row.serials.length }} seleccionados
+                    </ng-container>
+                    <ng-container *ngIf="row.serials.length > 0 && row.serials.length !== row.quantity">
+                      ⚠ {{ row.serials.length }}/{{ row.quantity }}
+                    </ng-container>
+                    <ng-container *ngIf="row.serials.length === 0">
+                      Seleccionar
+                    </ng-container>
+                  </button>
+                </ng-container>
+              </ng-container>
+
+              <ng-template #serialNA>N/A</ng-template>
+              <ng-template #serialDash>-</ng-template>
+            </td>
+
+            <td>
+              <button type="button" class="nv-btn nv-btn--danger" (click)="removeCartRow(row.id)">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <button type="button" class="nv-btn nv-btn--link nv-add-product-btn" (click)="addCartRow()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Agregar Producto
+      </button>
+    </div>
+
+    <!-- Sección 3 -->
+    <div class="nv-section">
+      <h2 class="nv-section-title">3. Resumen de la Venta</h2>
+
+      <div class="nv-summary-box">
+        <div class="nv-summary-row">
+          <span class="nv-summary-label">Subtotal:</span>
+          <span class="nv-summary-value">${{ subtotal().toFixed(2) }}</span>
+        </div>
+
+        <div class="nv-summary-row">
+          <span class="nv-summary-label">IVA (12%):</span>
+          <span class="nv-summary-value">${{ tax().toFixed(2) }}</span>
+        </div>
+
+        <div class="nv-summary-row nv-summary-row--total">
+          <span class="nv-summary-label">Total:</span>
+          <span class="nv-summary-value nv-summary-value--total">${{ total().toFixed(2) }}</span>
+        </div>
+
+        <div class="nv-summary-actions">
+          <button type="button" class="nv-btn nv-btn--secondary">Cancelar</button>
+          <button type="button" class="nv-btn nv-btn--primary" [disabled]="!canConfirmSale()" (click)="confirmSale()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Confirmar Venta
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Seriales -->
+<div class="nv-modal-overlay" [class.nv-show]="serialModalOpen" (click)="closeSerialModal()">
+  <div class="nv-modal" (click)="$event.stopPropagation()">
+    <div class="nv-modal-header">
+      <h3>Seleccionar Seriales</h3>
+      <button type="button" class="nv-modal-close" (click)="closeSerialModal()">&times;</button>
+    </div>
+
+    <div class="nv-modal-body">
+      <div class="nv-modal-info">
+        <strong>Producto: <span>{{ modalProductName }}</span></strong>
+        <strong>Ubicación: <span>{{ locationText }}</span></strong>
+        Selecciona exactamente <strong>{{ modalRequiredQty }}</strong> serial(es) disponible(s).
+      </div>
+
+      <div class="nv-serials-list">
+        <div class="nv-empty-state" *ngIf="modalAvailableSerials.length === 0">
+          <p>No hay seriales disponibles</p>
+        </div>
+
+        <label class="nv-serial-item" *ngFor="let serial of modalAvailableSerials"
+          [class.nv-serial-item--selected]="(modalChecked.get(serial) ?? false) && !isSerialUsedElsewhere(serial)"
+          [class.nv-serial-item--disabled]="isSerialUsedElsewhere(serial)" (click)="toggleSerial(serial)">
+          <input type="checkbox" [checked]="(modalChecked.get(serial) ?? false) && !isSerialUsedElsewhere(serial)"
+            [disabled]="isSerialUsedElsewhere(serial)" (click)="$event.stopPropagation()"
+            (change)="toggleSerial(serial)" />
+          <span class="nv-serial-code">{{ serial }}</span>
+
+          <span class="nv-serial-used" *ngIf="isSerialUsedElsewhere(serial)">Ya vendido</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="nv-modal-footer">
+      <div class="nv-serial-count" [class.nv-serial-count--complete]="modalSelectedCount() === modalRequiredQty">
+        Seleccionados:
+        <span class="nv-count">{{ modalSelectedCount() }}</span> / <span>{{ modalRequiredQty }}</span>
+      </div>
+
+      <div class="nv-modal-actions">
+        <button type="button" class="nv-btn nv-btn--secondary" (click)="closeSerialModal()">Cancelar</button>
+        <button type="button" class="nv-btn nv-btn--primary" [disabled]="modalSelectedCount() !== modalRequiredQty"
+          (click)="confirmSerials()">
+          Confirmar Selección
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

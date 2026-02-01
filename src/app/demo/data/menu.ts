@@ -183,5 +183,39 @@ export const menus: Navigation[] = [
         roles: ['Administrador', 'Empleado']
       }
     ]
+  },
+  {
+    id: 'other',
+    title: 'Nueva Venta',
+    type: 'group',
+    icon: 'icon-navigation',
+    children: [
+      {
+        id: 'nuevaVenta',
+        title: 'Nueva Venta',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/nueva-venta',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
+      }
+    ]
+  },
+  {
+    id: 'other',
+    title: 'Nueva Compra',
+    type: 'group',
+    icon: 'icon-navigation',
+    children: [
+      {
+        id: 'nuevaCompra',
+        title: 'Nueva Compra',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/nueva-compra',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
+      }
+    ]
   }
 ];
