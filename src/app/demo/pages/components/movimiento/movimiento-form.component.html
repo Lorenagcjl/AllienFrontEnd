@@ -79,6 +79,50 @@
           <mat-error *ngIf="movimientoForm.get('idUsuario')?.hasError('required')"> El usuario es requerido </mat-error>
         </mat-form-field>
       </div>
+      <hr class="my-4" />
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="m-0">Productos vinculados</h3>
+        <button mat-stroked-button color="primary" type="button" (click)="addProducto(0, 1)">
+          <mat-icon>add</mat-icon> Añadir Producto
+        </button>
+      </div>
+
+      <div formArrayName="detalles">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th style="width: 60%">Producto</th>
+              <th style="width: 30%">Cantidad</th>
+              <th style="width: 10%"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let detalle of detalles.controls; let i = index" [formGroupName]="i">
+              <td>
+                <mat-form-field appearance="outline" class="w-100 dense-3">
+                  <mat-select formControlName="idProducto" placeholder="Seleccione producto">
+                    <mat-option *ngFor="let prod of productos" [value]="prod.idProducto">
+                      {{ prod.nombre }} - ${{ prod.precio }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </td>
+              <td>
+                <mat-form-field appearance="outline" class="w-100 dense-3">
+                  <input matInput type="number" formControlName="cantidad" min="1" />
+                </mat-form-field>
+              </td>
+              <td class="text-center">
+                <button mat-icon-button color="warn" type="button" (click)="removeProducto(i)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div *ngIf="detalles.length === 0" class="text-center p-3 border rounded bg-light"> No hay productos agregados. </div>
+      </div>
     </div>
   </mat-dialog-content>
 

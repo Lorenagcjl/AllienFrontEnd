@@ -1,4 +1,6 @@
 // src/app/demo/models/movimiento-request.dto.ts
+import { MovimientoDetalleRequestDto } from './movimiento-detalle-request.dto';
+
 export interface MovimientoRequestDto {
   idMovimiento?: number;
   fechaMovimiento: Date | string;
@@ -6,5 +8,6 @@ export interface MovimientoRequestDto {
   observaciones: string;
   idUbicacionOrigen: number;
   idUbicacionDestino: number;
-  idUsuario: number; // ✅ Cambiar de fkUsuario a idUsuario
+  idUsuario: number;
+  detalles: MovimientoDetalleRequestDto[];
 }

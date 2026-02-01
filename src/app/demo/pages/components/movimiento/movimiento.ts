@@ -63,7 +63,6 @@ export default class Movimiento implements OnInit, AfterViewInit {
   }
 
   cargarDatosIniciales() {
-    // Cargar ubicaciones y movimientos en paralelo
     forkJoin({
       ubicaciones: this.ubicacionService.listarUbicaciones(),
       movimientos: this.movimientoService.listarMovimientos()
@@ -94,10 +93,30 @@ export default class Movimiento implements OnInit, AfterViewInit {
   }
 
   abrirFormulario(movimiento?: MovimientoModel) {
+    if (movimiento) {
+      // Modo edición: obtener el movimiento completo con detalles
+      this.movimientoService.buscarPorId(movimiento.idMovimiento).subscribe({
+        next: (movimientoCompleto) => {
+          console.log('Movimiento completo con detalles:', movimientoCompleto);
+          this.abrirModal(movimientoCompleto);
+        },
+        error: (err) => {
+          console.error('Error al obtener movimiento', err);
+          // Si falla, abrir con los datos básicos
+          this.abrirModal(movimiento);
+        }
+      });
+    } else {
+      // Modo nuevo: abrir sin datos
+      this.abrirModal(null);
+    }
+  }
+
+  private abrirModal(data: any) {
     const dialogRef = this.dialog.open(MovimientoFormComponent, {
       width: '600px',
       disableClose: true,
-      data: movimiento || null
+      data: data
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -108,9 +127,23 @@ export default class Movimiento implements OnInit, AfterViewInit {
   }
 
   verDetalle(movimiento: MovimientoModel) {
-    this.dialog.open(MovimientoModalComponent, {
-      width: '700px',
-      data: movimiento
+    // Obtener el movimiento completo con detalles
+    this.movimientoService.buscarPorId(movimiento.idMovimiento).subscribe({
+      next: (movimientoCompleto) => {
+        console.log('Movimiento completo para ver detalle:', movimientoCompleto);
+        this.dialog.open(MovimientoModalComponent, {
+          width: '700px',
+          data: movimientoCompleto
+        });
+      },
+      error: (err) => {
+        console.error('Error al obtener movimiento', err);
+        // Si falla, abrir con los datos básicos
+        this.dialog.open(MovimientoModalComponent, {
+          width: '700px',
+          data: movimiento
+        });
+      }
     });
   }
 

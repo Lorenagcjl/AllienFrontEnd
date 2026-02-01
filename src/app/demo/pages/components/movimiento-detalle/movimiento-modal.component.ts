@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, Inject, OnInit, inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MovimientoDetalleService } from 'src/app/@theme/services/movimiento-detalle.service';
 
 @Component({
     selector: 'app-movimiento-modal',
@@ -69,11 +68,8 @@ import { MovimientoDetalleService } from 'src/app/@theme/services/movimiento-det
   `,
 })
 export class MovimientoModalComponent implements OnInit {
-    // 1. Definir explícitamente las columnas que coinciden con los matColumnDef
     columns: string[] = ['cantidad', 'idProducto'];
     dataSource = new MatTableDataSource<any>([]);
-
-    private detalleService = inject(MovimientoDetalleService);
 
     constructor(@Inject(MAT_DIALOG_DATA) public data: any) { }
 
@@ -82,23 +78,16 @@ export class MovimientoModalComponent implements OnInit {
     }
 
     cargarDetalles() {
-        this.detalleService.listarMovimientoDetalles().subscribe({
-            next: (res) => {
-                // 1. Log para depurar (mira la consola del navegador F12)
-                console.log("ID del Movimiento seleccionado:", this.data.idMovimiento);
-                console.log("Primer detalle recibido del servidor:", res[0]);
+        // Usar los detalles que ya vienen en data (del movimiento completo)
+        console.log('Datos del movimiento:', this.data);
+        console.log('Detalles del movimiento:', this.data.detalles);
 
-                // 2. Filtrado robusto
-                // Usamos Number() para asegurar que ambos sean tratados como números
-                // Y verificamos si la propiedad se llama idMovimiento o fkMovimiento.idMovimiento
-                this.dataSource.data = res.filter((d: any) => {
-                    const idDetalle = d.idMovimiento || (d.fkMovimiento ? d.fkMovimiento.idMovimiento : null);
-                    return Number(idDetalle) === Number(this.data.idMovimiento);
-                });
-
-                console.log("Datos después del filtro:", this.dataSource.data);
-            },
-            error: (err) => console.error('Error al cargar detalles', err)
-        });
+        if (this.data.detalles && this.data.detalles.length > 0) {
+            this.dataSource.data = this.data.detalles;
+            console.log('Detalles cargados:', this.dataSource.data);
+        } else {
+            console.log('No hay detalles para este movimiento');
+            this.dataSource.data = [];
+        }
     }
 }
