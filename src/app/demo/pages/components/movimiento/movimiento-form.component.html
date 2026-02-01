@@ -1,61 +1,66 @@
-<h2 mat-dialog-title>{{ movimientoForm.value.idMovimiento ? 'Editar Movimiento' : 'Nuevo Movimiento' }}</h2>
-<form [formGroup]="movimientoForm" (ngSubmit)="save()" autocomplete="off">
-  <mat-dialog-content>
-    <div class="row">
-      <div class="col-12 col-md-6">
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Fecha Movimiento</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="fechaMovimiento" required />
-          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-        </mat-form-field>
-      </div>
-      <div class="col-12 col-md-6">
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Tipo</mat-label>
-          <input matInput formControlName="tipo" required />
-        </mat-form-field>
-      </div>
-      <div class="col-12">
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Observaciones</mat-label>
-          <textarea matInput formControlName="observaciones"></textarea>
-        </mat-form-field>
-      </div>
-      <div class="col-12 col-md-6">
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Ubicación Origen</mat-label>
-          <mat-select formControlName="idUbicacionOrigen" required>
-            <mat-option *ngFor="let ubicacion of ubicaciones" [value]="ubicacion.idUbicacion">
-              {{ ubicacion.nombre }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-      <div class="col-12 col-md-6">
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Ubicación Destino</mat-label>
-          <mat-select formControlName="idUbicacionDestino" required>
-            <mat-option *ngFor="let ubicacion of ubicaciones" [value]="ubicacion.idUbicacion">
-              {{ ubicacion.nombre }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-      <div class="col-12">
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Usuario</mat-label>
-          <mat-select formControlName="idUsuario" required>
-            <mat-option *ngFor="let usuario of usuarios" [value]="usuario.idUsuario">
-              {{ usuario.primerNombre }} {{ usuario.primerApellido }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
+<h2 mat-dialog-title>{{ data?.idMovimiento ? 'Editar' : 'Nuevo' }} Movimiento</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="row g-3 mt-1">
+    
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Fecha</mat-label>
+        <input matInput formControlName="fechaMovimiento" type="datetime-local">
+      </mat-form-field>
     </div>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Cancelar</button>
-    <button mat-flat-button color="primary" type="submit" [disabled]="movimientoForm.invalid">Guardar</button>
-  </mat-dialog-actions>
-</form>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Tipo</mat-label>
+        <mat-select formControlName="tipo">
+          <mat-option *ngFor="let tipo of tiposMovimiento" [value]="tipo">
+            {{ tipo }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Ubicación Origen</mat-label>
+        <mat-select formControlName="idUbicacionOrigen">
+          <mat-option *ngFor="let u of ubicaciones" [value]="u.idUbicacion">
+            {{ u.nombre }}
+          </mat-option>
+        </mat-select>
+        <mat-hint *ngIf="form.get('idUbicacionOrigen')?.value === form.get('idUbicacionDestino')?.value && form.get('idUbicacionOrigen')?.value !== null" color="warn">
+          La ubicación origen y destino no deben ser iguales.
+        </mat-hint>
+      </mat-form-field>
+    </div>
+
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Ubicación Destino</mat-label>
+        <mat-select formControlName="idUbicacionDestino">
+          <mat-option *ngFor="let u of ubicaciones" [value]="u.idUbicacion">
+            {{ u.nombre }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="col-12">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Observaciones</mat-label>
+        <textarea matInput formControlName="observaciones" rows="3" placeholder="Ej. Traslado por reposición de stock..."></textarea>
+      </mat-form-field>
+    </div>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="mb-2 pe-3">
+  <button mat-button (click)="dialogRef.close()">Cancelar</button>
+  <button mat-raised-button color="primary" 
+          (click)="guardar()" 
+          [disabled]="form.invalid || (form.get('idUbicacionOrigen')?.value === form.get('idUbicacionDestino')?.value)">
+    <mat-icon>save</mat-icon> {{ data?.idMovimiento ? 'Actualizar' : 'Guardar' }}
+  </button>
+</mat-dialog-actions>

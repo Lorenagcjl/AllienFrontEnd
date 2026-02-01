@@ -1,67 +1,70 @@
-<div class="mat-elevation-z8">
-  <table mat-table [dataSource]="dataSource" matSort>
-    <!-- ID -->
-    <ng-container matColumnDef="idMovimiento">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
-      <td mat-cell *matCellDef="let row">{{ row.idMovimiento }}</td>
-    </ng-container>
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Gestión de Movimientos</h2>
+    <button mat-raised-button color="primary" (click)="abrirFormulario()">
+      <mat-icon>add</mat-icon> Nuevo Movimiento
+    </button>
+  </div>
 
-    <!-- Fecha Movimiento -->
-    <ng-container matColumnDef="fechaMovimiento">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Fecha Movimiento </th>
-      <td mat-cell *matCellDef="let row">{{ row.fechaMovimiento | date:'short' }}</td>
-    </ng-container>
+  <mat-form-field appearance="outline" class="w-100">
+    <mat-label>Buscar movimiento...</mat-label>
+    <input matInput (keyup)="applyFilter($event)" placeholder="Ej. TRASLADO">
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
 
-    <!-- Observaciones -->
-    <ng-container matColumnDef="observaciones">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Observaciones </th>
-      <td mat-cell *matCellDef="let row">{{ row.observaciones }}</td>
-    </ng-container>
+  <div class="mat-elevation-z8">
+    <table mat-table [dataSource]="dataSource" matSort>
 
-    <!-- Tipo -->
-    <ng-container matColumnDef="tipo">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Tipo </th>
-      <td mat-cell *matCellDef="let row">{{ row.tipo }}</td>
-    </ng-container>
+      <ng-container matColumnDef="idMovimiento">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+        <td mat-cell *matCellDef="let row"> {{row.idMovimiento}} </td>
+      </ng-container>
 
-    <!-- Ubicación Destino -->
-    <ng-container matColumnDef="idUbicacionDestino">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Ubicación Destino </th>
-      <td mat-cell *matCellDef="let row">{{ getNombreUbicacion(row.idUbicacionDestino) }}</td>
-    </ng-container>
+      <ng-container matColumnDef="fechaMovimiento">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Fecha </th>
+        <td mat-cell *matCellDef="let row"> {{row.fechaMovimiento | date:'short'}} </td>
+      </ng-container>
 
-    <!-- Ubicación Origen -->
-    <ng-container matColumnDef="idUbicacionOrigen">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Ubicación Origen </th>
-      <td mat-cell *matCellDef="let row">{{ getNombreUbicacion(row.idUbicacionOrigen) }}</td>
-    </ng-container>
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header> Tipo </th>
+        <td mat-cell *matCellDef="let row"> 
+            <span class="badge" [ngClass]="row.tipo === 'TRASLADO' ? 'bg-info' : 'bg-success'">
+                {{row.tipo}}
+            </span>
+        </td>
+      </ng-container>
 
-    <!-- Usuario -->
-    <ng-container matColumnDef="idUsuario">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Usuario </th>
-      <td mat-cell *matCellDef="let row">{{ row.fkUsuario?.primerNombre + ' ' + row.fkUsuario?.primerApellido }}</td>
-    </ng-container>
+      <ng-container matColumnDef="origen">
+        <th mat-header-cell *matHeaderCellDef> Origen </th>
+        <td mat-cell *matCellDef="let row"> {{ getNombreUbicacion(row.idUbicacionOrigen) }} </td>
+      </ng-container>
 
-    <!-- Acciones -->
-    <ng-container matColumnDef="acciones">
-      <th mat-header-cell *matHeaderCellDef> Acciones </th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-icon-button color="accent" (click)="verDetalle(row)" matTooltip="Ver Detalle">
-          <i class="ti ti-eye f-18"></i>
-        </button>
+      <ng-container matColumnDef="destino">
+        <th mat-header-cell *matHeaderCellDef> Destino </th>
+        <td mat-cell *matCellDef="let row"> {{ getNombreUbicacion(row.idUbicacionDestino) }} </td>
+      </ng-container>
 
-        <button mat-icon-button color="primary" (click)="abrirFormulario(row)" matTooltip="Editar">
-          <i class="ti ti-edit f-18"></i>
-        </button>
-      </td>
-    </ng-container>
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <ng-container matColumnDef="usuario">
+        <th mat-header-cell *matHeaderCellDef> Usuario </th>
+        <td mat-cell *matCellDef="let row"> {{row.fkUsuario?.nombreUsuario}} </td>
+      </ng-container>
 
-    <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="8">No hay datos que coincidan con "{{input.value}}"</td>
-    </tr>
-  </table>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef> Acciones </th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button color="accent" (click)="abrirFormulario(row)" matTooltip="Editar">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="eliminar(row.idMovimiento)" matTooltip="Eliminar">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
 
-  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
+  </div>
 </div>

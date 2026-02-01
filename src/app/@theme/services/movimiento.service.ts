@@ -1,7 +1,8 @@
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { MovimientoModel } from 'src/app/demo/models/movimiento.model';
+import { Movimiento, MovimientoRequest } from 'src/app/demo/models/movimiento.model';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
     providedIn: 'root'
@@ -10,15 +11,22 @@ export class MovimientoService {
     private http = inject(HttpClient);
     private apiUrl = 'http://localhost:8080/api/movimiento';
 
-    listarMovimientos(): Observable<MovimientoModel[]> {
-        return this.http.get<MovimientoModel[]>(this.apiUrl);
-    }
+    listar(): Observable<Movimiento[]> {
+    return this.http.get<Movimiento[]>(this.apiUrl);
+  }
 
-    guardar(movimiento: MovimientoModel): Observable<any> {
-        return this.http.post(this.apiUrl, movimiento);
-    }
+  crear(mov: MovimientoRequest): Observable<Movimiento> {
+    return this.http.post<Movimiento>(this.apiUrl, mov);
+  }
+  actualizar(id: number, mov: MovimientoRequest): Observable<Movimiento> {
+  return this.http.put<Movimiento>(`${this.apiUrl}/${id}`, mov);
+}
 
-    actualizar(id: number, movimiento: MovimientoModel): Observable<any> {
-        return this.http.put(`${this.apiUrl}/${id}`, movimiento);
-    }
+  buscarPorId(id: number): Observable<Movimiento> {
+    return this.http.get<Movimiento>(`${this.apiUrl}/${id}`);
+  }
+
+  eliminar(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
 }
