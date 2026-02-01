@@ -13,6 +13,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { InventarioMovimiento } from 'src/app/demo/models/inventariomovimiento.model';
 import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
+import { VentaDetalleSerialService } from 'src/app/@theme/services/venta-detalle-serial.service';
+import { ProductoSerialService } from 'src/app/@theme/services/producto-serial.service';
 
 import Swal from 'sweetalert2';
 
@@ -39,6 +41,8 @@ export default class DetalleventaComponent implements OnInit {
   private detalleService = inject(DetalleVentaService);
   private productoService = inject(ProductoService);
   private ubicacionService = inject(UbicacionService);
+  private productoSerialService = inject(ProductoSerialService);
+  private ventaDetalleSerialService = inject(VentaDetalleSerialService);
 
   detalles: any[] = [];
   productos: any[] = [];
@@ -63,26 +67,31 @@ export default class DetalleventaComponent implements OnInit {
   }
 
   ngOnInit() {
-  this.cargarCatalogos();
-  this.listarDetalles();
+    this.cargarCatalogos();
+    this.listarDetalles();
 
-  // Lógica de Producto (Precio y Comisión)
-  this.form.get('idProducto')?.valueChanges.subscribe(idSel => {
-    const productoEncontrado = this.productos.find(p => p.idProducto === idSel);
-    if (productoEncontrado) {
-      this.form.patchValue({
-        precioUnitario: productoEncontrado.precioVenta,
-        porcentajeComision: productoEncontrado.porcentajeComision
-      });
-    }
-    this.verificarStock();
-  });
+    this.form.get('idProducto')?.valueChanges.subscribe(idSel => {
+      const productoEncontrado = this.productos.find(p => p.idProducto === idSel);
+      if (productoEncontrado) {
+        // Si el producto requiere serial, forzamos cantidad a 1
+        if (productoEncontrado.manejaSerial) { // Asumiendo que tu modelo tiene este campo
+            this.form.get('cantidad')?.setValue(1);
+            this.form.get('cantidad')?.disable();
+        } else {
+            this.form.get('cantidad')?.enable();
+        }
 
-  // --- NUEVA LÓGICA: Autocorrección de Cantidad ---
-  this.form.get('cantidad')?.valueChanges.subscribe(valor => {
-    if (this.stockDisponible !== null && valor > this.stockDisponible) {
-      // Si pone 5 y hay 3, le seteamos 3 automáticamente
-      this.form.get('cantidad')?.patchValue(this.stockDisponible, { emitEvent: false });
+        this.form.patchValue({
+          precioUnitario: productoEncontrado.precioVenta,
+          porcentajeComision: productoEncontrado.porcentajeComision
+        });
+      }
+      this.verificarStock();
+    });
+
+    this.form.get('cantidad')?.valueChanges.subscribe(valor => {
+      if (this.stockDisponible !== null && valor > this.stockDisponible) {
+        this.form.get('cantidad')?.patchValue(this.stockDisponible, { emitEvent: false });
 
       // Opcional: un pequeño toast para avisar por qué cambió
       const Toast = Swal.mixin({
@@ -142,70 +151,128 @@ private verificarStock() {
     });
   }
 
-  agregarItem() {
-  // 1. Usamos getRawValue() para incluir el idUbicacion deshabilitado
-  const val = this.form.getRawValue();
+  async agregarItem() {
+    const val = this.form.getRawValue();
+    if (this.form.invalid && !val.idUbicacion) return;
 
-  if (this.form.invalid && !val.idUbicacion) return;
+    const productoElegido = this.productos.find(p => p.idProducto === val.idProducto);
+    let idSerialSeleccionado: number | null = null;
 
-  // 2. Validación de stock
-  if (this.stockDisponible !== null && val.cantidad > this.stockDisponible) {
-    Swal.fire('Atención', `No hay stock suficiente en Local (${this.stockDisponible})`, 'warning');
-    return;
+    // 1. Lógica para productos con SERIAL
+    if (productoElegido?.manejaSerial) {
+      const respuesta = await this.productoSerialService.listarProductosSerial().toPromise() ?? [];
+      const disponibles = respuesta.filter((s: any) => {
+        const idProdSerial = s.fkProducto?.idProducto || s.idProducto;
+        return idProdSerial === val.idProducto && s.estado === 'Disponible';
+      });
+
+      if (disponibles.length === 0) {
+        Swal.fire('Sin Stock', 'No hay seriales disponibles para este producto', 'error');
+        return;
+      }
+
+      const { value: serialId } = await Swal.fire({
+        title: 'Seleccione el Serial',
+        input: 'select',
+        inputOptions: disponibles.reduce((acc: any, curr: any) => ({
+          ...acc, 
+          [curr.idProductoSerial]: curr.serial
+        }), {}),
+        inputPlaceholder: 'Seleccione un serial...',
+        showCancelButton: true
+      });
+
+      if (!serialId) return; 
+      idSerialSeleccionado = Number(serialId);
+    }
+
+    const payloadDetalle = {
+      cantidad: val.cantidad,
+      precioUnitario: val.precioUnitario,
+      porcentajeComision: val.porcentajeComision,
+      subtotal: (val.cantidad * val.precioUnitario),
+      fkVenta: { idVenta: this.data.idVenta },
+      fkProducto: { idProducto: val.idProducto },
+      fkUbicacion: { idUbicacion: val.idUbicacion }
+    };
+
+    // 2. GUARDAR DETALLE (Paso 1 del flujo)
+    this.detalleService.guardar(payloadDetalle).subscribe({
+      next: (detalleGuardado) => {
+        console.log('Detalle Guardado con éxito:', detalleGuardado);
+
+        if (idSerialSeleccionado) {
+          // ESTA ES LA PARTE DE POSTMAN (Paso 2 del flujo)
+          // Verifica que detalleGuardado.idVentaDetalle sea el nombre correcto que devuelve tu API
+          const payloadVinculo = {
+            fkDetalleVenta: { idDetalleVenta: detalleGuardado.idVentaDetalle }, 
+            fkProductoSerial: { idProductoSerial: idSerialSeleccionado }
+          };
+
+          console.log('Intentando vincular serial (POSTMAN PAYLOAD):', payloadVinculo);
+
+          this.ventaDetalleSerialService.vincularSerialAVenta(payloadVinculo).subscribe({
+              next: (resVinculo) => {
+                  console.log('Vinculación exitosa en BD:', resVinculo);
+                  this.registrarMovimiento(val, detalleGuardado.idVentaDetalle, idSerialSeleccionado);
+              },
+              error: (err) => {
+                  console.error('ERROR AL VINCULAR SERIAL:', err);
+                  Swal.fire('Error de Vinculación', 'El detalle se creó pero no se pudo asociar el serial.', 'warning');
+              }
+          });
+        } else {
+          // Si no tiene serial, solo registra el movimiento normal
+          this.registrarMovimiento(val, detalleGuardado.idVentaDetalle, null);
+        }
+      },
+      error: (err) => {
+          console.error('ERROR AL GUARDAR DETALLE:', err);
+          Swal.fire('Error', 'No se pudo agregar el producto', 'error');
+      }
+    });
   }
 
-  const payloadDetalle = {
-    cantidad: val.cantidad,
-    precioUnitario: val.precioUnitario,
-    porcentajeComision: val.porcentajeComision,
-    subtotal: (val.cantidad * val.precioUnitario),
-    fkVenta: { idVenta: this.data.idVenta },
-    fkProducto: { idProducto: val.idProducto },
-    fkUbicacion: { idUbicacion: val.idUbicacion } // Ahora sí tendrá el valor
-  };
+  private registrarMovimiento(val: any, idDetalle: number, idSerial: number | null) {
+    const movimiento: InventarioMovimiento = {
+      tipo: 'Venta',
+      cantidadEntrada: 0,
+      cantidadSalida: val.cantidad,
+      referenciaTipo: 'VentaDetalle',
+      referenciaId: idDetalle,
+      fkProducto: { idProducto: val.idProducto },
+      fkUbicacion: { idUbicacion: val.idUbicacion },
+      fkProductoSerial: idSerial ? { idProductoSerial: idSerial } : null as any
+    };
 
-  this.detalleService.guardar(payloadDetalle).subscribe({
-    next: (detalleGuardado) => {
-      const movimiento: InventarioMovimiento = {
-        tipo: 'Venta',
-        cantidadEntrada: 0,
-        cantidadSalida: val.cantidad,
-        referenciaTipo: 'VentaDetalle',
-        referenciaId: detalleGuardado.idVentaDetalle,
-        fkProducto: { idProducto: val.idProducto },
-        fkUbicacion: { idUbicacion: val.idUbicacion },
-        fkProductoSerial: null
-      };
+    console.log('Registrando movimiento de inventario:', movimiento);
 
-      this.movimientoService.guardar(movimiento).subscribe({
-        next: () => {
-          this.listarDetalles();
-          // Resetamos pero manteniendo el ID de ubicación
-          const idUbiActual = this.form.get('idUbicacion')?.value;
-          this.form.reset({
-            idUbicacion: idUbiActual,
-            cantidad: 1,
-            precioUnitario: 0,
-            porcentajeComision: 0
-          });
-          // Importante: volver a deshabilitar tras el reset si es necesario
-          this.form.get('idUbicacion')?.disable();
-
-          this.stockDisponible = null;
-
-          Swal.fire({
-            icon: 'success',
-            title: 'Agregado a la venta',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 1500
-          });
-        },
-        error: (err) => Swal.fire('Error de Inventario', 'No se pudo descontar el stock', 'error')
-      });
-    },
-    error: (err) => Swal.fire('Error', 'No se pudo agregar el producto', 'error')
-  });
-}
+    this.movimientoService.guardar(movimiento).subscribe({
+      next: () => {
+        this.listarDetalles();
+        this.resetearFormulario();
+        Swal.fire({
+          icon: 'success',
+          title: 'Agregado correctamente',
+          toast: true,
+          position: 'top-end',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      },
+      error: (err) => console.error('Error en movimiento:', err)
+    });
+  }
+  private resetearFormulario() {
+    const idUbiActual = this.form.get('idUbicacion')?.value;
+    this.form.reset({
+      idUbicacion: idUbiActual,
+      cantidad: 1,
+      precioUnitario: 0,
+      porcentajeComision: 0
+    });
+    // Si la ubicación debe seguir deshabilitada:
+    this.form.get('idUbicacion')?.disable();
+    this.stockDisponible = null;
+  }
 }

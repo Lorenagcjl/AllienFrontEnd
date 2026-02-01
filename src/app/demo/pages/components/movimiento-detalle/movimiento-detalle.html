@@ -1,59 +1,65 @@
-<div class="mat-elevation-z8">
-  <table mat-table [dataSource]="dataSource" matSort>
-    <ng-container matColumnDef="idMovimientoDetalle">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
-      <td mat-cell *matCellDef="let row"> {{row.idMovimientoDetalle}} </td>
-    </ng-container>
+<h2 mat-dialog-title class="text-primary">
+  <i class="ti ti-package me-2"></i>Detalle de Movimiento: #{{data.idMovimiento}}
+</h2>
 
-    <ng-container matColumnDef="cantidad">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Cantidad </th>
-      <td mat-cell *matCellDef="let row"> {{row.cantidad}} </td>
-    </ng-container>
+<mat-dialog-content>
+  <div class="row g-3 mb-4 border p-3 rounded bg-light shadow-sm">
+    <div class="col-md-7">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Producto</mat-label>
+        <mat-select [formControl]="$any(form.get('idProducto'))">
+          @for (p of productos; track p.idProducto) {
+            <mat-option [value]="p.idProducto">{{p.nombre}}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
 
-    <ng-container matColumnDef="idProducto">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Producto </th>
-      <td mat-cell *matCellDef="let row">
-        <div style="display: flex; align-items: center; gap: 8px">
-          <img
-            *ngIf="row.fkProducto?.foto"
-            [src]="row.fkProducto.foto"
-            alt="{{row.fkProducto?.nombre}}"
-            width="40"
-            height="40"
-            style="object-fit: cover; border-radius: 4px"
-          />
-          <div>
-            <div><strong>{{row.fkProducto?.nombre}}</strong></div>
-            <div>
-              <span *ngIf="row.fkProducto?.precioVenta">${{row.fkProducto.precioVenta}}</span>
-            </div>
-          </div>
-        </div>
-      </td>
-    </ng-container>
+    <div class="col-md-3">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Cantidad</mat-label>
+        <input matInput type="number" [formControl]="$any(form.get('cantidad'))">
+      </mat-form-field>
+    </div>
 
-    <ng-container matColumnDef="idMovimiento">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header> Movimiento </th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-button color="primary" (click)="verMovimiento(row.fkMovimiento)"> Ver Movimiento </button>
-      </td>
-    </ng-container>
+    <div class="col-md-2 d-flex align-items-center">
+      <button mat-raised-button color="primary" class="w-100 py-2" (click)="agregarItem()" [disabled]="form.invalid">
+        <i class="ti ti-plus"></i>
+      </button>
+    </div>
+  </div>
 
-    <ng-container matColumnDef="acciones">
-      <th mat-header-cell *matHeaderCellDef> Acciones </th>
-      <td mat-cell *matCellDef="let row">
-        <button mat-icon-button color="primary" (click)="abrirFormulario(row)" matTooltip="Editar">
-          <i class="ti ti-edit f-18"></i>
-        </button>
-      </td>
-    </ng-container>
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0 text-muted">Items Agregados:</h5>
+    
+  </div>
 
-    <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="8">No hay datos que coincidan con "{{input.value}}"</td>
-    </tr>
-  </table>
+  <div class="table-responsive border rounded shadow-sm">
+    <table class="table table-hover mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>Producto</th>
+          <th class="text-center" style="width: 150px;">Cantidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (d of detalles; track d.idMovimientoDetalle) {
+          <tr>
+            <td>{{ getNombreProducto(d.idProducto || d.fkProducto?.idProducto) }}</td>
+            <td class="text-center">
+              <span class="badge bg-primary fs-6">{{d.cantidad}}</span>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="3" class="text-center py-4 text-muted">No hay productos registrados.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</mat-dialog-content>
 
-  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
-</div>
+<mat-dialog-actions align="end" class="border-top p-3">
+  <button mat-stroked-button mat-dialog-close color="warn">Cerrar Detalle</button>
+</mat-dialog-actions>

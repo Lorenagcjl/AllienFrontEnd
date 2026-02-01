@@ -1,5 +1,5 @@
-export interface VentaDetalleSerialModel {
-    idVentaDetalleSerial: number;
-    idDetalleVenta: number;
-    idProductoSerial: number;
+// venta-detalle-serial.model.ts
+export interface VentaDetalleSerialRequest {
+  fkDetalleVenta: { idDetalleVenta: number };
+  fkProductoSerial: { idProductoSerial: number };
 }

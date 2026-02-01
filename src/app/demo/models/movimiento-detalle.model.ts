@@ -3,4 +3,6 @@ export interface MovimientoDetalleModel {
   cantidad: number;
   idMovimiento: number;
   idProducto: number;
+  nombreProducto?: string;
+  
 }

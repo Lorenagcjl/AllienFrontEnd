@@ -7,7 +7,7 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { UsuarioService } from 'src/app/@theme/services/user.service';
 import { VentaDetalleSerialService } from 'src/app/@theme/services/venta-detalle-serial.service';
-import { VentaDetalleSerialModel } from 'src/app/demo/models/venta-detalle-serial.model';
+import { VentaDetalleSerialRequest } from 'src/app/demo/models/venta-detalle-serial.model';
 import { SharedModule } from 'src/app/demo/shared/shared.module';
 
 @Component({
@@ -28,7 +28,7 @@ export default class VentaDetalleSerial {
     'usuario',
     'cantidad'
   ];
-  dataSource = new MatTableDataSource<VentaDetalleSerialModel>([]);
+  dataSource = new MatTableDataSource<VentaDetalleSerialRequest>([]);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;

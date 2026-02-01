@@ -13,6 +13,23 @@ export class MovimientoDetalleService {
     listarMovimientoDetalles(): Observable<MovimientoDetalleModel[]> {
         return this.http.get<MovimientoDetalleModel[]>(this.apiUrl);
     }
+    // BUSCAR POR ID
+    buscarPorId(id: number): Observable<MovimientoDetalleModel> {
+        return this.http.get<MovimientoDetalleModel>(`${this.apiUrl}/${id}`);
+    }
 
-    
+    // CREAR (POST)
+    crear(detalle: MovimientoDetalleModel): Observable<MovimientoDetalleModel> {
+        return this.http.post<MovimientoDetalleModel>(this.apiUrl, detalle);
+    }
+
+    // ACTUALIZAR (PUT)
+    actualizar(id: number, detalle: MovimientoDetalleModel): Observable<MovimientoDetalleModel> {
+        return this.http.put<MovimientoDetalleModel>(`${this.apiUrl}/${id}`, detalle);
+    }
+
+    // ELIMINAR (DELETE)
+    eliminar(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
 }

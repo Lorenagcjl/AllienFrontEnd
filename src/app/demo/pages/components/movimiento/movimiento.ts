@@ -9,7 +9,7 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
+import MovimientoDetalleComponent from '../movimiento-detalle/movimiento-detalle';
 import { MovimientoService } from 'src/app/@theme/services/movimiento.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 import { Movimiento } from 'src/app/demo/models/movimiento.model';
@@ -24,7 +24,7 @@ import Swal from 'sweetalert2';
   imports: [
     CommonModule, SharedModule, MatFormFieldModule, MatInputModule, 
     MatTableModule, MatSortModule, MatPaginatorModule, MatDialogModule,
-    MatButtonModule, MatIconModule, MatTooltipModule
+    MatButtonModule, MatIconModule, MatTooltipModule, MovimientoDetalleComponent
   ],
   templateUrl: './movimiento.html',
   styleUrl: './movimiento.scss',
@@ -80,6 +80,14 @@ export default class MovimientoComponent implements OnInit, AfterViewInit {
       if (result) this.cargarMovimientos();
     });
   }
+
+  verDetalle(movimiento: Movimiento) {
+  this.dialog.open(MovimientoDetalleComponent, {
+    width: '1000px',
+    data: movimiento, // Aquí pasamos el objeto completo (idUbicacionOrigen, etc.)
+    disableClose: true
+  });
+}
 
   eliminar(id: number) {
   Swal.fire({
