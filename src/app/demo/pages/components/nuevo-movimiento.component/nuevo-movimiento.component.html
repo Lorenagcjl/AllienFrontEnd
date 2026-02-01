@@ -213,7 +213,7 @@
           No hay seriales disponibles para este producto.
         </div>
 
-        <label class="inv-mov__serial-item" *ngFor="let s of modalSerials(); trackBy: trackByIndex"
+        <label class="inv-mov__serial-item" *ngFor="let s of modalSerials(); trackBy: trackBySerial"
           [class.inv-mov__serial-selected]="isSerialSelected(s)">
           <input type="checkbox" class="inv-mov__serial-checkbox" [checked]="isSerialSelected(s)"
             (change)="toggleSerial(s)" />

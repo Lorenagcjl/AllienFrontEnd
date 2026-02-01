@@ -12,7 +12,13 @@ import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
 
 type MovementType = 'traslado' | 'ajuste' | 'devolucion';
 
-type Product = { id: number; name: string; serialized: boolean; stock: number };
+export interface ProductoSerialMovDto {
+  idProductoSerial: number;
+  productoId: number;   // ✅ siempre consistente
+  serial: string;
+  estado: string;
+}
+
 
 type ProductRowForm = FormGroup<{
   productQuery: FormControl<string>;
@@ -20,6 +26,9 @@ type ProductRowForm = FormGroup<{
   quantity: FormControl<number>;
   serials: FormControl<string[]>;
 }>;
+
+type EstadoSerial = 'Disponible' | 'Vendido' | 'Dañado';
+
 
 
 @Component({
@@ -50,20 +59,6 @@ export default class NuevoMovimientoComponent {
 
   // cache simple: para no recalcular siempre (opcional)
   private readonly serialesPorProducto = new Map<number, string[]>();
-
-  readonly productsData: Product[] = [
-    { id: 1, name: 'Laptop Dell XPS 15', serialized: true, stock: 5 },
-    { id: 2, name: 'Mouse Logitech MX Master', serialized: false, stock: 25 },
-    { id: 3, name: 'Teclado Mecánico Keychron', serialized: true, stock: 8 },
-    { id: 4, name: 'Monitor LG UltraWide 34"', serialized: true, stock: 3 },
-    { id: 5, name: 'Cable HDMI 2m', serialized: false, stock: 50 },
-  ];
-
-  readonly serialsData: Record<number, string[]> = {
-    1: ['SN-DELL-001', 'SN-DELL-002', 'SN-DELL-003', 'SN-DELL-004', 'SN-DELL-005'],
-    3: ['SN-KEY-A01', 'SN-KEY-A02', 'SN-KEY-A03', 'SN-KEY-A04', 'SN-KEY-A05', 'SN-KEY-A06', 'SN-KEY-A07', 'SN-KEY-A08'],
-    4: ['SN-MON-X1', 'SN-MON-X2', 'SN-MON-X3'],
-  };
 
   // ===== Form =====
   readonly form = this.fb.group({
@@ -100,7 +95,7 @@ export default class NuevoMovimientoComponent {
     if (idx === null) return '-';
     const pid = this.productsFA.at(idx).controls.productId.value;
     const p = this.findProduct(pid);
-    return p?.name ?? '-';
+    return p?.nombre ?? '-';
   });
 
   // ===== Validación origen/destino no iguales =====
@@ -113,6 +108,7 @@ export default class NuevoMovimientoComponent {
 
   constructor(private readonly fb: FormBuilder) {
     this.cargarUbicaciones();
+    this.cargarProductos();
     this.cargarSeriales();
 
     this.form.controls.origen.valueChanges.subscribe(o => {
@@ -166,37 +162,113 @@ export default class NuevoMovimientoComponent {
 
     this.productoSerialService.listarProductosSerial().pipe(take(1)).subscribe({
       next: (data: ProductoSerial[]) => {
-        this.seriales.set(data ?? []);
-        this.serialesPorProducto.clear(); // reset cache
+        console.log('[SERIALES RAW] length:', data?.length);
+        console.log('[SERIALES RAW sample0]', data?.[0]);
+        console.log('[SERIALES RAW keys0]', data?.[0] ? Object.keys(data[0] as any) : 'no data');
+
+        const mapped: ProductoSerialMovDto[] = (data ?? [])
+          .map((s, idx) => {
+            const anyS = s as any;
+
+            // ✅ En tu API: fkProducto es objeto y el id está en fkProducto.idProducto
+            const fk = anyS.fkProducto;
+
+            const productoId =
+              (fk && typeof fk === 'object' && typeof fk.idProducto === 'number'
+                ? fk.idProducto
+                : null);
+
+            const idProductoSerial =
+              (typeof anyS.idProductoSerial === 'number' ? anyS.idProductoSerial : null);
+
+            const serial = (typeof anyS.serial === 'string' ? anyS.serial : null);
+            const estado = (typeof anyS.estado === 'string' ? anyS.estado : '');
+
+            if (idx < 10) {
+              console.log('[MAP ITEM]', {
+                idx,
+                fkProductoType: typeof fk,
+                fkIdProducto: fk?.idProducto,
+                productoId,
+                idProductoSerial,
+                serial,
+                estado,
+                estadoNorm: this.normalizeEstadoSerial(estado),
+              });
+            }
+
+            if (productoId == null || idProductoSerial == null || serial == null) return null;
+
+            return { idProductoSerial, productoId, serial, estado };
+          })
+          .filter((x): x is ProductoSerialMovDto => x !== null);
+
+        console.log('[SERIALES MAPPED] length:', mapped.length);
+        console.log('[SERIALES MAPPED sample]', mapped.slice(0, 20));
+
+        // ✅ Este es el dataset que usa tu modal (getSerialesDisponibles)
+        this.serialesMov.set(mapped);
+
+        // limpiar cache por si recargaste
+        this.serialesPorProducto.clear();
+
         this.serialesLoading.set(false);
       },
-      error: () => {
+      error: (err) => {
+        console.error('[API productoSerial] error:', err);
         this.serialesError.set('No se pudieron cargar los seriales.');
         this.serialesLoading.set(false);
       },
     });
   }
 
+
+  readonly serialesMov = signal<ProductoSerialMovDto[]>([]);
+
   /**
    * Retorna lista de seriales para producto, filtrando por estado.
    * Ajusta los estados válidos a los que uses en tu BD: "DISPONIBLE", "ACTIVO", etc.
    */
+  private normalizeEstadoSerial(raw: string | null | undefined): EstadoSerial | null {
+    const v = (raw ?? '')
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase();
+
+    // Mapear variantes del backend -> tus 3 estados
+    if (v === 'DISPONIBLE' || v === 'DISPONIBLE ' || v === 'EN_STOCK') return 'Disponible';
+    if (v === 'VENDIDO') return 'Vendido';
+    if (v === 'DANADO' || v === 'DAÑADO') return 'Dañado';
+
+    // Si en tu backend existe ACTIVO y quieres tratarlo como disponible:
+    if (v === 'ACTIVO') return 'Disponible';
+
+    // si llega algo desconocido
+    return null;
+  }
+
+  private uniqueStrings(list: string[]): string[] {
+    return Array.from(new Set(list));
+  }
+
   private getSerialesDisponibles(productoId: number): string[] {
     const cached = this.serialesPorProducto.get(productoId);
     if (cached) return cached;
 
-    const estadosPermitidos = new Set(['DISPONIBLE', 'Disponible', 'ACTIVO', 'Activo', 'EN_STOCK']);
-    const list = this.seriales()
-      .filter(s => s.idProducto === productoId && estadosPermitidos.has((s.estado ?? '').trim()))
+    const list = this.serialesMov()
+      .filter(s => s.productoId === productoId)
+      .filter(s => this.normalizeEstadoSerial(s.estado) === 'Disponible')
       .map(s => s.serial);
 
-    this.serialesPorProducto.set(productoId, list);
-    return list;
+    const unique = this.uniqueStrings(list);
+    this.serialesPorProducto.set(productoId, unique);
+    return unique;
   }
-
 
   // ===== Helpers =====
   trackByIndex = (i: number) => i;
+  trackBySerial = (_: number, serial: string) => serial;
 
   // ✅ trackBy para ubicaciones (mejor performance)
   trackByUbicacionId = (index: number, u: Ubicacion) => u.idUbicacion ?? index;
@@ -254,13 +326,20 @@ export default class NuevoMovimientoComponent {
   }
 
   selectProduct(index: number, product: Producto): void {
-    const row = this.productsFA.at(index);
+    const yaExiste = this.productsFA.controls.some((r, i) =>
+      i !== index && r.controls.productId.value === product.idProducto
+    );
 
+    if (yaExiste) {
+      alert('Este producto ya fue agregado. Ajusta la cantidad en la fila existente.');
+      return;
+    }
+
+    const row = this.productsFA.at(index);
     row.controls.productQuery.setValue(product.nombre);
     row.controls.productId.setValue(product.idProducto);
     row.controls.serials.setValue([]);
 
-    // como aún no tenemos stock real, no ajustamos cantidad aquí
     this.closeAutocomplete();
   }
 
@@ -272,16 +351,10 @@ export default class NuevoMovimientoComponent {
     if (!product) return;
 
     const qty = row.controls.quantity.value;
-    if (qty > product.stock) {
-      row.controls.quantity.setValue(product.stock);
-      alert(`La cantidad no puede exceder el stock disponible (${product.stock} uds.)`);
-    }
 
-    if (product.serialized) {
+    if (product.esConSerial) {
       const current = row.controls.serials.value ?? [];
-      if (current.length > row.controls.quantity.value) {
-        row.controls.serials.setValue(current.slice(0, row.controls.quantity.value));
-      }
+      if (current.length > qty) row.controls.serials.setValue(current.slice(0, qty));
     }
   }
 
@@ -289,26 +362,48 @@ export default class NuevoMovimientoComponent {
   canOpenSerialModal(index: number): boolean {
     const row = this.productsFA.at(index);
     const product = this.findProduct(row.controls.productId.value);
-    return !!product?.serialized;
+    return !!product?.esConSerial;
   }
 
   openSerialModal(index: number): void {
     const row = this.productsFA.at(index);
-    const product = this.findProduct(row.controls.productId.value);
-    if (!product?.esConSerial) return;
+    const productId = row.controls.productId.value;
 
-    const serials = this.getSerialesDisponibles(product.idProducto);
+    const product = this.findProduct(productId);
+    if (!product?.esConSerial || productId == null) return;
+
+    const allDisponibles = this.getSerialesDisponibles(productId);
+    const usados = this.serialesUsadosPorProducto(productId, index);
+
+    const serialsParaModal = allDisponibles.filter(s => !usados.has(s));
 
     this._modalRowIndex.set(index);
-    this._modalSerials.set(serials);
+    this._modalSerials.set(serialsParaModal);
 
     const existing = row.controls.serials.value ?? [];
-    this._modalSelected.set(new Set(existing));
+    // OJO: si “existing” tenía alguno que ahora está en usados (porque lo agarró otra fila),
+    // lo limpiamos:
+    const limpio = existing.filter(s => !usados.has(s));
+    row.controls.serials.setValue(limpio);
 
+    this._modalSelected.set(new Set(limpio));
     this._modalOpen.set(true);
   }
 
   toggleSerial(serial: string): void {
+    const idx = this._modalRowIndex();
+    if (idx === null) return;
+
+    const row = this.productsFA.at(idx);
+    const productoId = row.controls.productId.value;
+    if (productoId == null) return;
+
+    const usados = this.serialesUsadosPorProducto(productoId, idx);
+    if (usados.has(serial)) {
+      alert('Ese serial ya fue seleccionado en otra fila para este producto.');
+      return;
+    }
+
     const required = this.modalRequiredCount();
     const set = new Set(this._modalSelected());
 
@@ -388,18 +483,15 @@ export default class NuevoMovimientoComponent {
         alert('La cantidad debe ser mayor o igual a 1');
         return;
       }
-      if (qty > product.stock) {
-        alert(`La cantidad no puede exceder el stock disponible (${product.stock} uds.)`);
-        return;
-      }
 
-      if (product.serialized) {
+      if (product.esConSerial) {
         const serials = row.controls.serials.value ?? [];
         if (serials.length !== qty) {
-          alert(`Debes seleccionar seriales para: ${product.name}`);
+          alert(`Debes seleccionar seriales para: ${product.nombre}`);
           return;
         }
       }
+
     }
 
     const payload = {
@@ -425,4 +517,22 @@ export default class NuevoMovimientoComponent {
     this.closeAutocomplete();
     this.closeSerialModal();
   }
+
+  private serialesUsadosPorProducto(productoId: number, excludeRowIndex: number): Set<string> {
+    const used = new Set<string>();
+
+    for (let i = 0; i < this.productsFA.length; i++) {
+      if (i === excludeRowIndex) continue;
+
+      const row = this.productsFA.at(i);
+      if (row.controls.productId.value !== productoId) continue;
+
+      for (const s of (row.controls.serials.value ?? [])) {
+        used.add(s);
+      }
+    }
+
+    return used;
+  }
+
 }
