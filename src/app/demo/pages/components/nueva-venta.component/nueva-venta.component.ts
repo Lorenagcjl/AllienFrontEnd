@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { take } from 'rxjs';
+import { catchError, concatMap, forkJoin, map, of, take } from 'rxjs';
 
 import { ClienteService } from 'src/app/@theme/services/cliente.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
@@ -533,34 +533,220 @@ export default class NuevaVentaComponent implements OnInit {
       return;
     }
 
-    // 👇 Esto debe adaptarse a tu VentaRequest real (venta.model.ts)
-    const ventaPayload: any = {
-      numeroFactura: this.invoiceNumber?.trim() || null,
-      fechaVenta: new Date().toISOString(),
-      total: this.totalValue,
-      observaciones: this.observaciones?.trim() || '',
-      fkCliente: { idCliente: this.selectedClientId },
-      // fkUsuario lo inyecta el backend por query param idUsuario (según tu service)
+    const logHttpError = (tag: string, err: any) => {
+      console.error(`❌ ${tag}`);
+      console.error('status:', err?.status);
+      console.error('url:', err?.url);
+      console.error('message:', err?.message);
+      console.error('err.error:', err?.error);
+      try {
+        console.error('err.error (string):', JSON.stringify(err?.error, null, 2));
+      } catch { }
     };
 
-    this.ventaService.guardarVenta(ventaPayload, idUsuario).pipe(take(1)).subscribe({
-      next: (ventaResp: any) => {
-        console.log('[VENTA RESP]', ventaResp);
-        alert(`✓ Venta creada. ID: ${ventaResp?.idVenta ?? '(sin id)'}`);
+    // =========================
+    // 1) CREAR VENTA
+    // =========================
+    const ventaPayload: any = {
+      total: this.totalValue,
+      observaciones: this.observaciones?.trim() || '',
+      fkCliente: { idCliente: this.selectedClientId! },
 
-        this.resetForm(); // ✅ LIMPIA TODO
+      // opcionales (si tu backend los acepta)
+      numeroFactura: this.invoiceNumber?.trim() || null,
+      fechaVenta: new Date().toISOString(),
+    };
 
-        // En el siguiente paso conectamos:
-        // 1) detalleVenta por cada row
-        // 2) ventaDetalleSerial por cada serial
-        // 3) inventarioMovimiento (salidas)
-      },
-      error: (err) => {
-        console.error('Error creando venta', err);
-        alert('Error creando la venta (revisa consola).');
+    console.log('➡️ [1] POST VENTA payload:', ventaPayload, 'idUsuario:', idUsuario);
+
+    this.ventaService.guardarVenta(ventaPayload, idUsuario).pipe(
+      take(1),
+
+      // =========================
+      // 2) CREAR DETALLES (uno por fila)
+      // =========================
+      concatMap((ventaResp: any) => {
+        console.log('✅ [1] VENTA RESP:', ventaResp);
+
+        const idVenta = ventaResp?.idVenta;
+        if (!idVenta) throw new Error('La respuesta de venta no trajo idVenta');
+
+        const detalleRequests = this.cartRows.map((row) => {
+          const p = this.getRowProduct(row)!;
+
+          const detallePayload: any = {
+            cantidad: row.quantity,
+            precioUnitario: row.price,
+            porcentajeComision: p.porcentajeComision ?? 0,
+            subtotal: this.rowSubtotal(row),
+            fkVenta: { idVenta },
+            fkProducto: { idProducto: p.idProducto },
+            fkUbicacion: { idUbicacion: this.selectedUbicacionId! },
+          };
+
+          console.log('➡️ [2] POST DETALLE payload:', detallePayload);
+
+          return this.detalleVentaService.guardar(detallePayload).pipe(
+            map((detalleResp: any) => {
+              console.log('✅ [2] DETALLE RESP:', detalleResp);
+              console.log('✅ [2] idDetalleVenta:', detalleResp?.idDetalleVenta);
+              return { row, p, detalleResp };
+            }),
+            catchError((err) => {
+              logHttpError('POST detalleVenta', err);
+              throw err;
+            })
+          );
+        });
+
+        return forkJoin(detalleRequests).pipe(
+          map((detallesCreados) => ({ ventaResp, detallesCreados }))
+        );
+      }),
+
+      // =========================
+      // 3) VINCULAR SERIALES + MOVIMIENTOS + UPDATE SERIAL
+      // =========================
+      concatMap(({ ventaResp, detallesCreados }: any) => {
+        const ops: any[] = [];
+
+        for (const item of detallesCreados) {
+          const row: CartRow = item.row;
+          const p: Producto = item.p;
+          const detalleResp: any = item.detalleResp;
+
+          const idDetalleVenta = detalleResp?.idDetalleVenta;
+          if (!idDetalleVenta) throw new Error('DetalleVenta no devolvió idDetalleVenta');
+
+          // ---- PRODUCTO CON SERIAL
+          if (p.esConSerial) {
+            for (const serialStr of row.serials) {
+              const serialObj = this.serialesMov.find(
+                (s) => s.serial === serialStr && s.productoId === p.idProducto
+              );
+
+              if (!serialObj) {
+                throw new Error(`No encontré idProductoSerial para serial: ${serialStr}`);
+              }
+
+              const vinculoPayload: any = {
+                fkDetalleVenta: { idDetalleVenta },
+                fkProductoSerial: { idProductoSerial: serialObj.idProductoSerial },
+              };
+
+              // ✅ CAMBIO CLAVE: referenciaTipo debe ser VentaDetalle (igual que CompraDetalle)
+              const movPayload: any = {
+                tipo: 'Venta',
+                cantidadEntrada: 0,
+                cantidadSalida: 1,
+                referenciaTipo: 'VentaDetalle',     // ✅ IMPORTANTÍSIMO
+                referenciaId: idDetalleVenta,
+                fkProducto: { idProducto: p.idProducto },
+                fkProductoSerial: { idProductoSerial: serialObj.idProductoSerial },
+                fkUbicacion: { idUbicacion: this.selectedUbicacionId! },
+              };
+
+              const updateSerialPayload: any = {
+                serial: serialObj.serial,
+                estado: 'VENDIDO',
+                fkProducto: { idProducto: p.idProducto },
+              };
+
+              console.log('➡️ [3A] POST ventaDetalleSerial payload:', vinculoPayload);
+              console.log('➡️ [3A] POST inventarioMovimiento (serial) payload:', movPayload);
+              console.log('➡️ [3A] PUT productoSerial payload:', updateSerialPayload);
+
+              ops.push(
+                this.ventaDetalleSerialService.vincularSerialAVenta(vinculoPayload).pipe(
+                  catchError((err) => {
+                    logHttpError('POST ventaDetalleSerial', err);
+                    return of({ ok: false, where: 'ventaDetalleSerial', err });
+                  })
+                ),
+                this.inventarioMovimientoService.guardar(movPayload).pipe(
+                  catchError((err) => {
+                    logHttpError('POST inventarioMovimiento (serial)', err);
+                    return of({ ok: false, where: 'inventarioMovimiento-serial', err });
+                  })
+                ),
+                this.productoSerialService
+                  .actualizarProductoSerial(serialObj.idProductoSerial, updateSerialPayload)
+                  .pipe(
+                    catchError((err) => {
+                      logHttpError('PUT productoSerial (VENDIDO)', err);
+                      return of({ ok: false, where: 'productoSerial-update', err });
+                    })
+                  )
+              );
+            }
+          }
+          // ---- PRODUCTO SIN SERIAL
+          else {
+            // ✅ CAMBIO CLAVE: referenciaTipo debe ser VentaDetalle
+            const movPayload: any = {
+              tipo: 'Venta',
+              cantidadEntrada: 0,
+              cantidadSalida: row.quantity,
+              referenciaTipo: 'VentaDetalle',     // ✅ IMPORTANTÍSIMO
+              referenciaId: idDetalleVenta,
+              fkProducto: { idProducto: p.idProducto },
+              fkProductoSerial: null,
+              fkUbicacion: { idUbicacion: this.selectedUbicacionId! },
+            };
+
+            console.log('➡️ [3B] POST inventarioMovimiento (no-serial) payload:', movPayload);
+
+            ops.push(
+              this.inventarioMovimientoService.guardar(movPayload).pipe(
+                catchError((err) => {
+                  logHttpError('POST inventarioMovimiento (no-serial)', err);
+                  return of({ ok: false, where: 'inventarioMovimiento-no-serial', err });
+                })
+              )
+            );
+          }
+        }
+
+        if (!ops.length) return of({ ventaResp, results: [] });
+
+        return forkJoin(ops).pipe(
+          map((results) => ({ ventaResp, results }))
+        );
+      }),
+
+      // =========================
+      // 4) CATCH GLOBAL
+      // =========================
+      catchError((err) => {
+        logHttpError('PIPELINE ERROR (general)', err);
+        alert('Error confirmando la venta. Revisa consola / backend.');
+        return of(null);
+      })
+    ).subscribe((finalResp: any) => {
+      if (!finalResp) return;
+
+      const ventaResp = finalResp.ventaResp;
+      const results = finalResp.results ?? [];
+
+      const failed = results.filter((x: any) => x && x.ok === false);
+      if (failed.length) {
+        console.warn('⚠️ Operaciones fallidas:', failed);
+        alert(`⚠️ Venta creada, pero fallaron ${failed.length} operaciones (seriales/inventario/updates). Revisa consola.`);
+        return;
       }
+
+      alert(
+        `✓ Venta realizada exitosamente\nFactura: ${ventaResp?.numeroFactura ?? '(sin factura)'}\nTotal: $${this.totalValue.toFixed(2)}`
+      );
+
+      // ✅ limpiar formulario
+      this.resetForm();
+
+      // ✅ recargar seriales para que ya no aparezcan disponibles
+      this.loadSeriales();
     });
   }
+
 
   trackByRowId(_index: number, row: { id: string }) {
     return row.id;

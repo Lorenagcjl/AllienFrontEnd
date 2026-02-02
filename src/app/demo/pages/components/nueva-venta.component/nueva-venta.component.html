@@ -130,7 +130,7 @@
             <!-- Cantidad -->
             <td>
               <input class="nv-number-input" type="number" min="1" [(ngModel)]="row.quantity"
-                (change)="onQuantityChange(row)" />
+                (ngModelChange)="onQuantityChange(row)" />
             </td>
 
             <!-- Precio -->
