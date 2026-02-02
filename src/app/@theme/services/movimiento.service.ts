@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Movimiento, MovimientoRequest } from 'src/app/demo/models/movimiento.model';
-import { environment } from 'src/environments/environment';
 
 @Injectable({
     providedIn: 'root'

@@ -10,6 +10,7 @@
       <h2 class="nv-section-title">1. Información de la Venta</h2>
 
       <div class="nv-form-grid">
+        <!-- Cliente -->
         <div class="nv-form-group">
           <label class="nv-label">
             Cliente <span class="nv-required">*</span>
@@ -22,8 +23,8 @@
             <div class="nv-autocomplete-results" [class.nv-show]="showClientResults">
               <button type="button" class="nv-autocomplete-item" *ngFor="let c of filteredClients"
                 (click)="selectClient(c)">
-                <span>{{ c.name }}</span>
-                <span class="nv-item-meta">{{ c.cedula }}</span>
+                <span>{{ clienteNombreCompleto(c) }}</span>
+                <span class="nv-item-meta">{{ c.documento }}</span>
               </button>
 
               <div class="nv-autocomplete-item nv-autocomplete-item--empty" *ngIf="filteredClients.length === 0">
@@ -33,19 +34,27 @@
           </div>
         </div>
 
+        <!-- Factura -->
         <div class="nv-form-group">
           <label class="nv-label">Número de Factura</label>
-          <input class="nv-input" type="text" [value]="invoiceNumber" disabled />
+          <input class="nv-input" type="text" [(ngModel)]="invoiceNumber" placeholder="Ej: FAC-000123" />
         </div>
 
+        <!-- Fecha -->
         <div class="nv-form-group">
           <label class="nv-label">Fecha</label>
           <input class="nv-input" type="text" [value]="dateText" disabled />
         </div>
 
+        <!-- Ubicación -->
         <div class="nv-form-group">
-          <label class="nv-label">Ubicación de Despacho</label>
-          <input class="nv-input" type="text" [(ngModel)]="locationText" disabled />
+          <label class="nv-label">Ubicación de Despacho <span class="nv-required">*</span></label>
+          <select class="nv-input" [(ngModel)]="selectedUbicacionId" (change)="onUbicacionChange()">
+            <option [ngValue]="null" disabled>Selecciona ubicación...</option>
+            <option *ngFor="let u of ubicaciones" [ngValue]="u.idUbicacion">
+              {{ u.nombre }} ({{ u.tipo }})
+            </option>
+          </select>
         </div>
       </div>
 
@@ -89,8 +98,8 @@
           </tr>
 
           <tr class="nv-cart-row" *ngFor="let row of cartRows; trackBy: trackByRowId"
-            [class.nv-cart-row--no-serials]="getRowProduct(row)?.serialized && row.serials.length !== row.quantity">
-
+            [class.nv-cart-row--no-serials]="getRowProduct(row)?.esConSerial && row.serials.length !== row.quantity">
+            <!-- Producto -->
             <td>
               <div class="nv-autocomplete-wrapper">
                 <input class="nv-autocomplete-input" type="text" placeholder="Buscar producto..."
@@ -99,8 +108,8 @@
                 <div class="nv-autocomplete-results" [class.nv-show]="row.showProductResults">
                   <button type="button" class="nv-autocomplete-item" *ngFor="let p of filteredProductsForRow(row)"
                     (click)="selectProduct(row, p)">
-                    <span>{{ p.name }}</span>
-                    <span class="nv-item-meta">Stock: {{ p.stock }}</span>
+                    <span>{{ p.nombre }}</span>
+                    <span class="nv-item-meta" *ngIf="p.esConSerial">Serial</span>
                   </button>
 
                   <div class="nv-autocomplete-item nv-autocomplete-item--empty"
@@ -111,32 +120,39 @@
               </div>
             </td>
 
+            <!-- Stock (temporal) -->
             <td>
-              <span class="nv-stock-badge" [class]="rowStockBadgeClass(row)">
+              <span class="nv-stock-badge">
                 {{ rowStockText(row) }}
               </span>
             </td>
 
+            <!-- Cantidad -->
             <td>
               <input class="nv-number-input" type="number" min="1" [(ngModel)]="row.quantity"
                 (change)="onQuantityChange(row)" />
             </td>
 
+            <!-- Precio -->
             <td>
-              <input class="nv-price-input" type="number" min="0" step="0.01" [(ngModel)]="row.price" />
+              <input class="nv-price-input" type="number" min="0" step="0.01" [(ngModel)]="row.price"
+                (ngModelChange)="onPriceChange(row)" />
             </td>
 
+            <!-- Subtotal -->
             <td class="nv-subtotal-cell">
               ${{ rowSubtotal(row).toFixed(2) }}
             </td>
 
+            <!-- Seriales -->
             <td>
               <ng-container *ngIf="getRowProduct(row) as p; else serialDash">
-                <ng-container *ngIf="p.serialized; else serialNA">
+                <ng-container *ngIf="p.esConSerial; else serialNA">
                   <button type="button" class="nv-btn nv-btn--small"
                     [class.nv-btn--success]="row.serials.length === row.quantity && row.quantity > 0"
                     [class.nv-btn--warning]="row.serials.length > 0 && row.serials.length !== row.quantity"
-                    [class.nv-btn--secondary]="row.serials.length === 0" (click)="openSerialModal(row)">
+                    [class.nv-btn--secondary]="row.serials.length === 0" (click)="openSerialModal(row)"
+                    [disabled]="!row.productId">
                     <ng-container *ngIf="row.serials.length === row.quantity && row.quantity > 0">
                       ✓ {{ row.serials.length }} seleccionados
                     </ng-container>
@@ -154,6 +170,7 @@
               <ng-template #serialDash>-</ng-template>
             </td>
 
+            <!-- Remove -->
             <td>
               <button type="button" class="nv-btn nv-btn--danger" (click)="removeCartRow(row.id)">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,21 +197,22 @@
       <div class="nv-summary-box">
         <div class="nv-summary-row">
           <span class="nv-summary-label">Subtotal:</span>
-          <span class="nv-summary-value">${{ subtotal().toFixed(2) }}</span>
+          <span class="nv-summary-value">${{ subtotalValue.toFixed(2) }}</span>
         </div>
 
         <div class="nv-summary-row">
-          <span class="nv-summary-label">IVA (12%):</span>
-          <span class="nv-summary-value">${{ tax().toFixed(2) }}</span>
+          <span class="nv-summary-label">IVA (15%):</span>
+          <span class="nv-summary-value">${{ taxValue.toFixed(2) }}</span>
         </div>
 
         <div class="nv-summary-row nv-summary-row--total">
           <span class="nv-summary-label">Total:</span>
-          <span class="nv-summary-value nv-summary-value--total">${{ total().toFixed(2) }}</span>
+          <span class="nv-summary-value nv-summary-value--total">${{ totalValue.toFixed(2) }}</span>
         </div>
 
         <div class="nv-summary-actions">
           <button type="button" class="nv-btn nv-btn--secondary">Cancelar</button>
+
           <button type="button" class="nv-btn nv-btn--primary" [disabled]="!canConfirmSale()" (click)="confirmSale()">
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -218,24 +236,23 @@
     <div class="nv-modal-body">
       <div class="nv-modal-info">
         <strong>Producto: <span>{{ modalProductName }}</span></strong>
-        <strong>Ubicación: <span>{{ locationText }}</span></strong>
+        <strong>Ubicación: <span>{{ selectedUbicacion?.nombre ?? '-' }}</span></strong>
         Selecciona exactamente <strong>{{ modalRequiredQty }}</strong> serial(es) disponible(s).
       </div>
 
       <div class="nv-serials-list">
-        <div class="nv-empty-state" *ngIf="modalAvailableSerials.length === 0">
+        <div class="nv-empty-state" *ngIf="modalSerials.length === 0">
           <p>No hay seriales disponibles</p>
         </div>
 
-        <label class="nv-serial-item" *ngFor="let serial of modalAvailableSerials"
-          [class.nv-serial-item--selected]="(modalChecked.get(serial) ?? false) && !isSerialUsedElsewhere(serial)"
-          [class.nv-serial-item--disabled]="isSerialUsedElsewhere(serial)" (click)="toggleSerial(serial)">
-          <input type="checkbox" [checked]="(modalChecked.get(serial) ?? false) && !isSerialUsedElsewhere(serial)"
-            [disabled]="isSerialUsedElsewhere(serial)" (click)="$event.stopPropagation()"
-            (change)="toggleSerial(serial)" />
+        <label class="nv-serial-item" *ngFor="let serial of modalSerials"
+          [class.nv-serial-item--selected]="isSerialSelected(serial)"
+          [class.nv-serial-item--disabled]="isSerialDisabled(serial)">
+          <input type="checkbox" [checked]="isSerialSelected(serial)" [disabled]="isSerialDisabled(serial)"
+            (change)="onSerialChange(serial, $event)" />
           <span class="nv-serial-code">{{ serial }}</span>
 
-          <span class="nv-serial-used" *ngIf="isSerialUsedElsewhere(serial)">Ya vendido</span>
+          <span class="nv-serial-used" *ngIf="isSerialDisabled(serial)">Ya usado</span>
         </label>
       </div>
     </div>

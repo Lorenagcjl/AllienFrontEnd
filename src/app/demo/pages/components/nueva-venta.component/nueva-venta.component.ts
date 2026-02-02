@@ -1,9 +1,31 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { take } from 'rxjs';
 
-type Client = { id: number; name: string; cedula: string };
-type Product = { id: number; name: string; serialized: boolean; stock: number; price: number };
+import { ClienteService } from 'src/app/@theme/services/cliente.service';
+import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
+import { ProductoService } from 'src/app/@theme/services/producto.service';
+import { ProductoSerialService } from 'src/app/@theme/services/producto-serial.service';
+
+import { VentaDetalleSerialService } from 'src/app/@theme/services/venta-detalle-serial.service'; // ajusta ruta real
+
+import { Cliente } from 'src/app/demo/models/cliente.model';
+import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
+import { Producto } from 'src/app/demo/models/producto.model';
+import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
+import { VentaService } from 'src/app/@theme/services/venta.service';
+import { DetalleVentaService } from 'src/app/@theme/services/detalleventa.service';
+import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
+
+type EstadoSerial = 'Disponible' | 'Vendido' | 'Dañado';
+
+type ProductoSerialMovDto = {
+  idProductoSerial: number;
+  productoId: number;
+  serial: string;
+  estado: string;
+};
 
 type CartRow = {
   id: string;
@@ -23,59 +45,46 @@ type CartRow = {
   styleUrl: './nueva-venta.component.scss',
 })
 export default class NuevaVentaComponent implements OnInit {
-  // ===== Datos (demo) =====
-  clientsData: Client[] = [
-    { id: 1, name: 'Juan Pérez', cedula: '1234567890' },
-    { id: 2, name: 'María González', cedula: '0987654321' },
-    { id: 3, name: 'Carlos Rodríguez', cedula: '1122334455' },
-    { id: 4, name: 'Ana Martínez', cedula: '5566778899' },
-    { id: 5, name: 'Luis Fernández', cedula: '9988776655' },
-  ];
+  private clienteService = inject(ClienteService);
+  private ubicacionService = inject(UbicacionService);
+  private productoService = inject(ProductoService);
+  private productoSerialService = inject(ProductoSerialService);
 
-  productsData: Product[] = [
-    { id: 1, name: 'Laptop Dell XPS 15', serialized: true, stock: 5, price: 1299.99 },
-    { id: 2, name: 'Mouse Logitech MX Master', serialized: false, stock: 25, price: 99.99 },
-    { id: 3, name: 'Teclado Mecánico Keychron', serialized: true, stock: 8, price: 149.99 },
-    { id: 4, name: 'Monitor LG UltraWide 34"', serialized: true, stock: 3, price: 599.99 },
-    { id: 5, name: 'Cable HDMI 2m', serialized: false, stock: 50, price: 12.99 },
-    { id: 6, name: 'Webcam Logitech C920', serialized: true, stock: 12, price: 79.99 },
-    { id: 7, name: 'Hub USB-C', serialized: false, stock: 30, price: 45.99 },
-    { id: 8, name: 'Auriculares Sony WH-1000XM5', serialized: true, stock: 6, price: 399.99 },
-  ];
+  // servicios de guardado (los usas cuando ya confirmes)
+  private ventaService = inject(VentaService);
+  private detalleVentaService = inject(DetalleVentaService);
+  private ventaDetalleSerialService = inject(VentaDetalleSerialService);
+  private inventarioMovimientoService = inject(InventarioMovimientoService);
 
-  serialsInventory: Record<number, string[]> = {
-    1: ['SN-DELL-001', 'SN-DELL-002', 'SN-DELL-003', 'SN-DELL-004', 'SN-DELL-005'],
-    3: ['SN-KEY-A01', 'SN-KEY-A02', 'SN-KEY-A03', 'SN-KEY-A04', 'SN-KEY-A05', 'SN-KEY-A06', 'SN-KEY-A07', 'SN-KEY-A08'],
-    4: ['SN-MON-X1', 'SN-MON-X2', 'SN-MON-X3'],
-    6: ['SN-CAM-101', 'SN-CAM-102', 'SN-CAM-103', 'SN-CAM-104', 'SN-CAM-105', 'SN-CAM-106', 'SN-CAM-107', 'SN-CAM-108', 'SN-CAM-109', 'SN-CAM-110', 'SN-CAM-111', 'SN-CAM-112'],
-    8: ['SN-SONY-A1', 'SN-SONY-A2', 'SN-SONY-A3', 'SN-SONY-A4', 'SN-SONY-A5', 'SN-SONY-A6'],
-  };
+  private cdr = inject(ChangeDetectorRef);
 
   // ===== Cabecera =====
   invoiceNumber = '';
   dateText = '';
-  locationText = 'Tienda Principal';
   observaciones = '';
 
-  // ===== Cliente autocomplete =====
+  // ===== Ubicación =====
+  ubicaciones: Ubicacion[] = [];
+  selectedUbicacionId: number | null = null;
+  selectedUbicacion?: Ubicacion;
+
+  // ===== Clientes =====
+  clientes: Cliente[] = [];
   clientQuery = '';
   selectedClientId?: number;
   showClientResults = false;
 
-  get filteredClients(): Client[] {
-    const q = (this.clientQuery ?? '').trim().toLowerCase();
-    if (!q) return [];
-    return this.clientsData.filter(
-      c => c.name.toLowerCase().includes(q) || c.cedula.includes(q)
-    );
-  }
+  // ===== Productos =====
+  productos: Producto[] = [];
 
   // ===== Carrito =====
   cartRows: CartRow[] = [];
   private cartRowCounter = 0;
-
-  // Seriales usados globalmente (para no repetir)
   usedSerials = new Set<string>();
+
+  // ===== Seriales =====
+  serialesMov: ProductoSerialMovDto[] = [];
+  private serialesPorProducto = new Map<number, string[]>();
 
   // ===== Modal seriales =====
   serialModalOpen = false;
@@ -84,16 +93,52 @@ export default class NuevaVentaComponent implements OnInit {
   modalProductName = '-';
   modalRequiredQty = 0;
 
-  // serial -> checked
-  modalChecked = new Map<string, boolean>();
+  modalSerials: string[] = [];
+  private modalSelected = new Set<string>();
 
-  get modalAvailableSerials(): string[] {
-    if (!this.modalProductId) return [];
-    return this.serialsInventory[this.modalProductId] ?? [];
+  // =======================
+  // ✅ TOTALES (IVA 15%)
+  // =======================
+  readonly ivaRate = 0.15;
+
+  get subtotalValue(): number {
+    return this.cartRows.reduce((acc, r) => acc + this.rowSubtotal(r), 0);
+  }
+
+  get taxValue(): number {
+    return this.subtotalValue * this.ivaRate;
+  }
+
+  get totalValue(): number {
+    return this.subtotalValue + this.taxValue;
+  }
+
+  // ✅ fuerza refresco cuando cambias campos dentro de row
+  private touchRows(): void {
+    this.cartRows = [...this.cartRows];
+  }
+
+  // ===== Cliente helpers =====
+  clienteNombreCompleto(c: Cliente): string {
+    return [c.primerNombre, c.segundoNombre, c.primerApellido, c.segundoApellido]
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  get filteredClients(): Cliente[] {
+    const q = (this.clientQuery ?? '').trim().toLowerCase();
+    if (!q) return [];
+
+    return this.clientes.filter(c => {
+      const nombre = this.clienteNombreCompleto(c).toLowerCase();
+      const doc = (c.documento ?? '').toLowerCase();
+      return nombre.includes(q) || doc.includes(q);
+    });
   }
 
   ngOnInit(): void {
-    // Fecha (formato simple; si quieres exactamente "es-EC" con hora, lo dejamos así)
     const d = new Date();
     this.dateText = d.toLocaleDateString('es-EC', {
       year: 'numeric',
@@ -103,8 +148,89 @@ export default class NuevaVentaComponent implements OnInit {
       minute: '2-digit',
     });
 
-    // Factura
-    this.invoiceNumber = 'FAC-' + Date.now().toString().slice(-8);
+    this.loadClientes();
+    this.loadUbicaciones();
+    this.loadProductos();
+    this.loadSeriales();
+  }
+
+  // ===== Loaders =====
+  private loadClientes() {
+    this.clienteService.listarClientes().pipe(take(1)).subscribe({
+      next: data => (this.clientes = data ?? []),
+      error: err => {
+        console.error('Error cargando clientes', err);
+        this.clientes = [];
+      },
+    });
+  }
+
+  private loadUbicaciones() {
+    this.ubicacionService.listarUbicaciones().pipe(take(1)).subscribe({
+      next: data => {
+        this.ubicaciones = (data ?? []).filter(u => u.idUbicacion != null);
+        // ✅ ayuda con NG0100 en algunos setups
+        this.cdr.detectChanges();
+      },
+      error: err => {
+        console.error('Error cargando ubicaciones', err);
+        this.ubicaciones = [];
+      },
+    });
+  }
+
+  private loadProductos(): void {
+    this.productoService.listarProductos().pipe(take(1)).subscribe({
+      next: (data: Producto[]) => {
+        this.productos = data ?? [];
+      },
+      error: err => {
+        console.error('Error cargando productos', err);
+        this.productos = [];
+      },
+    });
+  }
+
+  private loadSeriales(): void {
+    this.productoSerialService.listarProductosSerial().pipe(take(1)).subscribe({
+      next: (data: ProductoSerial[]) => {
+        const mapped: ProductoSerialMovDto[] = (data ?? [])
+          .map(s => {
+            const anyS = s as any;
+            const fk = anyS.fkProducto;
+
+            const productoId =
+              fk && typeof fk === 'object' && typeof fk.idProducto === 'number' ? fk.idProducto : null;
+
+            const idProductoSerial = typeof anyS.idProductoSerial === 'number' ? anyS.idProductoSerial : null;
+            const serial = typeof anyS.serial === 'string' ? anyS.serial : null;
+            const estado = typeof anyS.estado === 'string' ? anyS.estado : '';
+
+            if (productoId == null || idProductoSerial == null || serial == null) return null;
+            return { idProductoSerial, productoId, serial, estado };
+          })
+          .filter((x): x is ProductoSerialMovDto => x !== null);
+
+        this.serialesMov = mapped;
+        this.serialesPorProducto.clear();
+      },
+      error: err => {
+        console.error('Error cargando seriales', err);
+        this.serialesMov = [];
+        this.serialesPorProducto.clear();
+      },
+    });
+  }
+
+  // ===== Ubicación =====
+  onUbicacionChange() {
+    const id = this.selectedUbicacionId;
+    this.selectedUbicacion = this.ubicaciones.find(u => u.idUbicacion === id) ?? undefined;
+
+    // recomendado: limpiar carrito al cambiar ubicación
+    this.usedSerials.clear();
+    this.cartRows = [];
+    this.cartRowCounter = 0;
   }
 
   // ===== Utils UI =====
@@ -113,7 +239,6 @@ export default class NuevaVentaComponent implements OnInit {
     const target = ev.target as HTMLElement | null;
     if (!target) return;
 
-    // Cerrar autocompletes si clic fuera
     if (!target.closest('.nv-autocomplete-wrapper')) {
       this.showClientResults = false;
       this.cartRows = this.cartRows.map(r => ({ ...r, showProductResults: false }));
@@ -127,13 +252,18 @@ export default class NuevaVentaComponent implements OnInit {
 
   onClientInputChange() {
     this.showClientResults = this.filteredClients.length > 0;
-    // Si cambia texto manualmente, des-selecciona
     this.selectedClientId = undefined;
+
+    const raw = (this.clientQuery ?? '').replace(/\D/g, '');
+    if (raw.length >= 10) {
+      const match = this.clientes.find(c => (c.documento ?? '').replace(/\D/g, '') === raw);
+      if (match) this.selectClient(match);
+    }
   }
 
-  selectClient(c: Client) {
-    this.clientQuery = c.name;
-    this.selectedClientId = c.id;
+  selectClient(c: Cliente) {
+    this.clientQuery = this.clienteNombreCompleto(c);
+    this.selectedClientId = c.idCliente;
     this.showClientResults = false;
   }
 
@@ -153,94 +283,137 @@ export default class NuevaVentaComponent implements OnInit {
 
   removeCartRow(rowId: string) {
     const row = this.cartRows.find(r => r.id === rowId);
-    if (row) {
-      // liberar seriales
-      row.serials.forEach(s => this.usedSerials.delete(s));
-    }
+    if (row) row.serials.forEach(s => this.usedSerials.delete(s));
     this.cartRows = this.cartRows.filter(r => r.id !== rowId);
   }
 
-  // ===== Carrito: producto autocomplete =====
-  filteredProductsForRow(row: CartRow): Product[] {
+  // ===== Productos (autocomplete) =====
+  filteredProductsForRow(row: CartRow): Producto[] {
     const q = (row.productQuery ?? '').trim().toLowerCase();
     if (!q) return [];
-    return this.productsData.filter(p => p.stock > 0 && p.name.toLowerCase().includes(q));
+
+    return this.productos
+      .filter(p => (p.nombre ?? '').toLowerCase().includes(q))
+      .slice(0, 15);
   }
 
   onProductFocus(row: CartRow) {
     row.showProductResults = this.filteredProductsForRow(row).length > 0;
+    this.touchRows();
   }
 
   onProductChange(row: CartRow) {
     row.showProductResults = this.filteredProductsForRow(row).length > 0;
 
-    // si escriben manual, limpiamos selección
-    if (row.productId) {
-      // liberar seriales anteriores
-      row.serials.forEach(s => this.usedSerials.delete(s));
-    }
+    if (row.productId) row.serials.forEach(s => this.usedSerials.delete(s));
+
     row.productId = undefined;
     row.price = 0;
     row.serials = [];
+
+    this.touchRows();
   }
 
-  selectProduct(row: CartRow, p: Product) {
-    row.productQuery = p.name;
-    row.productId = p.id;
-    row.price = Number(p.price.toFixed(2));
+  selectProduct(row: CartRow, p: Producto) {
+    const yaExiste = this.cartRows.some(r => r.id !== row.id && r.productId === p.idProducto);
+    if (yaExiste) {
+      alert('Este producto ya fue agregado. Ajusta la cantidad en la fila existente.');
+      return;
+    }
+
+    // liberar seriales previos
+    row.serials.forEach(s => this.usedSerials.delete(s));
+    row.serials = [];
+
+    row.productQuery = p.nombre;
+    row.productId = p.idProducto;
     row.showProductResults = false;
 
-    // si era serializado, hay que recalcular celda / validar
-    // (seriales se mantienen vacíos hasta seleccionar)
-    if (!p.serialized) {
-      // no seriales
-      row.serials = [];
-    } else {
-      // si cambia producto, liberar seriales previos
-      row.serials.forEach(s => this.usedSerials.delete(s));
-      row.serials = [];
-    }
+    // ✅ PRECIO desde Producto
+    row.price = Number((p.precioVenta ?? 0).toFixed(2));
+    if (!row.quantity || row.quantity < 1) row.quantity = 1;
+
+    this.touchRows();
   }
 
-  // ===== Carrito: cantidades / precios =====
+  // ✅ si el usuario edita el precio manualmente
+  onPriceChange(_row: CartRow) {
+    this.touchRows();
+  }
+
+  // ===== Cantidad =====
   onQuantityChange(row: CartRow) {
     const p = this.getRowProduct(row);
     if (!p) return;
 
-    // Validar stock
-    if (row.quantity > p.stock) {
-      alert(`Stock insuficiente. Disponible: ${p.stock} unidades`);
-      row.quantity = p.stock;
-    }
     if (row.quantity < 1) row.quantity = 1;
 
-    if (p.serialized) {
-      // si cambia cantidad, reset seriales
+    if (p.esConSerial) {
       if (row.serials.length !== row.quantity) {
         row.serials.forEach(s => this.usedSerials.delete(s));
         row.serials = [];
       }
+    } else {
+      if (row.serials.length) {
+        row.serials.forEach(s => this.usedSerials.delete(s));
+        row.serials = [];
+      }
     }
+
+    this.touchRows();
   }
 
-  // ===== Seriales =====
+  // ===== Seriales helpers =====
+  private normalizeEstadoSerial(raw: string | null | undefined): EstadoSerial | null {
+    const v = (raw ?? '')
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase();
+
+    if (v === 'DISPONIBLE' || v === 'EN_STOCK') return 'Disponible';
+    if (v === 'VENDIDO') return 'Vendido';
+    if (v === 'DANADO' || v === 'DAÑADO') return 'Dañado';
+    if (v === 'ACTIVO') return 'Disponible';
+    return null;
+  }
+
+  private uniqueStrings(list: string[]): string[] {
+    return Array.from(new Set(list));
+  }
+
+  private getSerialesDisponibles(productoId: number): string[] {
+    const cached = this.serialesPorProducto.get(productoId);
+    if (cached) return cached;
+
+    const list = this.serialesMov
+      .filter(s => s.productoId === productoId)
+      .filter(s => this.normalizeEstadoSerial(s.estado) === 'Disponible')
+      .map(s => s.serial);
+
+    const unique = this.uniqueStrings(list);
+    this.serialesPorProducto.set(productoId, unique);
+    return unique;
+  }
+
+  // ===== Seriales (modal) =====
   openSerialModal(row: CartRow) {
     const p = this.getRowProduct(row);
-    if (!p) return;
+    if (!p?.esConSerial || !row.productId) return;
 
     this.modalRowId = row.id;
-    this.modalProductId = p.id;
-    this.modalProductName = p.name;
+    this.modalProductId = row.productId;
+    this.modalProductName = p.nombre;
     this.modalRequiredQty = row.quantity;
 
-    // cargar checks
-    this.modalChecked = new Map<string, boolean>();
-    const available = this.serialsInventory[p.id] ?? [];
+    const disponibles = this.getSerialesDisponibles(row.productId);
 
-    available.forEach(serial => {
-      const isSelected = row.serials.includes(serial);
-      this.modalChecked.set(serial, isSelected);
-    });
+    // usados en otras filas (pero permitir los de esta fila)
+    const usados = new Set(this.usedSerials);
+    row.serials.forEach(s => usados.delete(s));
+
+    this.modalSerials = disponibles.filter(s => !usados.has(s));
+    this.modalSelected = new Set(row.serials.filter(s => this.modalSerials.includes(s)));
 
     this.serialModalOpen = true;
   }
@@ -251,52 +424,45 @@ export default class NuevaVentaComponent implements OnInit {
     this.modalProductId = undefined;
     this.modalProductName = '-';
     this.modalRequiredQty = 0;
-    this.modalChecked.clear();
+    this.modalSerials = [];
+    this.modalSelected = new Set();
   }
 
-  isSerialUsedElsewhere(serial: string): boolean {
-    if (!this.modalRowId) return this.usedSerials.has(serial);
-
-    const row = this.cartRows.find(r => r.id === this.modalRowId);
-    const currentRowHasIt = row?.serials.includes(serial) ?? false;
-
-    return this.usedSerials.has(serial) && !currentRowHasIt;
+  isSerialDisabled(serial: string): boolean {
+    // usado por OTRA fila
+    return this.usedSerials.has(serial) && !this.modalSelected.has(serial);
   }
 
-  toggleSerial(serial: string) {
-    if (this.isSerialUsedElsewhere(serial)) return;
-
-    const current = this.modalChecked.get(serial) ?? false;
-    const next = !current;
-
-    // si activa, validar límite
-    if (next) {
-      const selectedCount = this.modalSelectedCount();
-      if (selectedCount + 1 > this.modalRequiredQty) {
-        alert(`Solo puedes seleccionar ${this.modalRequiredQty} seriales`);
-        return;
-      }
-    }
-
-    this.modalChecked.set(serial, next);
+  isSerialSelected(serial: string): boolean {
+    return this.modalSelected.has(serial);
   }
 
   modalSelectedCount(): number {
-    let count = 0;
-    for (const [, checked] of this.modalChecked) {
-      if (checked) count++;
+    return this.modalSelected.size;
+  }
+
+  onSerialChange(serial: string, ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    const next = input.checked;
+
+    if (this.isSerialDisabled(serial)) {
+      input.checked = false;
+      return;
     }
-    // pero excluye disabled (usados en otra fila)
-    // (los disabled ya no se pueden toggle, pero igual por seguridad:)
-    let safeCount = 0;
-    for (const [serial, checked] of this.modalChecked) {
-      if (!checked) continue;
-      if (!this.isSerialUsedElsewhere(serial)) safeCount++;
-      else {
-        // si por algún motivo quedó marcado y está usado en otra fila, lo ignoro
+
+    if (next) {
+      if (this.modalSelected.size >= this.modalRequiredQty) {
+        alert(`Solo puedes seleccionar ${this.modalRequiredQty} seriales`);
+        input.checked = false;
+        return;
       }
+      this.modalSelected.add(serial);
+    } else {
+      this.modalSelected.delete(serial);
     }
-    return safeCount;
+
+    // ✅ fuerza re-render
+    this.modalSelected = new Set(this.modalSelected);
   }
 
   confirmSerials() {
@@ -305,9 +471,7 @@ export default class NuevaVentaComponent implements OnInit {
     const row = this.cartRows.find(r => r.id === this.modalRowId);
     if (!row) return;
 
-    const selected = [...this.modalChecked.entries()]
-      .filter(([serial, checked]) => checked && !this.isSerialUsedElsewhere(serial))
-      .map(([serial]) => serial);
+    const selected = Array.from(this.modalSelected);
 
     if (selected.length !== this.modalRequiredQty) {
       alert(`Debes seleccionar exactamente ${this.modalRequiredQty} seriales`);
@@ -317,31 +481,21 @@ export default class NuevaVentaComponent implements OnInit {
     // liberar anteriores
     row.serials.forEach(s => this.usedSerials.delete(s));
 
-    // set nuevos
     row.serials = selected;
     selected.forEach(s => this.usedSerials.add(s));
 
     this.closeSerialModal();
+    this.touchRows();
   }
 
-  // ===== Totales / helpers =====
-  getRowProduct(row: CartRow): Product | undefined {
+  // ===== Helpers =====
+  getRowProduct(row: CartRow): Producto | undefined {
     if (!row.productId) return undefined;
-    return this.productsData.find(p => p.id === row.productId);
+    return this.productos.find(p => p.idProducto === row.productId);
   }
 
-  rowStockBadgeClass(row: CartRow): string {
-    const p = this.getRowProduct(row);
-    if (!p) return '';
-    if (p.stock === 0) return 'nv-stock-badge--out';
-    if (p.stock < 10) return 'nv-stock-badge--low';
-    return '';
-  }
-
-  rowStockText(row: CartRow): string {
-    const p = this.getRowProduct(row);
-    if (!p) return '-';
-    return `${p.stock} uds.`;
+  rowStockText(_row: CartRow): string {
+    return 'N/D';
   }
 
   rowSubtotal(row: CartRow): number {
@@ -350,72 +504,95 @@ export default class NuevaVentaComponent implements OnInit {
     return qty * price;
   }
 
-  subtotal(): number {
-    return this.cartRows.reduce((acc, r) => acc + this.rowSubtotal(r), 0);
-  }
-
-  tax(): number {
-    return this.subtotal() * 0.12;
-  }
-
-  total(): number {
-    return this.subtotal() + this.tax();
-  }
-
   canConfirmSale(): boolean {
     if (!this.selectedClientId) return false;
+    if (!this.selectedUbicacionId) return false;
     if (this.cartRows.length === 0) return false;
 
     for (const row of this.cartRows) {
       const p = this.getRowProduct(row);
       if (!p) return false;
-
       if (row.quantity < 1) return false;
-      if (row.quantity > p.stock) return false;
-
-      if (p.serialized && row.serials.length !== row.quantity) return false;
+      if (p.esConSerial && row.serials.length !== row.quantity) return false;
     }
     return true;
   }
 
+  // ==========================
+  // ✅ Confirmar venta (BASE)
+  // ==========================
   confirmSale() {
     if (!this.canConfirmSale()) {
       alert('Por favor completa todos los campos requeridos');
       return;
     }
 
-    const client = this.clientsData.find(c => c.id === this.selectedClientId);
+    const idUsuario = Number(localStorage.getItem('idUsuario') ?? '0');
+    if (!idUsuario) {
+      alert('No se encontró idUsuario en sesión. Vuelve a iniciar sesión.');
+      return;
+    }
 
-    const saleData = {
-      factura: this.invoiceNumber,
-      fecha: this.dateText,
-      cliente: client,
-      ubicacion: this.locationText,
-      observaciones: this.observaciones,
-      items: this.cartRows.map(row => {
-        const p = this.getRowProduct(row)!;
-        return {
-          producto: p.name,
-          cantidad: row.quantity,
-          precio_unitario: row.price,
-          subtotal: this.rowSubtotal(row),
-          con_serial: p.serialized,
-          seriales: p.serialized ? row.serials : undefined,
-        };
-      }),
-      totals: {
-        subtotal: this.subtotal(),
-        tax: this.tax(),
-        total: this.total(),
-      },
+    // 👇 Esto debe adaptarse a tu VentaRequest real (venta.model.ts)
+    const ventaPayload: any = {
+      numeroFactura: this.invoiceNumber?.trim() || null,
+      fechaVenta: new Date().toISOString(),
+      total: this.totalValue,
+      observaciones: this.observaciones?.trim() || '',
+      fkCliente: { idCliente: this.selectedClientId },
+      // fkUsuario lo inyecta el backend por query param idUsuario (según tu service)
     };
 
-    console.log('Datos de la venta:', saleData);
-    alert(`✓ Venta confirmada exitosamente!\n\nFactura: ${saleData.factura}\nTotal: $${saleData.totals.total.toFixed(2)}`);
+    this.ventaService.guardarVenta(ventaPayload, idUsuario).pipe(take(1)).subscribe({
+      next: (ventaResp: any) => {
+        console.log('[VENTA RESP]', ventaResp);
+        alert(`✓ Venta creada. ID: ${ventaResp?.idVenta ?? '(sin id)'}`);
+
+        this.resetForm(); // ✅ LIMPIA TODO
+
+        // En el siguiente paso conectamos:
+        // 1) detalleVenta por cada row
+        // 2) ventaDetalleSerial por cada serial
+        // 3) inventarioMovimiento (salidas)
+      },
+      error: (err) => {
+        console.error('Error creando venta', err);
+        alert('Error creando la venta (revisa consola).');
+      }
+    });
   }
 
-  trackByRowId(index: number, row: { id: string }) {
-  return row.id;
-}
+  trackByRowId(_index: number, row: { id: string }) {
+    return row.id;
+  }
+
+  private resetForm(): void {
+    // Cabecera
+    this.invoiceNumber = '';
+    this.observaciones = '';
+
+    // Cliente
+    this.clientQuery = '';
+    this.selectedClientId = undefined;
+    this.showClientResults = false;
+
+    // Ubicación (si quieres mantenerla seleccionada, comenta estas 2 líneas)
+    // this.selectedUbicacionId = null;
+    // this.selectedUbicacion = undefined;
+
+    // Carrito + seriales usados
+    this.usedSerials.clear();
+    this.cartRows = [];
+    this.cartRowCounter = 0;
+
+    // Modal
+    this.closeSerialModal();
+
+    // (Opcional) si quieres limpiar cache de seriales por producto
+    // this.serialesPorProducto.clear();
+
+    // fuerza refresh visual
+    this.cdr.detectChanges();
+  }
 
 }

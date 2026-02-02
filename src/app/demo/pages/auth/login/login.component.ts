@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { FormControl, Validators, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { LoginService } from 'src/app/@theme/services/login.service'; 
+import { LoginService } from 'src/app/@theme/services/login.service';
 import { SharedModule } from 'src/app/demo/shared/shared.module';
 import { CommonModule } from '@angular/common';
 
@@ -42,6 +42,7 @@ export default class LoginComponent {
           localStorage.setItem('usuario', JSON.stringify(usuario));
           localStorage.setItem('role', usuario.rol);
           localStorage.setItem('username', usuario.nombreUsuario);
+          localStorage.setItem('idUsuario', String(usuario.idUsuario));
 
           if (usuario.rol === 'Administrador') {
             this.router.navigate(['/admin-dashboard']);
