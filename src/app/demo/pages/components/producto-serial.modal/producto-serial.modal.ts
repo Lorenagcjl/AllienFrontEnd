@@ -14,6 +14,7 @@ import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
 
 // ✅ AlertService
 import { AlertService } from 'src/app/@theme/services/alert.service'; // ajusta ruta si es distinta
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-producto-serial-modal',
@@ -25,6 +26,7 @@ import { AlertService } from 'src/app/@theme/services/alert.service'; // ajusta 
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatIconModule
   ],
   templateUrl: './producto-serial.modal.html',
   styleUrl: './producto-serial.modal.scss',
@@ -68,16 +70,19 @@ export class ProductoSerialModal implements OnChanges {
   }
 
   private cargarProductosConSerial(): void {
-    const loadingId = this.alert.loading('Cargando productos', 'Obteniendo productos con serial...');
+    const loadingId = this.alert.loading('Cargando productos', 'Obteniendo lista...');
     this.productoService.listarProductos().subscribe({
       next: (prods) => {
-        this.productosConSerial = (prods ?? []).filter(p => p.esConSerial === true);
+        // ✅ FILTRADO DOBLE: Que use serial Y que esté activo
+        this.productosConSerial = (prods ?? []).filter(p => 
+          p.esConSerial === true && p.esActivo !== false
+        );
         this.alert.close(loadingId);
       },
       error: async (err) => {
         this.alert.close(loadingId);
         this.productosConSerial = [];
-        await this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudieron cargar productos.'));
+        await this.alert.error('Error', 'No se pudieron cargar productos.');
       }
     });
   }
@@ -100,7 +105,7 @@ export class ProductoSerialModal implements OnChanges {
   }
 
   async guardar(): Promise<void> {
-    // 1) Validación
+    // 1) Validación inicial
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.alert.toast('warning', 'Completa los campos requeridos');
@@ -109,36 +114,41 @@ export class ProductoSerialModal implements OnChanges {
 
     const v = this.form.getRawValue();
 
+    // 2) CONFIRMACIÓN (Para ambos casos: Nuevo y Editar)
+    const tituloConfirm = this.isEdit ? 'Confirmar cambios' : 'Confirmar registro';
+    const mensajeConfirm = this.isEdit 
+      ? `¿Deseas actualizar el serial "${this.seleccionado?.serial}"?` 
+      : `¿Deseas registrar el serial "${v.serial}"?`;
+
+    const ok = await this.alert.confirm(
+      tituloConfirm,
+      mensajeConfirm,
+      this.isEdit ? 'Sí, actualizar' : 'Sí, guardar',
+      'Cancelar'
+    );
+    
+    if (!ok) return;
+
+    // 3) Preparar Payload
     const payload: ProductoSerialRequest = {
       serial: v.serial,
       estado: v.estado,
       fkProducto: { idProducto: v.idProducto },
     };
 
-    // 2) Confirmación SOLO si es edición
-    if (this.isEdit) {
-      const ok = await this.alert.confirm(
-        'Confirmar cambios',
-        `¿Deseas actualizar el serial "${this.seleccionado?.serial}"?`,
-        'Sí, actualizar',
-        'Cancelar'
-      );
-      if (!ok) return;
-    }
-
-    // 3) Loading
+    // 4) Loading UI
     const loadingId = this.alert.loading(
       this.isEdit ? 'Actualizando...' : 'Guardando...',
       'Por favor espera.'
     );
     this.loading = true;
 
-    // 4) Request create/update
+    // 5) Ejecución de Request
     const req$ = this.isEdit
       ? this.productoSerialService.actualizarProductoSerial(
-        this.seleccionado!.idProductoSerial,
-        payload
-      )
+          this.seleccionado!.idProductoSerial,
+          payload
+        )
       : this.productoSerialService.crearProductoSerial(payload);
 
     req$.subscribe({
@@ -149,16 +159,15 @@ export class ProductoSerialModal implements OnChanges {
         this.saved.emit();
         this.cerrar();
 
-        this.alert.toast('success', this.isEdit ? 'Actualizado' : 'Guardado');
+        this.alert.toast('success', this.isEdit ? 'Actualizado correctamente' : 'Guardado correctamente');
       },
       error: async (err) => {
-        // 8) Error
         this.loading = false;
         this.alert.close(loadingId);
 
         await this.alert.error(
           'Error',
-          this.alert.getErrorMessage(err, 'No se pudo guardar.')
+          this.alert.getErrorMessage(err, 'No se pudo procesar la solicitud.')
         );
       }
     });

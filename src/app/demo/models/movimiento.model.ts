@@ -8,13 +8,15 @@ export interface Movimiento {
   fkUsuario: Usuario;
   idUbicacionOrigen: number;
   idUbicacionDestino: number;
+  esActivo?: boolean;
 }
 
 export interface MovimientoRequest {
-  fechaMovimiento: string;
+  fechaMovimiento?: string;
   tipo: string;
   observaciones: string;
   idUsuario: number; // El ID plano que pide tu Dto de entrada
   idUbicacionOrigen: number;
   idUbicacionDestino: number;
+  esActivo?: boolean;
 }

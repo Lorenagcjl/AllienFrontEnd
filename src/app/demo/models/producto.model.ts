@@ -9,4 +9,5 @@ export interface Producto {
   esConSerial: boolean;
   porcentajeComision: number;
   fechaCreacion: string;
+  esActivo?: boolean;
 }

@@ -1,92 +1,110 @@
-<div class="modal-backdrop" role="button" tabindex="0" aria-label="Cerrar modal" (click)="onBackdropClick($event)"
-  (keydown.enter)="onBackdropKeydown($event)" (keydown.space)="onBackdropKeydown($event)">
-  <div class="modal-card" role="dialog" aria-modal="true">
-
-    <div class="modal-header">
-      <h3 class="modal-title">{{ editando ? 'Editar Producto' : 'Nuevo Producto' }}</h3>
-      <button type="button" class="icon-close" (click)="onClose()" aria-label="Cerrar">×</button>
+<div class="modal-manual-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal-manual-content shadow-lg">
+    
+    <div class="modal-header-custom">
+      <h2 class="mat-headline-6 mb-0">{{ editando ? 'Editar Producto' : 'Nuevo Producto' }}</h2>
+      <button mat-icon-button (click)="onClose()" type="button">
+        <i class="ti ti-x f-20"></i>
+      </button>
     </div>
 
-    <div class="modal-body">
-      <form [formGroup]="productoForm" class="row">
-
+    <div class="modal-body-custom">
+      <form [formGroup]="productoForm" class="row gx-3">
+        
         <div class="col-md-6">
-          <label class="lbl" for="nombre">Nombre</label>
-          <input id="nombre" class="inp" formControlName="nombre" />
-          @if (productoForm.get('nombre')?.invalid && productoForm.get('nombre')?.touched) {
-          <div class="err">Nombre requerido (mín. 2)</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="nombre" placeholder="Ej. Laptop Gaming">
+            @if (productoForm.get('nombre')?.invalid && productoForm.get('nombre')?.touched) {
+              <mat-error>Nombre requerido (mín. 2)</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="marca">Marca</label>
-          <input id="marca" class="inp" formControlName="marca" />
-          @if (productoForm.get('marca')?.invalid && productoForm.get('marca')?.touched) {
-          <div class="err">Marca requerida (mín. 2)</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Marca</mat-label>
+            <input matInput formControlName="marca" placeholder="Ej. Asus">
+            @if (productoForm.get('marca')?.invalid && productoForm.get('marca')?.touched) {
+              <mat-error>Marca requerida</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="tipo">Tipo</label>
-          <input id="tipo" class="inp" formControlName="tipo" />
-          @if (productoForm.get('tipo')?.invalid && productoForm.get('tipo')?.touched) {
-          <div class="err">Tipo requerido (mín. 2)</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Tipo</mat-label>
+            <input matInput formControlName="tipo" placeholder="Ej. Electrónica">
+            @if (productoForm.get('tipo')?.invalid && productoForm.get('tipo')?.touched) {
+              <mat-error>Tipo requerido</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="precioVenta">Precio Venta</label>
-          <input id="precioVenta" class="inp" type="number" formControlName="precioVenta" />
-          @if (productoForm.get('precioVenta')?.invalid && productoForm.get('precioVenta')?.touched) {
-          <div class="err">Precio válido requerido</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Precio Venta</mat-label>
+            <input matInput type="number" formControlName="precioVenta" placeholder="0.00">
+            <span matPrefix>$&nbsp;</span>
+            @if (productoForm.get('precioVenta')?.invalid && productoForm.get('precioVenta')?.touched) {
+              <mat-error>Precio válido requerido</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-12">
-          <label class="lbl" for="descripcion">Descripción</label>
-          <input id="descripcion" class="inp" formControlName="descripcion" />
-          @if (productoForm.get('descripcion')?.invalid && productoForm.get('descripcion')?.touched) {
-          <div class="err">Descripción requerida</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Descripción</mat-label>
+            <textarea matInput formControlName="descripcion" rows="2" placeholder="Detalles del producto..."></textarea>
+            @if (productoForm.get('descripcion')?.invalid && productoForm.get('descripcion')?.touched) {
+              <mat-error>Descripción requerida</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-12">
-          <label class="lbl" for="foto">Foto (URL o ruta)</label>
-          <input id="foto" class="inp" formControlName="foto" />
-          @if (productoForm.get('foto')?.invalid && productoForm.get('foto')?.touched) {
-          <div class="err">Foto requerida</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>URL de la Foto</mat-label>
+            <input matInput formControlName="foto" placeholder="http://...">
+            <mat-icon matSuffix>image</mat-icon>
+            @if (productoForm.get('foto')?.invalid && productoForm.get('foto')?.touched) {
+              <mat-error>Foto requerida</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="esConSerial">¿Con Serial?</label>
-          <select id="esConSerial" class="inp" formControlName="esConSerial">
-            <option [ngValue]="null" disabled>Seleccione</option>
-            <option [ngValue]="true">Sí</option>
-            <option [ngValue]="false">No</option>
-          </select>
-          @if (productoForm.get('esConSerial')?.invalid && productoForm.get('esConSerial')?.touched) {
-          <div class="err">Seleccione una opción</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>¿Con Serial?</mat-label>
+            <mat-select formControlName="esConSerial">
+              <mat-option [value]="true">Sí, requiere serial</mat-option>
+              <mat-option [value]="false">No requiere serial</mat-option>
+            </mat-select>
+            @if (productoForm.get('esConSerial')?.invalid && productoForm.get('esConSerial')?.touched) {
+              <mat-error>Seleccione una opción</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="porcentajeComision">Comisión (%)</label>
-          <input id="porcentajeComision" class="inp" type="number" formControlName="porcentajeComision" />
-          @if (productoForm.get('porcentajeComision')?.invalid && productoForm.get('porcentajeComision')?.touched) {
-          <div class="err">Debe estar entre 0 y 100</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Comisión</mat-label>
+            <input matInput type="number" formControlName="porcentajeComision" placeholder="0">
+            <span matSuffix>%</span>
+            @if (productoForm.get('porcentajeComision')?.invalid && productoForm.get('porcentajeComision')?.touched) {
+              <mat-error>Valor entre 0 y 100</mat-error>
+            }
+          </mat-form-field>
         </div>
 
-        <!-- No se muestra pero se envía -->
-        <input type="hidden" id="fechaCreacion" formControlName="fechaCreacion" />
+        <input type="hidden" formControlName="fechaCreacion" />
       </form>
     </div>
 
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" (click)="onClose()">Cancelar</button>
-      <button type="button" class="btn btn-primary" [disabled]="productoForm.invalid" (click)="save()">
-        Guardar
+    <div class="modal-actions-custom">
+      <button mat-button type="button" (click)="onClose()">Cancelar</button>
+      <button mat-raised-button color="primary" (click)="save()" [disabled]="productoForm.invalid">
+        <i class="ti ti-device-floppy me-1"></i> Guardar Producto
       </button>
     </div>
 

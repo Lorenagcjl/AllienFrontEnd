@@ -6,7 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
@@ -24,6 +24,7 @@ import { UbicacionFormModalComponent } from '../ubicacion-form-modal.component/u
     MatInputModule,
     MatButtonModule,
     UbicacionFormModalComponent,
+    MatProgressBarModule
   ],
   templateUrl: './ubicacion.component.html',
   styleUrl: './ubicacion.component.scss',
@@ -41,7 +42,7 @@ export default class UbicacionComponent {
   modalOpen = false;
   ubicacionSeleccionada?: Ubicacion;
   isEditing = false;
-
+cargando = false;
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
@@ -59,18 +60,19 @@ export default class UbicacionComponent {
   }
 
   cargar(): void {
-    this.alert.loading('Cargando ubicaciones...', 'Consultando lista de ubicaciones.');
-
+    this.cargando = true; // Inicia la barra azul
+    
     this.ubicacionService.listarUbicaciones().subscribe({
       next: (data) => {
-        this.dataSource.data = data ?? [];
-        this.alert.close();
+        // Filtramos para mostrar solo los que tienen esActivo: true (o distinto de false)
+        this.dataSource.data = (data ?? []).filter((u: any) => u.esActivo !== false);
+        this.cargando = false; // Apaga la barra azul
       },
       error: (err) => {
         console.error(err);
         this.dataSource.data = [];
-        this.alert.close();
-        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar la lista de ubicaciones.'));
+        this.cargando = false;
+        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar la lista.'));
       },
     });
   }

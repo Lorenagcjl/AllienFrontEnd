@@ -18,6 +18,10 @@ const routes: Routes = [
         loadComponent: () => import('./venta/venta')
       },
       {
+        path: 'detalleventa',
+        loadComponent: () => import('./detalleventa/detalleventa')
+      },
+      {
         path: 'producto',
         loadComponent: () => import('./producto.component/producto.component')
       },
@@ -32,6 +36,10 @@ const routes: Routes = [
       {
         path: 'movimiento',
         loadComponent: () => import('./movimiento/movimiento')
+      },
+      {
+        path: 'movimiento-detalle',
+        loadComponent: () => import('./movimiento-detalle/movimiento-detalle')
       },
       {
         path: 'nuevo-movimiento',

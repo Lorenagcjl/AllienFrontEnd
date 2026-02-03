@@ -1,40 +1,52 @@
-import { CommonModule } from '@angular/common';
-import { Component, ViewChild, inject, OnInit, AfterViewInit } from '@angular/core';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { AfterViewInit, Component, ViewChild, OnInit, inject } from '@angular/core';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import MovimientoDetalleComponent from '../movimiento-detalle/movimiento-detalle';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { SharedModule } from 'src/app/demo/shared/shared.module';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { AlertService } from 'src/app/@theme/services/alert.service';
+import { DatePipe, CommonModule } from '@angular/common';
+
+// Importaciones de Movimiento
 import { MovimientoService } from 'src/app/@theme/services/movimiento.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 import { Movimiento } from 'src/app/demo/models/movimiento.model';
 import { MovimientoFormComponent } from './movimiento-form.component';
-import { SharedModule } from 'src/app/demo/shared/shared.module';
-
-import Swal from 'sweetalert2';
+import MovimientoDetalleComponent from '../movimiento-detalle/movimiento-detalle';
 
 @Component({
   selector: 'app-movimiento',
   standalone: true,
   imports: [
-    CommonModule, SharedModule, MatFormFieldModule, MatInputModule, 
-    MatTableModule, MatSortModule, MatPaginatorModule, MatDialogModule,
-    MatButtonModule, MatIconModule, MatTooltipModule, MovimientoDetalleComponent
+    CommonModule,
+    SharedModule, 
+    MatFormFieldModule, 
+    MatInputModule, 
+    MatTableModule, 
+    MatSortModule, 
+    MatPaginatorModule, 
+    MatDialogModule, 
+    MatProgressBarModule, 
+    MovimientoFormComponent,
+    DatePipe
   ],
   templateUrl: './movimiento.html',
-  styleUrl: './movimiento.scss',
+  styleUrl: './movimiento.scss'
 })
 export default class MovimientoComponent implements OnInit, AfterViewInit {
   private dialog = inject(MatDialog);
+  private alertService = inject(AlertService);
   private movimientoService = inject(MovimientoService);
   private ubicacionService = inject(UbicacionService);
 
-  // Columnas que coinciden con tu ResponseDTO
+  modalOpen = false;
+  movimientoParaEditar?: Movimiento;
+  cargando: boolean = false;
+  
+  // Añadimos 'estado' a las columnas
   displayedColumns: string[] = ['idMovimiento', 'fechaMovimiento', 'tipo', 'origen', 'destino', 'usuario', 'acciones'];
   dataSource = new MatTableDataSource<Movimiento>([]);
   ubicaciones: any[] = [];
@@ -47,21 +59,32 @@ export default class MovimientoComponent implements OnInit, AfterViewInit {
   }
 
   cargarCatalogosYMovimientos() {
-    // Primero cargamos ubicaciones, luego movimientos para asegurar que el getNombre funcione
+    this.cargando = true;
     this.ubicacionService.listarUbicaciones().subscribe({
       next: (ubics) => {
         this.ubicaciones = ubics;
         this.cargarMovimientos();
+      },
+      error: () => {
+        this.cargando = false;
+        this.alertService.error('Error', 'No se pudieron cargar las ubicaciones');
       }
     });
   }
 
-  cargarMovimientos() {
+ cargarMovimientos() {
+    this.cargando = true;
     this.movimientoService.listar().subscribe({
       next: (data) => {
-        this.dataSource.data = data;
+        // Filtramos para dejar solo los registros donde esActivo sea true
+        // Si tu backend usa 'estado' o 'activo', ajusta el nombre de la propiedad
+        this.dataSource.data = data.filter((m: any) => m.esActivo === true);
+        this.cargando = false;
       },
-      error: (err) => console.error('Error al cargar movimientos', err)
+      error: (err) => {
+        this.cargando = false;
+        this.alertService.error('Error', 'No se pudieron cargar los movimientos');
+      }
     });
   }
 
@@ -70,47 +93,59 @@ export default class MovimientoComponent implements OnInit, AfterViewInit {
     return u ? u.nombre : 'N/A';
   }
 
+  // --- Lógica de Formulario (Modal) ---
   abrirFormulario(movimiento?: Movimiento) {
-    const dialogRef = this.dialog.open(MovimientoFormComponent, {
-      width: '600px',
-      data: movimiento || null
-    });
+    this.movimientoParaEditar = movimiento;
+    this.modalOpen = true;
+  }
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) this.cargarMovimientos();
-    });
+  cerrarModal() {
+    this.modalOpen = false;
+    this.movimientoParaEditar = undefined;
+  }
+
+  onSaved(exito: boolean) {
+    if (exito) {
+      this.cerrarModal();
+      this.cargarMovimientos();
+    }
   }
 
   verDetalle(movimiento: Movimiento) {
-  this.dialog.open(MovimientoDetalleComponent, {
-    width: '1000px',
-    data: movimiento, // Aquí pasamos el objeto completo (idUbicacionOrigen, etc.)
-    disableClose: true
-  });
-}
+    this.dialog.open(MovimientoDetalleComponent, {
+      width: '1000px',
+      data: movimiento,
+      disableClose: true
+    });
+  }
 
-  eliminar(id: number) {
-  Swal.fire({
-    title: '¿Estás seguro?',
-    text: "Esta acción no se puede deshacer",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar'
-  }).then((result) => { 
-    if (result.isConfirmed) {
+  async eliminar(id: number) {
+    const confirmado = await this.alertService.confirm(
+      '¿Eliminar movimiento?',
+      '¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.',
+      'Sí, eliminar'
+    );
+
+    if (confirmado) {
+      this.cargando = true;
+      const loadingId = this.alertService.loading('Eliminando...', 'Procesando solicitud');
+
       this.movimientoService.eliminar(id).subscribe({
         next: () => {
+          this.alertService.close(loadingId);
           this.cargarMovimientos();
-          Swal.fire('Eliminado', 'El registro ha sido borrado', 'success');
+          this.alertService.toast('success', 'Movimiento eliminado correctamente');
         },
-        error: (err) => Swal.fire('Error', 'No se pudo eliminar el registro', 'error')
+        error: (err) => {
+          this.cargando = false;
+          this.alertService.close(loadingId);
+          const msg = this.alertService.getErrorMessage(err);
+          this.alertService.error('Error', msg);
+        }
       });
     }
-  });
-}
+  }
+
   ngAfterViewInit() {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;

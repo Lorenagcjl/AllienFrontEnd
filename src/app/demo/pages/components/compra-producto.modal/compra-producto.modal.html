@@ -1,44 +1,54 @@
-<div class="backdrop" *ngIf="open" (click)="cerrar()"></div>
+<div class="modal-manual-backdrop" *ngIf="open" (click)="cerrar()">
+  <div class="modal-manual-content shadow-lg" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header-custom">
+      <h2 class="mat-headline-6 mb-0">{{ isEdit ? 'Editar Compra' : 'Nueva Compra' }}</h2>
+      <button mat-icon-button (click)="cerrar()" type="button">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
 
-<div class="modal" *ngIf="open" (click)="$event.stopPropagation()">
-  <div class="header">
-    <h3>{{ isEdit ? 'Editar Compra' : 'Nueva Compra' }}</h3>
-    <button mat-button type="button" (click)="cerrar()">X</button>
-  </div>
+    <div class="modal-body-custom">
+      <form [formGroup]="form" class="row gx-3">
+        
+        <div class="col-md-6">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Fecha de Ingreso</mat-label>
+            <input matInput type="datetime-local" formControlName="fechaIngreso" />
+            <mat-error *ngIf="form.controls.fechaIngreso.invalid">Requerido</mat-error>
+          </mat-form-field>
+        </div>
 
-  <div class="body">
-    <mat-form-field appearance="outline" class="w-100">
-      <mat-label>Fecha ingreso</mat-label>
-      <input matInput type="datetime-local" [formControl]="form.controls.fechaIngreso" />
-      <mat-error *ngIf="form.controls.fechaIngreso.touched && form.controls.fechaIngreso.hasError('required')">
-        La fecha es obligatoria.
-      </mat-error>
-    </mat-form-field>
+        <div class="col-md-6">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>ID Usuario Responsable</mat-label>
+            <input matInput type="number" formControlName="idUsuario" />
+            <mat-icon matSuffix>person</mat-icon>
+            <mat-error *ngIf="form.controls.idUsuario.invalid">ID requerido</mat-error>
+          </mat-form-field>
+        </div>
 
-    <mat-form-field appearance="outline" class="w-100">
-      <mat-label>ID Usuario</mat-label>
-      <input matInput type="number" [formControl]="form.controls.idUsuario" />
-      <mat-error *ngIf="form.controls.idUsuario.touched && form.controls.idUsuario.invalid">
-        Usuario inválido.
-      </mat-error>
-    </mat-form-field>
+        <div class="col-12">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Observaciones de la Compra</mat-label>
+            <textarea matInput formControlName="observaciones" rows="3" placeholder="Detalles adicionales..."></textarea>
+            <mat-hint align="end">{{form.controls.observaciones.value.length}} / 500</mat-hint>
+            <mat-error *ngIf="form.controls.observaciones.hasError('maxlength')">Máximo 500 caracteres</mat-error>
+          </mat-form-field>
+        </div>
 
-    <mat-form-field appearance="outline" class="w-100">
-      <mat-label>Observaciones</mat-label>
-      <input matInput [formControl]="form.controls.observaciones" />
-      <mat-error *ngIf="form.controls.observaciones.touched && form.controls.observaciones.hasError('maxlength')">
-        Máximo 500 caracteres.
-      </mat-error>
-    </mat-form-field>
-  </div>
+      </form>
+    </div>
 
-  <div class="footer">
-    <button mat-stroked-button type="button" (click)="cerrar()" [disabled]="loading">
-      Cancelar
-    </button>
+    <div class="modal-actions-custom">
+      <button mat-button type="button" (click)="cerrar()" [disabled]="loading">
+        Cancelar
+      </button>
+      <button mat-raised-button color="primary" (click)="guardar()" [disabled]="form.invalid || loading">
+        <mat-icon class="me-1">{{ isEdit ? 'save' : 'add' }}</mat-icon>
+        {{ loading ? 'Procesando...' : (isEdit ? 'Actualizar Compra' : 'Registrar Compra') }}
+      </button>
+    </div>
 
-    <button mat-raised-button color="primary" type="button" (click)="guardar()" [disabled]="loading">
-      {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Guardar') }}
-    </button>
   </div>
 </div>

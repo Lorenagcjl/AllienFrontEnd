@@ -1,66 +1,78 @@
-<h2 mat-dialog-title>{{ data?.idMovimiento ? 'Editar' : 'Nuevo' }} Movimiento</h2>
-
-<mat-dialog-content>
-  <form [formGroup]="form" class="row g-3 mt-1">
+<div class="modal-manual-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal-manual-content shadow-lg" style="max-width: 650px;">
     
-    <div class="col-md-6">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>Fecha</mat-label>
-        <input matInput formControlName="fechaMovimiento" type="datetime-local">
-      </mat-form-field>
+    <div class="modal-header-custom">
+      <h2 class="mat-headline-6 mb-0">{{ movimientoSeleccionado ? 'Editar Movimiento' : 'Nuevo Movimiento' }}</h2>
+      <button mat-icon-button (click)="onClose()" type="button">
+        <i class="ti ti-x f-20"></i>
+      </button>
     </div>
 
-    <div class="col-md-6">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>Tipo</mat-label>
-        <mat-select formControlName="tipo">
-          <mat-option *ngFor="let tipo of tiposMovimiento" [value]="tipo">
-            {{ tipo }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
+    <div class="modal-body-custom">
+      <form [formGroup]="form" class="row gx-3">
+
+
+        <div class="col-md-6">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Tipo de Movimiento</mat-label>
+            <mat-select formControlName="tipo">
+              @for (tipo of tiposMovimiento; track tipo) {
+                <mat-option [value]="tipo">{{ tipo }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="col-md-6">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Ubicación Origen</mat-label>
+            <mat-select formControlName="idUbicacionOrigen">
+              @for (u of ubicaciones; track u.idUbicacion) {
+                <mat-option [value]="u.idUbicacion">{{ u.nombre }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="col-md-6">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Ubicación Destino</mat-label>
+            <mat-select formControlName="idUbicacionDestino">
+              @for (u of ubicaciones; track u.idUbicacion) {
+                <mat-option [value]="u.idUbicacion">{{ u.nombre }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="col-12">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Observaciones / Nota</mat-label>
+            <textarea matInput formControlName="observaciones" rows="3" placeholder="Ej. Por reposición de inventario..."></textarea>
+            @if (form.get('observaciones')?.invalid && form.get('observaciones')?.touched) {
+              <mat-error>La observación es obligatoria</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        @if (form.get('idUbicacionOrigen')?.value === form.get('idUbicacionDestino')?.value && form.get('idUbicacionOrigen')?.value !== null) {
+          <div class="col-12">
+            <small class="text-danger d-block mb-3">
+              <i class="ti ti-alert-triangle"></i> La ubicación de origen y destino no pueden ser iguales.
+            </small>
+          </div>
+        }
+      </form>
     </div>
 
-    <div class="col-md-6">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>Ubicación Origen</mat-label>
-        <mat-select formControlName="idUbicacionOrigen">
-          <mat-option *ngFor="let u of ubicaciones" [value]="u.idUbicacion">
-            {{ u.nombre }}
-          </mat-option>
-        </mat-select>
-        <mat-hint *ngIf="form.get('idUbicacionOrigen')?.value === form.get('idUbicacionDestino')?.value && form.get('idUbicacionOrigen')?.value !== null" color="warn">
-          La ubicación origen y destino no deben ser iguales.
-        </mat-hint>
-      </mat-form-field>
+    <div class="modal-actions-custom">
+      <button mat-button type="button" (click)="onClose()" [disabled]="cargando">Cancelar</button>
+      <button mat-raised-button color="primary" (click)="save()" 
+              [disabled]="form.invalid || cargando || (form.get('idUbicacionOrigen')?.value === form.get('idUbicacionDestino')?.value)">
+        <i class="ti ti-device-floppy me-1"></i>
+        {{ cargando ? 'Guardando...' : 'Guardar Movimiento' }}
+      </button>
     </div>
 
-    <div class="col-md-6">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>Ubicación Destino</mat-label>
-        <mat-select formControlName="idUbicacionDestino">
-          <mat-option *ngFor="let u of ubicaciones" [value]="u.idUbicacion">
-            {{ u.nombre }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
-
-    <div class="col-12">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>Observaciones</mat-label>
-        <textarea matInput formControlName="observaciones" rows="3" placeholder="Ej. Traslado por reposición de stock..."></textarea>
-      </mat-form-field>
-    </div>
-
-  </form>
-</mat-dialog-content>
-
-<mat-dialog-actions align="end" class="mb-2 pe-3">
-  <button mat-button (click)="dialogRef.close()">Cancelar</button>
-  <button mat-raised-button color="primary" 
-          (click)="guardar()" 
-          [disabled]="form.invalid || (form.get('idUbicacionOrigen')?.value === form.get('idUbicacionDestino')?.value)">
-    <mat-icon>save</mat-icon> {{ data?.idMovimiento ? 'Actualizar' : 'Guardar' }}
-  </button>
-</mat-dialog-actions>
+  </div>
+</div>

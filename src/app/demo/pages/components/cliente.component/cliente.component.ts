@@ -1,11 +1,13 @@
-import { Component, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, ViewChild, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { ClienteService } from 'src/app/@theme/services/cliente.service';
@@ -23,76 +25,91 @@ import { ClienteFormModalComponent } from '../cliente-form-modal.component/clien
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatProgressBarModule,
+    MatTooltipModule,
     ClienteFormModalComponent,
   ],
   templateUrl: './cliente.component.html',
   styleUrl: './cliente.component.scss',
 })
-export default class ClienteComponent {
+export default class ClienteComponent implements OnInit, AfterViewInit {
   private readonly clienteService = inject(ClienteService);
-  private readonly alert = inject(AlertService);
+  private readonly alertService = inject(AlertService);
+
+  cargando: boolean = false;
+  modalOpen = false;
+  clienteSeleccionado?: Cliente;
 
   displayedColumns: string[] = [
-    'idCliente',
-    'nombres',
-    'apellidos',
-    'documento',
-    'telefono',
-    'email',
-    'direccion',
+    'idCliente', 
+    'nombres', 
+    'apellidos', 
+    'documento', 
+    'telefono', 
+    'estado', // Columna de estado agregada
     'acciones'
   ];
-
+  
   dataSource = new MatTableDataSource<Cliente>([]);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  modalOpen = false;
-  clienteSeleccionado?: Cliente;
-  isEditing = false;
+  ngOnInit(): void {
+    this.cargarClientes();
+  }
 
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
-
-    this.dataSource.filterPredicate = (row: Cliente, filter: string) => {
-      const f = filter.trim().toLowerCase();
-      const fullName = `${row.primerNombre ?? ''} ${row.segundoNombre ?? ''} ${row.primerApellido ?? ''} ${row.segundoApellido ?? ''}`.toLowerCase();
-
-      return (
-        fullName.includes(f) ||
-        (row.documento ?? '').toLowerCase().includes(f) ||
-        (row.telefono ?? '').toLowerCase().includes(f) ||
-        (row.email ?? '').toLowerCase().includes(f) ||
-        (row.direccion ?? '').toLowerCase().includes(f)
-      );
-    };
-
-    this.cargar();
   }
 
-  cargar(): void {
-    this.alert.loading('Cargando clientes...', 'Consultando lista de clientes.');
-
+  cargarClientes(): void {
+    this.cargando = true;
     this.clienteService.listarClientes().subscribe({
       next: (data) => {
         this.dataSource.data = data ?? [];
-        this.alert.close();
+        this.cargando = false;
       },
       error: (err) => {
-        console.error(err);
-        this.dataSource.data = [];
-        this.alert.close();
-        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar la lista de clientes.'));
+        this.cargando = false;
+        this.alertService.error('Error', 'No se pudieron cargar los clientes');
       },
     });
   }
 
+  async cambiarEstado(cliente: Cliente) {
+    const accion = cliente.esActivo ? 'desactivar' : 'activar';
+    
+    const confirmado = await this.alertService.confirm(
+      `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} cliente?`,
+      `¿Estás seguro de que deseas ${accion} al cliente ${cliente.primerNombre} ${cliente.primerApellido}?`,
+      `Sí, ${accion}`
+    );
+
+    if (confirmado) {
+      this.cargando = true;
+      const loadingId = this.alertService.loading('Procesando...', 'Actualizando estado del cliente');
+
+      // Usamos eliminarCliente porque tu Backend hace el Toggle Lógico allí
+      this.clienteService.eliminarCliente(cliente.idCliente!).subscribe({
+        next: () => {
+          this.alertService.close(loadingId);
+          this.cargarClientes();
+          this.alertService.toast('success', `Cliente ${accion === 'activar' ? 'activado' : 'desactivado'}`);
+        },
+        error: (err) => {
+          this.cargando = false;
+          this.alertService.close(loadingId);
+          this.alertService.error('Error', this.alertService.getErrorMessage(err));
+        }
+      });
+    }
+  }
+
   applyFilter(event: Event): void {
-    const value = (event.target as HTMLInputElement).value ?? '';
+    const value = (event.target as HTMLInputElement).value;
     this.dataSource.filter = value.trim().toLowerCase();
-    this.dataSource.paginator?.firstPage();
   }
 
   abrirFormulario(row?: Cliente): void {
@@ -100,50 +117,15 @@ export default class ClienteComponent {
     this.modalOpen = true;
   }
 
-  editar(row: Cliente): void {
-    this.abrirFormulario(row);
-  }
-
   cerrarModal(): void {
     this.modalOpen = false;
     this.clienteSeleccionado = undefined;
   }
 
-  async onSaved(ok: boolean): Promise<void> {
-    if (!ok) return;
-
-    this.cerrarModal();
-    await this.alert.success('Confirmado', 'Guardado correctamente.');
-    this.cargar();
-  }
-
-  async eliminar(row: Cliente): Promise<void> {
-    const id = row?.idCliente;
-    if (!id) return;
-
-    const fullName = `${row.primerNombre} ${row.segundoNombre} ${row.primerApellido} ${row.segundoApellido}`.trim();
-
-    const confirmado = await this.alert.confirm(
-      'Confirmar eliminación',
-      `¿Eliminar el cliente "${fullName}"?`,
-      'Sí, eliminar',
-      'Cancelar'
-    );
-    if (!confirmado) return;
-
-    this.alert.loading('Eliminando...', 'Procesando la eliminación del cliente.');
-
-    this.clienteService.eliminarCliente(id).subscribe({
-      next: async () => {
-        this.alert.close();
-        await this.alert.success('Eliminado', 'El cliente fue eliminado correctamente.');
-        this.cargar();
-      },
-      error: async (err) => {
-        console.error(err);
-        this.alert.close();
-        await this.alert.error('Error al eliminar', this.alert.getErrorMessage(err, 'No se pudo eliminar el cliente.'));
-      },
-    });
+  onSaved(exito: boolean): void {
+    if (exito) {
+      this.cerrarModal();
+      this.cargarClientes();
+    }
   }
 }

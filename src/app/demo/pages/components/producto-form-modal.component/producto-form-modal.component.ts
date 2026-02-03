@@ -4,6 +4,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { ProductoService } from 'src/app/@theme/services/producto.service';
 import { Producto } from 'src/app/demo/models/producto.model';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
 
 function nowLocalDateTimeString(): string {
   return new Date().toISOString().slice(0, 19);
@@ -12,7 +17,12 @@ function nowLocalDateTimeString(): string {
 @Component({
   selector: 'app-producto-form-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule,
+  MatFormFieldModule, // Importar de @angular/material/form-field
+  MatInputModule,     // Importar de @angular/material/input
+  MatButtonModule,    // Importar de @angular/material/button
+  MatSelectModule,    // Importar de @angular/material/select
+  MatIconModule],
   templateUrl: './producto-form-modal.component.html',
   styleUrls: ['./producto-form-modal.component.scss'],
 })

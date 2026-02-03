@@ -1,14 +1,25 @@
-<mat-form-field appearance="outline" class="w-100">
-  <mat-label>Buscar producto</mat-label>
-  <input matInput (keyup)="applyFilter($event)" placeholder="Ej. Laptop" #input>
-</mat-form-field>
+<div class="row align-items-center mb-3">
+  <div class="col">
+    <mat-form-field appearance="outline" class="w-100 hide-hint">
+      <mat-label>Buscar producto</mat-label>
+      <input matInput (keyup)="applyFilter($event)" placeholder="Ej. Laptop, Monitor..." #input [disabled]="cargando">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+  </div>
+  
+  <div class="col-auto">
+    <button mat-raised-button color="primary" (click)="abrirFormulario()" [disabled]="cargando">
+      <i class="ti ti-plus me-1"></i> Nuevo Producto
+    </button>
+  </div>
+</div>
 
-<button mat-raised-button color="primary" (click)="abrirFormulario()">
-  <i class="ti ti-plus"></i> Nuevo Producto
-</button>
+<div class="mat-elevation-z8 position-relative">
+  @if (cargando) {
+    <mat-progress-bar mode="indeterminate" class="position-absolute top-0 start-0 z-index-1"></mat-progress-bar>
+  }
 
-<div class="mat-elevation-z8">
-  <table mat-table [dataSource]="dataSource" matSort>
+  <table mat-table [dataSource]="dataSource" matSort class="w-100" [class.loading-table]="cargando">
 
     <ng-container matColumnDef="idProducto">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
@@ -17,7 +28,7 @@
 
     <ng-container matColumnDef="nombre">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Nombre</th>
-      <td mat-cell *matCellDef="let row">{{ row.nombre }}</td>
+      <td mat-cell *matCellDef="let row" class="fw-bold">{{ row.nombre }}</td>
     </ng-container>
 
     <ng-container matColumnDef="marca">
@@ -27,47 +38,48 @@
 
     <ng-container matColumnDef="tipo">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Tipo</th>
-      <td mat-cell *matCellDef="let row">{{ row.tipo }}</td>
+      <td mat-cell *matCellDef="let row">
+        <span class="badge bg-light-info text-info">{{ row.tipo }}</span>
+      </td>
     </ng-container>
 
     <ng-container matColumnDef="precioVenta">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Precio</th>
-      <td mat-cell *matCellDef="let row">{{ row.precioVenta }}</td>
+      <td mat-cell *matCellDef="let row" class="text-primary fw-bold">
+        {{ row.precioVenta | currency:'USD':'symbol':'1.2-2' }}
+      </td>
     </ng-container>
 
     <ng-container matColumnDef="esConSerial">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Serial</th>
       <td mat-cell *matCellDef="let row">
         @if (row.esConSerial) {
-        <span class="text-success">Sí</span>
+          <span class="badge bg-light-success text-success">Sí</span>
         } @else {
-        <span class="text-danger">No</span>
+          <span class="badge bg-light-danger text-danger">No</span>
         }
       </td>
     </ng-container>
 
     <ng-container matColumnDef="porcentajeComision">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Comisión %</th>
-      <td mat-cell *matCellDef="let row">{{ row.porcentajeComision }}</td>
+      <td mat-cell *matCellDef="let row">{{ row.porcentajeComision }}%</td>
     </ng-container>
 
     <ng-container matColumnDef="fechaCreacion">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Creado</th>
-      <td mat-cell *matCellDef="let row">{{ row.fechaCreacion | date:'yyyy-MM-dd HH:mm' }}</td>
+      <td mat-cell *matCellDef="let row">{{ row.fechaCreacion | date:'yyyy-MM-dd' }}</td>
     </ng-container>
 
     <ng-container matColumnDef="acciones">
       <th mat-header-cell *matHeaderCellDef>Acciones</th>
       <td mat-cell *matCellDef="let row">
-
-        <button mat-icon-button color="primary" (click)="editar(row)" [disabled]="isEditing">
+        <button mat-icon-button color="primary" (click)="editar(row)" [disabled]="cargando" matTooltip="Editar">
           <i class="ti ti-edit f-18"></i>
         </button>
-
-        <button mat-icon-button color="warn" (click)="eliminar(row)">
+        <button mat-icon-button color="warn" (click)="eliminar(row)" [disabled]="cargando" matTooltip="Eliminar">
           <i class="ti ti-trash f-18"></i>
         </button>
-
       </td>
     </ng-container>
 
@@ -75,17 +87,19 @@
     <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 
     <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="7">
+      <td class="mat-cell text-center py-4" colspan="9">
         No hay datos que coincidan con "{{ input.value }}"
       </td>
     </tr>
   </table>
 
-  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Seleccionar página"></mat-paginator>
+  <mat-paginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons aria-label="Seleccionar página"></mat-paginator>
 </div>
 
-<!-- MODAL PROPIO -->
 @if (modalOpen) {
-<app-producto-form-modal [producto]="productoSeleccionado" (closed)="cerrarModal()" (saved)="onSaved($event)">
-</app-producto-form-modal>
+  <app-producto-form-modal 
+    [producto]="productoSeleccionado" 
+    (closed)="cerrarModal()" 
+    (saved)="onSaved($event)">
+  </app-producto-form-modal>
 }
