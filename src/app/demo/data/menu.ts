@@ -164,15 +164,6 @@ export const menus: Navigation[] = [
         url: '/component/venta',
         icon: '#custom-clipboard',
         roles: ['Administrador', 'Empleado']
-      },
-      {
-        id: 'detalleventa',
-        title: 'Detalle Venta',
-        type: 'item',
-        classes: 'nav-item',
-        url: '/component/detalleventa',
-        icon: '#custom-clipboard',
-        roles: ['Administrador', 'Empleado']
       }
     ]
   },

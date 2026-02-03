@@ -18,10 +18,6 @@ const routes: Routes = [
         loadComponent: () => import('./venta/venta')
       },
       {
-        path: 'detalleventa',
-        loadComponent: () => import('./detalleventa/detalleventa')
-      },
-      {
         path: 'producto',
         loadComponent: () => import('./producto.component/producto.component')
       },
