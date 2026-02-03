@@ -4,6 +4,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { ProductoService } from 'src/app/@theme/services/producto.service';
 import { Producto } from 'src/app/demo/models/producto.model';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
 
 function nowLocalDateTimeString(): string {
   return new Date().toISOString().slice(0, 19);
@@ -12,7 +17,12 @@ function nowLocalDateTimeString(): string {
 @Component({
   selector: 'app-producto-form-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule,
+  MatFormFieldModule, // Importar de @angular/material/form-field
+  MatInputModule,     // Importar de @angular/material/input
+  MatButtonModule,    // Importar de @angular/material/button
+  MatSelectModule,    // Importar de @angular/material/select
+  MatIconModule],
   templateUrl: './producto-form-modal.component.html',
   styleUrls: ['./producto-form-modal.component.scss'],
 })
@@ -32,6 +42,8 @@ export class ProductoFormModalComponent implements OnInit {
 
   productoForm = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(2)]],
+    marca: ['', [Validators.required, Validators.minLength(2)]],
+    tipo: ['', [Validators.required, Validators.minLength(2)]],
     foto: ['', [Validators.required]],
     descripcion: ['', [Validators.required, Validators.minLength(3)]],
     precioVenta: [null as number | null, [Validators.required, Validators.min(0)]],
@@ -44,6 +56,8 @@ export class ProductoFormModalComponent implements OnInit {
     if (this.producto) {
       this.productoForm.patchValue({
         nombre: this.producto.nombre ?? '',
+        marca: this.producto.marca ?? '',
+        tipo: this.producto.tipo ?? '',
         foto: this.producto.foto ?? '',
         descripcion: this.producto.descripcion ?? '',
         precioVenta: this.producto.precioVenta ?? null,
@@ -102,6 +116,8 @@ export class ProductoFormModalComponent implements OnInit {
 
     const payload = {
       nombre: v.nombre ?? '',
+      marca: v.marca ?? '',
+      tipo: v.tipo ?? '',
       foto: v.foto ?? '',
       descripcion: v.descripcion ?? '',
       precioVenta: Number(v.precioVenta),

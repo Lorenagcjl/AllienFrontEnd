@@ -1,87 +1,87 @@
-<div class="modal-backdrop" role="button" tabindex="0" aria-label="Cerrar modal" (click)="onBackdropClick($event)"
-  (keydown.enter)="onBackdropKeydown($event)" (keydown.space)="onBackdropKeydown($event)">
-
-  <div class="modal-card" role="dialog" aria-modal="true">
-
-    <div class="modal-header">
-      <h3 class="modal-title">{{ editando ? 'Editar Cliente' : 'Nuevo Cliente' }}</h3>
-      <button type="button" class="icon-close" (click)="onClose()" aria-label="Cerrar">×</button>
+<div class="modal-manual-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal-manual-content shadow-lg">
+    
+    <div class="modal-header-custom">
+      <h2 class="mat-headline-6 mb-0">{{ editando ? 'Editar Cliente' : 'Nuevo Cliente' }}</h2>
+      <button mat-icon-button (click)="onClose()" type="button" [disabled]="cargando">
+        <i class="ti ti-x f-20"></i>
+      </button>
     </div>
 
-    <div class="modal-body">
-      <form [formGroup]="form" class="row">
-
+    <div class="modal-body-custom">
+      <form [formGroup]="form" class="row gx-3">
+        
         <div class="col-md-6">
-          <label class="lbl" for="primerNombre">Primer Nombre</label>
-          <input id="primerNombre" class="inp" formControlName="primerNombre" />
-          @if (form.get('primerNombre')?.invalid && form.get('primerNombre')?.touched) {
-          <div class="err">Requerido</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Primer Nombre</mat-label>
+            <input matInput formControlName="primerNombre">
+            @if (form.get('primerNombre')?.invalid && form.get('primerNombre')?.touched) {
+              <mat-error>{{ form.get('primerNombre')?.hasError('pattern') ? 'Solo letras' : 'Requerido' }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+        
+        <div class="col-md-6">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Segundo Nombre</mat-label>
+            <input matInput formControlName="segundoNombre">
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="segundoNombre">Segundo Nombre</label>
-          <input id="segundoNombre" class="inp" formControlName="segundoNombre" />
-          @if (form.get('segundoNombre')?.invalid && form.get('segundoNombre')?.touched) {
-          <div class="err">Requerido</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Primer Apellido</mat-label>
+            <input matInput formControlName="primerApellido">
+            @if (form.get('primerApellido')?.invalid && form.get('primerApellido')?.touched) {
+              <mat-error>Requerido</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="primerApellido">Primer Apellido</label>
-          <input id="primerApellido" class="inp" formControlName="primerApellido" />
-          @if (form.get('primerApellido')?.invalid && form.get('primerApellido')?.touched) {
-          <div class="err">Requerido</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Segundo Apellido</mat-label>
+            <input matInput formControlName="segundoApellido">
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="segundoApellido">Segundo Apellido</label>
-          <input id="segundoApellido" class="inp" formControlName="segundoApellido" />
-          @if (form.get('segundoApellido')?.invalid && form.get('segundoApellido')?.touched) {
-          <div class="err">Requerido</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Documento / Cédula</mat-label>
+            <input matInput formControlName="documento">
+            @if (form.get('documento')?.invalid && form.get('documento')?.touched) {
+              <mat-error>Solo números requeridos</mat-error>
+            }
+          </mat-form-field>
         </div>
 
         <div class="col-md-6">
-          <label class="lbl" for="documento">Documento</label>
-          <input id="documento" class="inp" formControlName="documento" />
-          @if (form.get('documento')?.invalid && form.get('documento')?.touched) {
-          <div class="err">Requerido</div>
-          }
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Teléfono</mat-label>
+            <input matInput formControlName="telefono">
+          </mat-form-field>
         </div>
 
-        <div class="col-md-6">
-          <label class="lbl" for="telefono">Teléfono</label>
-          <input id="telefono" class="inp" formControlName="telefono" />
-          @if (form.get('telefono')?.invalid && form.get('telefono')?.touched) {
-          <div class="err">Requerido</div>
-          }
+        <div class="col-12">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Correo Electrónico</mat-label>
+            <input matInput type="email" formControlName="email">
+          </mat-form-field>
         </div>
 
-        <div class="col-md-6">
-          <label class="lbl" for="email">Email</label>
-          <input id="email" class="inp" formControlName="email" />
-          @if (form.get('email')?.invalid && form.get('email')?.touched) {
-          <div class="err">Email requerido</div>
-          }
+        <div class="col-12">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Dirección</mat-label>
+            <input matInput formControlName="direccion">
+          </mat-form-field>
         </div>
-
-        <div class="col-md-6">
-          <label class="lbl" for="direccion">Dirección</label>
-          <input id="direccion" class="inp" formControlName="direccion" />
-          @if (form.get('direccion')?.invalid && form.get('direccion')?.touched) {
-          <div class="err">Requerido</div>
-          }
-        </div>
-
       </form>
     </div>
 
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" (click)="onClose()">Cancelar</button>
-      <button type="button" class="btn btn-primary" [disabled]="form.invalid" (click)="save()">
-        Guardar
+    <div class="modal-actions-custom">
+      <button mat-button type="button" (click)="onClose()" [disabled]="cargando">Cancelar</button>
+      <button mat-raised-button color="primary" (click)="save()" [disabled]="form.invalid || cargando">
+        {{ cargando ? 'Guardando...' : (editando ? 'Actualizar Cliente' : 'Guardar Cliente') }}
       </button>
     </div>
 

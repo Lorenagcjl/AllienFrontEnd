@@ -10,5 +10,5 @@ export interface Cliente {
   telefono:string;
   email:string;
   direccion:string;
-
+esActivo?: boolean;
 }

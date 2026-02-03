@@ -1,6 +1,9 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { SharedModule } from 'src/app/demo/shared/shared.module'; // Importante para mat-form-field
+import { MatSelectModule } from '@angular/material/select';
+import { MatOptionModule } from '@angular/material/core';
 
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
@@ -9,7 +12,13 @@ import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
 @Component({
   selector: 'app-ubicacion-form-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule, 
+    SharedModule, 
+    MatSelectModule, 
+    MatOptionModule
+  ],
   templateUrl: './ubicacion-form-modal.component.html',
   styleUrls: ['./ubicacion-form-modal.component.scss'],
 })
@@ -19,15 +28,12 @@ export class UbicacionFormModalComponent implements OnInit {
   private readonly alert = inject(AlertService);
 
   @Input() ubicacion?: Ubicacion;
-
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<boolean>();
 
-  get editando(): boolean {
-    return !!this.ubicacion?.idUbicacion && this.ubicacion.idUbicacion > 0;
-  }
+  cargando = false;
 
-  form = this.fb.group({
+  form: FormGroup = this.fb.group({
     nombre: ['', [Validators.required]],
     tipo: ['', [Validators.required]],
     descripcion: ['', [Validators.required]],
@@ -53,73 +59,44 @@ export class UbicacionFormModalComponent implements OnInit {
   }
 
   onBackdropClick(event: MouseEvent): void {
-    if (event.target === event.currentTarget) this.onClose();
-  }
-
-  onBackdropKeydown(event: KeyboardEvent): void {
-    event.preventDefault();
-    this.onClose();
+    if (event.target === event.currentTarget) {
+      this.onClose();
+    }
   }
 
   async save(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      await this.alert.warning('Formulario incompleto', 'Revisa los campos marcados antes de guardar.');
+      await this.alert.warning('Atención', 'Por favor completa los campos requeridos.');
       return;
     }
 
     const confirmado = await this.alert.confirm(
       'Confirmar',
-      this.editando ? '¿Guardar cambios de la ubicación?' : '¿Crear la ubicación?',
-      'Sí, guardar',
-      'Cancelar'
+      this.ubicacion?.idUbicacion ? '¿Actualizar ubicación?' : '¿Guardar nueva ubicación?'
     );
+
     if (!confirmado) return;
 
-    const v = this.form.getRawValue();
+    this.cargando = true;
+    const loadingId = this.alert.loading('Guardando...', 'Procesando datos');
+    const payload = this.form.value;
 
-    // backend espera: nombre, tipo, descripcion
-    const payload = {
-      nombre: v.nombre ?? '',
-      tipo: v.tipo ?? '',
-      descripcion: v.descripcion ?? '',
-    };
+    const request = this.ubicacion?.idUbicacion
+      ? this.ubicacionService.actualizarUbicacion(this.ubicacion.idUbicacion, payload)
+      : this.ubicacionService.crearUbicacion(payload);
 
-    this.alert.loading('Guardando...', this.editando ? 'Actualizando ubicación.' : 'Creando ubicación.');
-
-    if (this.editando) {
-      const id = this.ubicacion?.idUbicacion;
-      if (!id) {
-        this.alert.close();
-        await this.alert.error('Error', 'No se encontró el ID de la ubicación para actualizar.');
-        return;
-      }
-
-      this.ubicacionService.actualizarUbicacion(id, payload).subscribe({
-        next: () => {
-          this.alert.close();
-          this.saved.emit(true);
-        },
-        error: async (err) => {
-          console.error(err);
-          this.alert.close();
-          await this.alert.error('Error al actualizar', this.alert.getErrorMessage(err, 'No se pudo actualizar la ubicación.'));
-        },
-      });
-
-      return;
-    }
-
-    this.ubicacionService.crearUbicacion(payload).subscribe({
+    request.subscribe({
       next: () => {
-        this.alert.close();
+        this.alert.close(loadingId);
+        this.alert.toast('success', 'Guardado exitosamente');
         this.saved.emit(true);
       },
-      error: async (err) => {
-        console.error(err);
-        this.alert.close();
-        await this.alert.error('Error al crear', this.alert.getErrorMessage(err, 'No se pudo crear la ubicación.'));
-      },
+      error: (err) => {
+        this.cargando = false;
+        this.alert.close(loadingId);
+        this.alert.error('Error', this.alert.getErrorMessage(err));
+      }
     });
   }
 }

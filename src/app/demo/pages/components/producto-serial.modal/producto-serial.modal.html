@@ -1,60 +1,69 @@
-<div class="backdrop" *ngIf="open" (click)="cerrar()"></div>
+<div class="modal-manual-backdrop" *ngIf="open" (click)="cerrar()">
+  <div class="modal-manual-content shadow-lg" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header-custom">
+      <h2 class="mat-headline-6 mb-0">{{ isEdit ? 'Editar Serial' : 'Nuevo Serial' }}</h2>
+      <button mat-icon-button (click)="cerrar()" type="button">
+        <i class="ti ti-x f-20"></i>
+      </button>
+    </div>
 
-<div class="modal" *ngIf="open" (click)="$event.stopPropagation()">
-  <div class="header">
-    <h3>{{ isEdit ? 'Editar Serial' : 'Nuevo Serial' }}</h3>
-    <button mat-button type="button" (click)="cerrar()">X</button>
-  </div>
+    <div class="modal-body-custom">
+      <form [formGroup]="form" class="row gx-3">
+        
+        <div class="col-12">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Producto (Solo activos con serial)</mat-label>
+            <mat-select formControlName="idProducto">
+              <mat-option [value]="0" disabled>Seleccione un producto...</mat-option>
+              <mat-option *ngFor="let p of productosConSerial" [value]="p.idProducto">
+                {{ p.nombre }}
+              </mat-option>
+            </mat-select>
+            @if (form.controls.idProducto.touched && form.controls.idProducto.invalid) {
+              <mat-error>Seleccione un producto válido</mat-error>
+            }
+          </mat-form-field>
+        </div>
 
-  <div class="body">
-    <mat-form-field appearance="outline" class="w-100">
-      <mat-label>Producto</mat-label>
-      <mat-select [formControl]="form.controls.idProducto">
-        <mat-option [value]="0" disabled>Seleccione...</mat-option>
-        <mat-option *ngFor="let p of productosConSerial" [value]="p.idProducto">
-          {{ p.nombre }}
-        </mat-option>
-      </mat-select>
-      <mat-error *ngIf="form.controls.idProducto.touched && form.controls.idProducto.invalid">
-        Seleccione un producto válido.
-      </mat-error>
-    </mat-form-field>
+        <div class="col-md-7">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Número de Serial</mat-label>
+            <input matInput formControlName="serial" placeholder="Ej. SN-2024-X123" maxlength="80">
+            <mat-icon matSuffix>barcode</mat-icon>
+            @if (form.controls.serial.touched && form.controls.serial.invalid) {
+              <mat-error>El serial es obligatorio (máx 80)</mat-error>
+            }
+          </mat-form-field>
+        </div>
 
-    <mat-form-field appearance="outline" class="w-100">
-      <mat-label>Serial</mat-label>
-      <input matInput [formControl]="form.controls.serial" placeholder="Ej. SN-ABC-002" />
-      <mat-error *ngIf="form.controls.serial.touched && form.controls.serial.hasError('required')">
-        El serial es obligatorio.
-      </mat-error>
-      <mat-error *ngIf="form.controls.serial.touched && form.controls.serial.hasError('maxlength')">
-        Máximo 80 caracteres.
-      </mat-error>
-    </mat-form-field>
+        <div class="col-md-5">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Estado</mat-label>
+            <mat-select formControlName="estado">
+              <mat-option value="" disabled>Seleccione...</mat-option>
+              <mat-option *ngFor="let e of estados" [value]="e">
+                {{ e }}
+              </mat-option>
+            </mat-select>
+            @if (form.controls.estado.touched && form.controls.estado.invalid) {
+              <mat-error>Requerido</mat-error>
+            }
+          </mat-form-field>
+        </div>
 
-    <mat-form-field appearance="outline" class="w-100">
-      <mat-label>Estado</mat-label>
-      <mat-select [formControl]="form.controls.estado">
-        <mat-option value="" disabled>Seleccione...</mat-option>
-        <mat-option *ngFor="let e of estados" [value]="e">
-          {{ e }}
-        </mat-option>
-      </mat-select>
+      </form>
+    </div>
 
-      <mat-error *ngIf="form.controls.estado.touched && form.controls.estado.hasError('required')">
-        El estado es obligatorio.
-      </mat-error>
-    </mat-form-field>
+    <div class="modal-actions-custom">
+      <button mat-button type="button" (click)="cerrar()" [disabled]="loading">
+        Cancelar
+      </button>
+      <button mat-raised-button color="primary" (click)="guardar()" [disabled]="form.invalid || loading">
+        <i class="ti ti-device-floppy me-1"></i>
+        {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar Serial' : 'Guardar Serial') }}
+      </button>
+    </div>
 
-    <div class="error" *ngIf="errorMsg">{{ errorMsg }}</div>
-  </div>
-
-  <div class="footer">
-    <button mat-stroked-button type="button" (click)="cerrar()" [disabled]="loading">
-      Cancelar
-    </button>
-
-    <button mat-raised-button color="primary" type="button" (click)="guardar()" [disabled]="loading">
-      {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Guardar') }}
-    </button>
   </div>
 </div>

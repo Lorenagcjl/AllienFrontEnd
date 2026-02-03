@@ -18,6 +18,14 @@ export class DetalleVentaService {
     return this.http.post<any>(this.apiUrl, detalle);
   }
 
+  actualizar(id: number, detalle: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${id}`, detalle);
+  }
+
+  // ✅ NUEVO: Método para eliminar (DELETE)
+  eliminar(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
   //consulta especial por producto, ubicación y fechas
   consultarVentasEspeciales(idUbicacion: number, idProducto: number, inicio: string, fin: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/ventas/ubicacion/${idUbicacion}/producto/${idProducto}/${inicio}/${fin}`);

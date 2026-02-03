@@ -1,3 +1,5 @@
+// src/app/pages/venta/venta.component.ts
+
 import { AfterViewInit, Component, ViewChild, OnInit, inject } from '@angular/core';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -27,7 +29,7 @@ import DetalleventaComponent from '../detalleventa/detalleventa';
     MatPaginatorModule, 
     MatDialogModule, 
     MatProgressBarModule,
-    VentaformComponent // Importante para usarlo en el HTML
+    VentaformComponent 
   ],
   templateUrl: './venta.html',
   styleUrls: ['./venta.scss'],
@@ -37,7 +39,7 @@ export default class VentaComponent implements OnInit, AfterViewInit {
   private ventaService = inject(VentaService);
   private alertService = inject(AlertService);
 
-  // Propiedades de estado idénticas a Usuarios
+  // ESTADO IDÉNTICO A USUARIOS
   modalOpen = false;
   ventaParaEditar?: VentaResponse;
   cargando: boolean = false;
@@ -56,7 +58,8 @@ export default class VentaComponent implements OnInit, AfterViewInit {
     this.cargando = true;
     this.ventaService.listarVentas().subscribe({
       next: (data: VentaResponse[]) => {
-        this.dataSource.data = data;
+        // ✅ Filtramos por activos igual que en la lógica de negocio de usuarios
+        this.dataSource.data = (data ?? []).filter((v: any) => v.esActivo === true);
         this.cargando = false;
       },
       error: (err) => {
@@ -66,23 +69,10 @@ export default class VentaComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // Ahora funciona igual que abrirFormulario(usuario)
-  nuevaVenta(venta?: VentaResponse) {
+  // ✅ IGUAL QUE abrirFormulario(usuario)
+  abrirFormulario(venta?: VentaResponse) {
     this.ventaParaEditar = venta;
     this.modalOpen = true;
-  }
-
-  // Mantenemos MatDialog solo para el detalle (que suele ser más complejo/grande)
-  verDetalle(venta: VentaResponse) {
-    const dialogRef = this.dialog.open(DetalleventaComponent, {
-      width: '1000px',
-      data: venta,
-      disableClose: true
-    });
-
-    dialogRef.afterClosed().subscribe(() => {
-      this.cargarVentas();
-    });
   }
 
   cerrarModal() {
@@ -94,6 +84,41 @@ export default class VentaComponent implements OnInit, AfterViewInit {
     if (exito) {
       this.cerrarModal();
       this.cargarVentas();
+    }
+  }
+
+  verDetalle(venta: VentaResponse) {
+    const dialogRef = this.dialog.open(DetalleventaComponent, {
+      width: '1000px',
+      data: venta,
+      disableClose: true
+    });
+    dialogRef.afterClosed().subscribe(() => this.cargarVentas());
+  }
+
+  async anularVenta(venta: VentaResponse) {
+    const confirmado = await this.alertService.confirm(
+      '¿Anular Factura?',
+      `¿Estás seguro de anular la factura ${venta.numeroFactura}? Esta acción devolverá el stock.`,
+      'Sí, anular'
+    );
+
+    if (confirmado) {
+      this.cargando = true;
+      const loadingId = this.alertService.loading('Anulando...', 'Procesando devolución de inventario');
+      
+      this.ventaService.eliminarVenta(venta.idVenta).subscribe({
+        next: () => {
+          this.alertService.close(loadingId);
+          this.alertService.toast('success', 'Venta anulada correctamente');
+          this.cargarVentas();
+        },
+        error: (err) => {
+          this.cargando = false;
+          this.alertService.close(loadingId);
+          this.alertService.error('Error', 'No se pudo anular la venta');
+        }
+      });
     }
   }
 

@@ -61,6 +61,15 @@ export const menus: Navigation[] = [
         roles: ['Administrador']
       },
       {
+        id: 'movimiento-detalle',
+        title: 'Movimiento Detalle',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/movimiento-detalle',
+        icon: '#custom-text-block',
+        roles: ['Administrador']
+      },
+      {
 
         id: 'ubicacion',
         title: 'Ubicacion',
@@ -70,15 +79,6 @@ export const menus: Navigation[] = [
         icon: '#custom-clipboard',
         roles: ['Administrador', 'Empleado']
       },
-      // {
-      //   id: 'movimiento-detalle',
-      //   title: 'Movimiento Detalle',
-      //   type: 'item',
-      //   classes: 'nav-item',
-      //   url: '/component/movimiento-detalle',
-      //   icon: '#custom-text-block',
-      //   roles: ['Administrador']
-      // },
       {
         id: 'venta-detalle-serial',
         title: 'Venta Detalle Serial',
@@ -152,7 +152,7 @@ export const menus: Navigation[] = [
   },
   {
     id: 'other',
-    title: 'Ventas',
+    title: 'CRUD VENTAS',
     type: 'group',
     icon: 'icon-navigation',
     children: [

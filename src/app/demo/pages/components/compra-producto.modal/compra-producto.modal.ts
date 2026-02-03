@@ -1,15 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
 
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { CompraProductoRequest, CompraProductoService } from 'src/app/@theme/services/compra-producto.service';
-
+import { ProductoService } from 'src/app/@theme/services/producto.service';
 import { CompraProducto } from 'src/app/demo/models/compra-producto.model';
+import { Producto } from 'src/app/demo/models/producto.model';
 
 @Component({
   selector: 'app-compra-producto-modal',
@@ -20,6 +21,7 @@ import { CompraProducto } from 'src/app/demo/models/compra-producto.model';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatIconModule
   ],
   templateUrl: './compra-producto.modal.html',
   styleUrl: './compra-producto.modal.scss',
@@ -27,6 +29,7 @@ import { CompraProducto } from 'src/app/demo/models/compra-producto.model';
 export class CompraProductoModal implements OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CompraProductoService);
+  private readonly productoService = inject(ProductoService); // Inyectado para futuros filtros
   private readonly alert = inject(AlertService);
 
   @Input() open = false;
@@ -36,6 +39,7 @@ export class CompraProductoModal implements OnChanges {
   @Output() saved = new EventEmitter<void>();
 
   loading = false;
+  productosActivos: Producto[] = [];
 
   form = this.fb.nonNullable.group({
     fechaIngreso: ['', [Validators.required]],
@@ -49,23 +53,25 @@ export class CompraProductoModal implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['open']?.currentValue === true) {
+      this.cargarProductosActivos();
       this.setForm();
     }
-    if (changes['seleccionado'] && this.open) {
-      this.setForm();
-    }
+  }
+
+  private cargarProductosActivos(): void {
+    // Aunque este modal es la cabecera, preparamos la lista de productos activos
+    this.productoService.listarProductos().subscribe({
+      next: (prods) => {
+        this.productosActivos = (prods ?? []).filter(p => p.esActivo !== false);
+      }
+    });
   }
 
   private setForm(): void {
     if (!this.seleccionado) {
       const now = new Date();
       const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-
-      this.form.reset({
-        fechaIngreso: local,
-        idUsuario: 1,
-        observaciones: '',
-      });
+      this.form.reset({ fechaIngreso: local, idUsuario: 1, observaciones: '' });
       return;
     }
 
@@ -91,28 +97,23 @@ export class CompraProductoModal implements OnChanges {
       return;
     }
 
-    const v = this.form.getRawValue();
+    // CONFIRMACIÓN SIEMPRE (Nuevo y Editar)
+    const tituloConfirm = this.isEdit ? 'Confirmar cambios' : 'Confirmar Registro';
+    const msgConfirm = this.isEdit 
+      ? `¿Deseas actualizar la compra #${this.seleccionado?.idCompraProducto}?`
+      : '¿Deseas registrar esta nueva compra?';
 
+    const ok = await this.alert.confirm(tituloConfirm, msgConfirm, 'Confirmar');
+    if (!ok) return;
+
+    const v = this.form.getRawValue();
     const payload: CompraProductoRequest = {
       fechaIngreso: new Date(v.fechaIngreso).toISOString(),
       observaciones: v.observaciones ?? '',
       fkUsuario: { idUsuario: v.idUsuario },
     };
 
-    if (this.isEdit) {
-      const ok = await this.alert.confirm(
-        'Confirmar cambios',
-        `¿Deseas actualizar la compra #${this.seleccionado?.idCompraProducto}?`,
-        'Sí, actualizar',
-        'Cancelar'
-      );
-      if (!ok) return;
-    }
-
-    const loadingId = this.alert.loading(
-      this.isEdit ? 'Actualizando...' : 'Guardando...',
-      'Por favor espera.'
-    );
+    const loadingId = this.alert.loading('Procesando...', 'Por favor espera.');
     this.loading = true;
 
     const req$ = this.isEdit
@@ -130,7 +131,7 @@ export class CompraProductoModal implements OnChanges {
       error: async (err) => {
         this.loading = false;
         this.alert.close(loadingId);
-        await this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo guardar.'));
+        await this.alert.error('Error', this.alert.getErrorMessage(err));
       }
     });
   }

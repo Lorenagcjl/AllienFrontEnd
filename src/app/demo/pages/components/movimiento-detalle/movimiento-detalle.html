@@ -1,65 +1,86 @@
-<h2 mat-dialog-title class="text-primary">
-  <i class="ti ti-package me-2"></i>Detalle de Movimiento: #{{data.idMovimiento}}
-</h2>
-
-<mat-dialog-content>
-  <div class="row g-3 mb-4 border p-3 rounded bg-light shadow-sm">
-    <div class="col-md-7">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>Producto</mat-label>
-        <mat-select [formControl]="$any(form.get('idProducto'))">
-          @for (p of productos; track p.idProducto) {
-            <mat-option [value]="p.idProducto">{{p.nombre}}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-    </div>
-
-    <div class="col-md-3">
-      <mat-form-field appearance="outline" class="w-100">
-        <mat-label>Cantidad</mat-label>
-        <input matInput type="number" [formControl]="$any(form.get('cantidad'))">
-      </mat-form-field>
-    </div>
-
-    <div class="col-md-2 d-flex align-items-center">
-      <button mat-raised-button color="primary" class="w-100 py-2" (click)="agregarItem()" [disabled]="form.invalid">
-        <i class="ti ti-plus"></i>
-      </button>
-    </div>
+<div class="row align-items-center mb-3">
+  <div class="col">
+    <mat-form-field appearance="outline" class="w-100 hide-hint">
+      <mat-label>Buscar detalle</mat-label>
+      <input matInput (keyup)="applyFilter($event)" placeholder="Ej. Producto o ID Movimiento" #input [disabled]="cargando">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
   </div>
-
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="mb-0 text-muted">Items Agregados:</h5>
-    
+  <div class="col-auto">
+    <button mat-raised-button color="primary" (click)="abrirFormulario()" [disabled]="cargando">
+      <i class="ti ti-plus"></i> Nuevo Detalle
+    </button>
   </div>
+</div>
 
-  <div class="table-responsive border rounded shadow-sm">
-    <table class="table table-hover mb-0">
-      <thead class="table-dark">
-        <tr>
-          <th>Producto</th>
-          <th class="text-center" style="width: 150px;">Cantidad</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (d of detalles; track d.idMovimientoDetalle) {
-          <tr>
-            <td>{{ getNombreProducto(d.idProducto || d.fkProducto?.idProducto) }}</td>
-            <td class="text-center">
-              <span class="badge bg-primary fs-6">{{d.cantidad}}</span>
-            </td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="3" class="text-center py-4 text-muted">No hay productos registrados.</td>
-          </tr>
+<div class="mat-elevation-z8 position-relative">
+  @if (cargando) {
+    <mat-progress-bar mode="indeterminate" class="position-absolute top-0 start-0 z-index-1"></mat-progress-bar>
+  }
+
+  <table mat-table [dataSource]="dataSource" matSort [class.loading-table]="cargando" class="w-100">
+
+    <ng-container matColumnDef="idMovimientoDetalle">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+      <td mat-cell *matCellDef="let row"> {{row.idMovimientoDetalle}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="idMovimiento">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Movimiento </th>
+      <td mat-cell *matCellDef="let row"> #{{row.idMovimiento || row.fkMovimiento?.idMovimiento}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="producto">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Producto </th>
+      <td mat-cell *matCellDef="let row"> {{ getNombreProducto(row.idProducto || row.fkProducto?.idProducto) }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="cantidad">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Cantidad </th>
+      <td mat-cell *matCellDef="let row"> 
+        <span class="badge bg-light-primary text-primary">{{row.cantidad}}</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Estado </th>
+      <td mat-cell *matCellDef="let row">
+        @if (row.esActivo !== false) {
+          <span class="text-success">Activo</span>
+        } @else {
+          <span class="text-danger">Inactivo</span>
         }
-      </tbody>
-    </table>
-  </div>
-</mat-dialog-content>
+      </td>
+    </ng-container>
 
-<mat-dialog-actions align="end" class="border-top p-3">
-  <button mat-stroked-button mat-dialog-close color="warn">Cerrar Detalle</button>
-</mat-dialog-actions>
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let row">
+        <button mat-icon-button color="primary" (click)="abrirFormulario(row)" matTooltip="Editar" [disabled]="cargando">
+          <i class="ti ti-edit f-18"></i>
+        </button>
+
+        <button mat-icon-button 
+                [color]="row.esActivo !== false ? 'warn' : 'success'" 
+                (click)="cambiarEstado(row)"
+                [disabled]="cargando"
+                [matTooltip]="row.esActivo !== false ? 'Desactivar' : 'Activar'">
+          <i class="ti f-18" [class.ti-trash]="row.esActivo !== false" [class.ti-check]="row.esActivo === false"></i>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5, 10, 25]" aria-label="Página"></mat-paginator>
+</div>
+
+@if (modalOpen) {
+  <app-movimiento-detalle-form 
+    [detalleSeleccionado]="detalleParaEditar" 
+    (closed)="cerrarModal()" 
+    (saved)="onSaved($event)">
+  </app-movimiento-detalle-form>
+}

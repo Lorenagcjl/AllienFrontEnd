@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild } from '@angular/core';
+import { Component, inject, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -6,14 +6,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ProductoService } from 'src/app/@theme/services/producto.service';
 import { ProductoSerialService } from 'src/app/@theme/services/producto-serial.service';
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { Producto } from 'src/app/demo/models/producto.model';
 import { ProductoFormModalComponent } from '../producto-form-modal.component/producto-form-modal.component';
-
-// import { ProductoFormModalComponent } from '../producto-form-modal/producto-form-modal.component';
 
 @Component({
   selector: 'app-producto.component',
@@ -26,12 +27,15 @@ import { ProductoFormModalComponent } from '../producto-form-modal.component/pro
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatProgressBarModule,
+    MatIconModule,
+    MatTooltipModule,
     ProductoFormModalComponent
   ],
   templateUrl: './producto.component.html',
   styleUrl: './producto.component.scss',
 })
-export default class ProductoComponent {
+export default class ProductoComponent implements AfterViewInit {
   private readonly productoService = inject(ProductoService);
   private readonly productoSerialService = inject(ProductoSerialService);
   private readonly alert = inject(AlertService);
@@ -39,6 +43,8 @@ export default class ProductoComponent {
   displayedColumns: string[] = [
     'idProducto',
     'nombre',
+    'marca',
+    'tipo',
     'precioVenta',
     'esConSerial',
     'porcentajeComision',
@@ -47,44 +53,30 @@ export default class ProductoComponent {
   ];
 
   dataSource = new MatTableDataSource<Producto>([]);
-
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  // Modal state
   modalOpen = false;
   productoSeleccionado?: Producto;
-  isEditing = false;
+  cargando = false;
 
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
-
-    this.dataSource.filterPredicate = (row: Producto, filter: string) => {
-      const f = filter.trim().toLowerCase();
-      return (
-        (row.nombre ?? '').toLowerCase().includes(f) ||
-        (row.descripcion ?? '').toLowerCase().includes(f)
-      );
-    };
-
     this.cargarProductos();
   }
 
   cargarProductos(): void {
-    this.alert.loading('Cargando productos...', 'Consultando lista de productos.');
-
-
+    this.cargando = true;
     this.productoService.listarProductos().subscribe({
       next: (productos) => {
-        this.dataSource.data = productos ?? [];
-        this.alert.close();
+        // Filtramos solo los productos activos
+        this.dataSource.data = (productos ?? []).filter((p: any) => p.esActivo !== false);
+        this.cargando = false;
       },
       error: (err) => {
-        console.error(err);
-        this.dataSource.data = [];
-        this.alert.close();
-        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar la lista de productos.'));
+        this.cargando = false;
+        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar la lista.'));
       }
     });
   }
@@ -95,7 +87,6 @@ export default class ProductoComponent {
     this.dataSource.paginator?.firstPage();
   }
 
-  // Abrir modal (crear o editar)
   abrirFormulario(row?: Producto): void {
     this.productoSeleccionado = row;
     this.modalOpen = true;
@@ -106,35 +97,13 @@ export default class ProductoComponent {
     this.productoSeleccionado = undefined;
   }
 
-  // Cuando el modal guarda OK
   async onSaved(ok: boolean): Promise<void> {
     if (!ok) return;
-
     this.cerrarModal();
-    // éxito después de cerrar el modal (como pediste)
     await this.alert.success('Confirmado', 'Guardado correctamente.');
     this.cargarProductos();
   }
 
-  // editar(row: Producto): void {
-  //   const id = row?.idProducto;
-  //   if (!id) return;
-
-  //   const loadingId = this.alert.loading('Cargando producto...', 'Obteniendo información del producto.');
-
-  //   this.productoService.obtenerPorId(id).subscribe({
-  //     next: (producto) => {
-  //       this.abrirFormulario(producto);
-
-  //       // cierro SOLO el loading que abrí aquí
-  //       setTimeout(() => this.alert.close(loadingId), 0);
-  //     },
-  //     error: (err) => {
-  //       this.alert.close(loadingId);
-  //       this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo obtener el producto.'));
-  //     }
-  //   });
-  // }
   editar(row: Producto): void {
     this.abrirFormulario(row);
   }
@@ -143,45 +112,44 @@ export default class ProductoComponent {
     const id = row?.idProducto;
     if (!id) return;
 
-    this.alert.loading('Validando...', 'Revisando si el producto tiene seriales asociados.');
+    const confirmado = await this.alert.confirm(
+      'Confirmar eliminación',
+      `¿Eliminar el producto "${row.nombre}"?`,
+      'Sí, eliminar'
+    );
+    if (!confirmado) return;
+
+    this.cargando = true;
+    const loadingId = this.alert.loading('Eliminando...', 'Validando y procesando');
 
     this.productoSerialService.listarProductosSerial().subscribe({
-      next: async (seriales: any[]) => {
+      next: (seriales: any[]) => {
         const tieneSeriales = (seriales ?? []).some(s => s.fkProducto?.idProducto === id);
-        this.alert.close();
 
         if (tieneSeriales) {
-          await this.alert.warning('No se puede eliminar', 'Este producto tiene seriales asociados.');
+          this.cargando = false;
+          this.alert.close(loadingId);
+          this.alert.warning('No se puede eliminar', 'Este producto tiene seriales asociados.');
           return;
         }
 
-        const confirmado = await this.alert.confirm(
-          'Confirmar eliminación',
-          `¿Eliminar el producto "${row.nombre}"?`,
-          'Sí, eliminar',
-          'Cancelar'
-        );
-        if (!confirmado) return;
-
-        this.alert.loading('Eliminando...', 'Procesando la eliminación del producto.');
-
         this.productoService.eliminarProducto(id).subscribe({
-          next: async () => {
-            this.alert.close();
-            await this.alert.success('Eliminado', 'El producto fue eliminado correctamente.');
+          next: () => {
+            this.alert.close(loadingId);
+            this.alert.toast('success', 'Producto eliminado');
             this.cargarProductos();
           },
-          error: async (err) => {
-            console.error('Error eliminando producto', err);
-            this.alert.close();
-            await this.alert.error('Error al eliminar', this.alert.getErrorMessage(err, 'No se pudo eliminar el producto.'));
+          error: (err) => {
+            this.cargando = false;
+            this.alert.close(loadingId);
+            this.alert.error('Error', this.alert.getErrorMessage(err));
           }
         });
       },
       error: (err) => {
-        console.error('Error consultando seriales', err);
-        this.alert.close();
-        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo validar los seriales del producto.'));
+        this.cargando = false;
+        this.alert.close(loadingId);
+        this.alert.error('Error', 'Error al validar seriales');
       }
     });
   }

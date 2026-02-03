@@ -1,4 +1,5 @@
 import { AfterViewInit, Component, ViewChild, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -7,24 +8,29 @@ import { MatInputModule } from '@angular/material/input';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatIconModule } from '@angular/material/icon';
 
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { CompraProductoDetalleService } from 'src/app/@theme/services/compra-producto-detalle.service';
-
 import { CompraProductoDetalle } from 'src/app/demo/models/compra-producto-detalle.model';
 import { CompraProductoDetalleModal } from '../compra-producto-detalle.modal/compra-producto-detalle.modal';
-
 
 @Component({
   selector: 'app-compra-producto-detalle',
   standalone: true,
   imports: [
+    CommonModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatProgressBarModule,
+    MatTooltipModule,
+    MatIconModule,
     CompraProductoDetalleModal
   ],
   templateUrl: './compra-producto-detalle.component.html',
@@ -37,7 +43,6 @@ export default class CompraProductoDetalleComponent implements AfterViewInit {
 
   displayedColumns: string[] = [
     'idCompraProductoDetalle',
-    'idCompraProducto',
     'idProducto',
     'idUbicacion',
     'cantidad',
@@ -47,14 +52,12 @@ export default class CompraProductoDetalleComponent implements AfterViewInit {
   ];
 
   dataSource = new MatTableDataSource<CompraProductoDetalle>([]);
-
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
   modalOpen = false;
   seleccionado?: CompraProductoDetalle;
-
-  // si viene por ruta /compra-producto-detalle/:idCompraProducto
+  cargando = false;
   idCompraProductoFijo?: number;
 
   ngAfterViewInit(): void {
@@ -65,40 +68,40 @@ export default class CompraProductoDetalleComponent implements AfterViewInit {
       const f = filter.trim().toLowerCase();
       return (
         String(row.idCompraProductoDetalle ?? '').includes(f) ||
-        String(row.fkCompraProducto?.idCompraProducto ?? '').includes(f) ||
-        String(row.fkProducto?.idProducto ?? '').includes(f) ||
-        String(row.fkUbicacion?.idUbicacion ?? '').includes(f) ||
-        String(row.cantidad ?? '').includes(f) ||
-        String(row.costoUnitario ?? '').includes(f)
+        String(row.fkProducto?.nombre ?? '').toLowerCase().includes(f) ||
+        String(row.fkUbicacion?.nombre ?? '').toLowerCase().includes(f) ||
+        String(row.cantidad ?? '').includes(f)
       );
     };
 
-    // leer param opcional
     const param = this.route.snapshot.paramMap.get('idCompraProducto');
     this.idCompraProductoFijo = param ? Number(param) : undefined;
 
-    this.cargar(true);
+    this.cargar();
   }
 
-  cargar(showLoading = true): void {
-    const loadingId = showLoading ? this.alert.loading('Cargando...', 'Listando detalles...') : undefined;
-
+  cargar(): void {
+    this.cargando = true;
     this.service.listar().subscribe({
       next: (data) => {
         let rows = data ?? [];
-
-        // si hay compra fija, filtra en frontend
-        if (this.idCompraProductoFijo && this.idCompraProductoFijo > 0) {
-          rows = rows.filter(x => x.fkCompraProducto?.idCompraProducto === this.idCompraProductoFijo);
-        }
+        
+        // ✅ FILTRO: Solo registros activos y, si aplica, de la compra seleccionada
+        rows = rows.filter((x: any) => {
+          const esActivo = x.esActivo !== false;
+          const perteneceACompra = this.idCompraProductoFijo 
+            ? x.fkCompraProducto?.idCompraProducto === this.idCompraProductoFijo 
+            : true;
+          return esActivo && perteneceACompra;
+        });
 
         this.dataSource.data = rows;
-        if (showLoading) this.alert.close(loadingId);
+        this.cargando = false;
       },
       error: async (err) => {
-        if (showLoading) this.alert.close(loadingId);
+        this.cargando = false;
         this.dataSource.data = [];
-        await this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudieron listar detalles.'));
+        await this.alert.error('Error', 'No se pudieron listar los detalles.');
       }
     });
   }
@@ -123,34 +126,26 @@ export default class CompraProductoDetalleComponent implements AfterViewInit {
     const id = row?.idCompraProductoDetalle;
     if (!id) return;
 
-    const ok = await this.alert.confirm(
-      'Eliminar detalle',
-      `¿Eliminar el detalle #${id}?`,
-      'Sí, eliminar',
-      'Cancelar'
-    );
+    const ok = await this.alert.confirm('Eliminar detalle', `¿Eliminar este item de la compra?`, 'Sí, eliminar');
     if (!ok) return;
 
-    const loadingId = this.alert.loading('Eliminando...', 'Por favor espera.');
+    this.cargando = true;
     this.service.eliminar(id).subscribe({
       next: async () => {
-        this.alert.close(loadingId);
-        await this.alert.toast('success', 'Eliminado');
-        this.cargar(false);
+        await this.alert.toast('success', 'Item eliminado');
+        this.cargar();
       },
       error: async (err) => {
-        this.alert.close(loadingId);
-        await this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo eliminar.'));
+        this.cargando = false;
+        await this.alert.error('Error', 'No se pudo eliminar el detalle.');
       }
     });
   }
 
-  cerrarModal(): void {
-    this.modalOpen = false;
-  }
+  cerrarModal(): void { this.modalOpen = false; }
 
   onSaved(): void {
-    this.cargar(false);
+    this.cargar();
     this.cerrarModal();
   }
 }
