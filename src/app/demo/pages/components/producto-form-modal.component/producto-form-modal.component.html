@@ -19,6 +19,22 @@
         </div>
 
         <div class="col-md-6">
+          <label class="lbl" for="marca">Marca</label>
+          <input id="marca" class="inp" formControlName="marca" />
+          @if (productoForm.get('marca')?.invalid && productoForm.get('marca')?.touched) {
+          <div class="err">Marca requerida (mín. 2)</div>
+          }
+        </div>
+
+        <div class="col-md-6">
+          <label class="lbl" for="tipo">Tipo</label>
+          <input id="tipo" class="inp" formControlName="tipo" />
+          @if (productoForm.get('tipo')?.invalid && productoForm.get('tipo')?.touched) {
+          <div class="err">Tipo requerido (mín. 2)</div>
+          }
+        </div>
+
+        <div class="col-md-6">
           <label class="lbl" for="precioVenta">Precio Venta</label>
           <input id="precioVenta" class="inp" type="number" formControlName="precioVenta" />
           @if (productoForm.get('precioVenta')?.invalid && productoForm.get('precioVenta')?.touched) {

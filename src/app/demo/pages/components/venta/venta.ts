@@ -52,6 +52,7 @@ export default class VentaComponent implements OnInit, AfterViewInit {
     this.cargarVentas();
   }
 
+
   cargarVentas() {
     this.cargando = true;
     this.ventaService.listarVentas().subscribe({

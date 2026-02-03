@@ -39,6 +39,8 @@ export default class ProductoComponent {
   displayedColumns: string[] = [
     'idProducto',
     'nombre',
+    'marca',
+    'tipo',
     'precioVenta',
     'esConSerial',
     'porcentajeComision',

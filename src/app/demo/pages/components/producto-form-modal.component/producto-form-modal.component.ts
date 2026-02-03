@@ -32,6 +32,8 @@ export class ProductoFormModalComponent implements OnInit {
 
   productoForm = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(2)]],
+    marca: ['', [Validators.required, Validators.minLength(2)]],
+    tipo: ['', [Validators.required, Validators.minLength(2)]],
     foto: ['', [Validators.required]],
     descripcion: ['', [Validators.required, Validators.minLength(3)]],
     precioVenta: [null as number | null, [Validators.required, Validators.min(0)]],
@@ -44,6 +46,8 @@ export class ProductoFormModalComponent implements OnInit {
     if (this.producto) {
       this.productoForm.patchValue({
         nombre: this.producto.nombre ?? '',
+        marca: this.producto.marca ?? '',
+        tipo: this.producto.tipo ?? '',
         foto: this.producto.foto ?? '',
         descripcion: this.producto.descripcion ?? '',
         precioVenta: this.producto.precioVenta ?? null,
@@ -102,6 +106,8 @@ export class ProductoFormModalComponent implements OnInit {
 
     const payload = {
       nombre: v.nombre ?? '',
+      marca: v.marca ?? '',
+      tipo: v.tipo ?? '',
       foto: v.foto ?? '',
       descripcion: v.descripcion ?? '',
       precioVenta: Number(v.precioVenta),
