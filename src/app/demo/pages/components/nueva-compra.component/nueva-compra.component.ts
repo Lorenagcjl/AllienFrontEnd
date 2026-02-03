@@ -1,6 +1,25 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, HostListener, signal, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+
+// RxJS (alias para evitar choque)
+import { forkJoin, Observable, of } from 'rxjs';
+import * as rx from 'rxjs/operators';
+
+// Services
+import { CompraProductoRequest, CompraProductoService } from 'src/app/@theme/services/compra-producto.service';
+import { CompraProductoDetalleRequest, CompraProductoDetalleService } from 'src/app/@theme/services/compra-producto-detalle.service';
+import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
+import { ProductoSerialService } from 'src/app/@theme/services/producto-serial.service';
+import { ProductoService } from 'src/app/@theme/services/producto.service';
+import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
+
+// Models
+import { InventarioMovimiento } from 'src/app/demo/models/inventariomovimiento.model';
+import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
+import { Producto } from 'src/app/demo/models/producto.model';
+import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
+
 
 type Product = { id: number; name: string; serialized: boolean };
 
@@ -21,17 +40,39 @@ type RowForm = FormGroup<{
   styleUrl: './nueva-compra.component.scss',
 })
 export default class NuevaCompraComponent {
-  // ====== Datos de ejemplo (igual que tu HTML) ======
-  readonly productsData: Product[] = [
-    { id: 1, name: 'Laptop Dell XPS 15', serialized: true },
-    { id: 2, name: 'Mouse Logitech MX Master', serialized: false },
-    { id: 3, name: 'Teclado Mecánico Keychron', serialized: true },
-    { id: 4, name: 'Monitor LG UltraWide 34"', serialized: true },
-    { id: 5, name: 'Cable HDMI 2m', serialized: false },
-    { id: 6, name: 'Webcam Logitech C920', serialized: true },
-    { id: 7, name: 'Hub USB-C', serialized: false },
-    { id: 8, name: 'Auriculares Sony WH-1000XM5', serialized: true },
-  ];
+  private ubicacionService = inject(UbicacionService);
+
+  ubicaciones: Ubicacion[] = [];
+
+  private productoService = inject(ProductoService);
+
+  productsData: Product[] = []; // <-- ya no readonly
+
+  private productoSerialService = inject(ProductoSerialService);
+  private compraService = inject(CompraProductoService);
+  private compraDetalleService = inject(CompraProductoDetalleService);
+  private inventarioMovimientoService = inject(InventarioMovimientoService);
+
+
+  private serialesExistentesPorProducto = new Map<number, Set<string>>();
+  private loadProductos(): void {
+    this.productoService.listarProductos().pipe(
+      rx.take(1)
+    ).subscribe({
+      next: (data: Producto[]) => {
+        this.productsData = (data ?? []).map(p => ({
+          id: p.idProducto,
+          name: p.nombre,
+          serialized: !!p.esConSerial,
+        }));
+      },
+      error: (err) => {
+        console.error('Error cargando productos', err);
+        this.productsData = [];
+      },
+    });
+  }
+
 
   private fb = new FormBuilder();
 
@@ -39,7 +80,7 @@ export default class NuevaCompraComponent {
   readonly form = this.fb.group({
     fecha: this.fb.control<string>({ value: this.formatNowEc(), disabled: true }),
     usuario: this.fb.control<string>({ value: 'Juan Pérez', disabled: true }),
-    ubicacion: this.fb.control<string>('', { validators: [Validators.required] }),
+    ubicacion: this.fb.control<number | null>(null, { validators: [Validators.required] }),
     observaciones: this.fb.control<string>(''),
     rows: this.fb.array<RowForm>([]),
   });
@@ -80,8 +121,45 @@ export default class NuevaCompraComponent {
   private hostEl = viewChild.required<ElementRef<HTMLElement>>('host');
 
   constructor() {
-    // si cambia ubicación, revalida
+    this.fillUsuarioFromStorage();
+    this.loadUbicaciones();
+    this.loadProductos();
+    this.loadSerialesExistentes();
+
     this.form.controls.ubicacion.valueChanges.subscribe(() => this.form.updateValueAndValidity());
+  }
+
+  private fillUsuarioFromStorage(): void {
+    // Opción 1 (simple): username directo
+    const username = localStorage.getItem('username') ?? '';
+
+    // Opción 2 (fallback): desde objeto usuario
+    if (!username) {
+      try {
+        const u = JSON.parse(localStorage.getItem('usuario') ?? 'null');
+        const nombreUsuario = u?.nombreUsuario ?? '';
+        this.form.controls.usuario.setValue(nombreUsuario || ''); // control está disabled pero setValue funciona
+        return;
+      } catch {
+        // ignore
+      }
+    }
+
+    this.form.controls.usuario.setValue(username);
+  }
+
+  private loadUbicaciones(): void {
+    this.ubicacionService.listarUbicaciones().pipe(
+      rx.take(1)
+    ).subscribe({
+      next: (data) => {
+        this.ubicaciones = (data ?? []).filter(u => u.idUbicacion != null);
+      },
+      error: (err) => {
+        console.error('Error cargando ubicaciones', err);
+        this.ubicaciones = [];
+      }
+    });
   }
 
   // ====== UI helpers ======
@@ -221,12 +299,29 @@ export default class NuevaCompraComponent {
       return;
     }
 
-    const idx = this.modalRowIndex();
-    if (idx === null) return;
+    const rowIdx = this.modalRowIndex();
+    if (rowIdx === null) return;
 
-    const serials = this.modalSerials().map(s => s.trim());
-    this.rows.at(idx).controls.serials.setValue(serials, { emitEvent: false });
+    const row = this.rows.at(rowIdx);
+    const productId = row.controls.productId.value;
 
+    if (!productId) {
+      alert('Selecciona un producto antes de ingresar seriales.');
+      return;
+    }
+
+    const serials = this.modalSerials().map(s => s.trim()).filter(Boolean);
+
+    // ✅ validar contra seriales ya existentes en BD para este producto
+    const existentes = this.serialesExistentesPorProducto.get(productId) ?? new Set<string>();
+
+    const repetidosEnBD = serials.filter(s => existentes.has(s.toUpperCase()));
+    if (repetidosEnBD.length > 0) {
+      alert(`Estos seriales ya existen para este producto:\n- ${Array.from(new Set(repetidosEnBD)).join('\n- ')}`);
+      return;
+    }
+
+    row.controls.serials.setValue(serials, { emitEvent: false });
     this.form.updateValueAndValidity();
     this.closeSerialModal();
   }
@@ -280,31 +375,177 @@ export default class NuevaCompraComponent {
       return;
     }
 
-    const purchaseData = {
-      fecha: this.form.controls.fecha.value,
-      usuario: this.form.controls.usuario.value,
-      ubicacion: this.form.controls.ubicacion.value,
-      observaciones: this.form.controls.observaciones.value,
-      items: this.rows.controls.map(r => {
-        const product = this.productsData.find(p => p.id === r.controls.productId.value)!;
-        const quantity = r.controls.quantity.value;
-        const cost = Number(r.controls.cost.value ?? 0);
+    const idUsuario = Number(localStorage.getItem('idUsuario') ?? '0');
+    if (!idUsuario) {
+      alert('No se encontró idUsuario en sesión. Vuelve a iniciar sesión.');
+      return;
+    }
 
-        const item: any = {
-          producto: product.name,
-          cantidad: quantity,
-          costo_unitario: cost,
-          con_serial: product.serialized,
-        };
+    const idUbicacion = this.form.controls.ubicacion.value;
+    if (!idUbicacion) {
+      alert('Selecciona una ubicación.');
+      return;
+    }
 
-        if (product.serialized) item.seriales = r.controls.serials.value;
-        return item;
-      }),
+    const logHttpError = (tag: string, err: any) => {
+      console.error(`❌ ${tag}`);
+      console.error('status:', err?.status);
+      console.error('url:', err?.url);
+      console.error('message:', err?.message);
+      console.error('err.error:', err?.error);
     };
 
-    console.log('Datos de la compra:', purchaseData);
-    alert('✓ Compra guardada correctamente');
+    const compraPayload: CompraProductoRequest = {
+      fechaIngreso: new Date().toISOString(),
+      observaciones: (this.form.controls.observaciones.value ?? '').trim(),
+      fkUsuario: { idUsuario },
+    };
+
+    this.compraService.crear(compraPayload).pipe(
+      rx.take(1),
+
+      // 2) detalles
+      rx.concatMap((compraResp: any) => {
+        const idCompraProducto: number | undefined = compraResp?.idCompraProducto;
+        if (!idCompraProducto) throw new Error('CompraProducto no devolvió idCompraProducto');
+
+        const detalleRequests = this.rows.controls.map((r) => {
+          const idProducto = r.controls.productId.value;
+          if (!idProducto) throw new Error('Fila sin producto seleccionado');
+
+          const cantidad = r.controls.quantity.value;
+          const costoUnitario = Number(r.controls.cost.value ?? 0);
+
+          const detallePayload: CompraProductoDetalleRequest = {
+            cantidad,
+            costoUnitario,
+            fkCompraProducto: { idCompraProducto },
+            fkProducto: { idProducto },
+            fkUbicacion: { idUbicacion },
+          };
+
+          return this.compraDetalleService.crear(detallePayload).pipe(
+            rx.map((detalleResp: any) => ({ row: r, detalleResp })),
+            rx.catchError((err) => {
+              logHttpError('POST CompraProductoDetalle', err);
+              throw err;
+            })
+          );
+        });
+
+        return forkJoin(detalleRequests).pipe(
+          rx.map((detallesCreados) => ({ compraResp, detallesCreados }))
+        );
+      }),
+
+      // 3) seriales + movimientos
+      rx.concatMap(({ compraResp, detallesCreados }: any) => {
+        const ops: Observable<any>[] = [];
+
+        for (const item of detallesCreados) {
+          const row: RowForm = item.row;
+          const detalleResp: any = item.detalleResp;
+
+          const idCompraProductoDetalle: number | undefined = detalleResp?.idCompraProductoDetalle;
+          if (!idCompraProductoDetalle) throw new Error('Detalle no devolvió idCompraProductoDetalle');
+
+          const idProducto = row.controls.productId.value!;
+          const product = this.productsData.find(p => p.id === idProducto)!;
+
+          // CON SERIAL
+          if (product.serialized) {
+            const serials = (row.controls.serials.value ?? []).map(s => s.trim()).filter(Boolean);
+
+            for (const serialStr of serials) {
+              const serialPayload = {
+                serial: serialStr,
+                estado: 'Disponible',
+                fkProducto: { idProducto },
+              };
+
+              ops.push(
+                this.productoSerialService.crearProductoSerial(serialPayload).pipe(
+                  rx.concatMap((serialResp: any) => {
+                    const idProductoSerial: number | undefined = serialResp?.idProductoSerial;
+                    if (!idProductoSerial) throw new Error('ProductoSerial no devolvió idProductoSerial');
+
+                    const mov: InventarioMovimiento = {
+                      tipo: 'Compra',
+                      cantidadEntrada: 1,
+                      cantidadSalida: 0,
+                      referenciaTipo: 'CompraDetalle',
+                      referenciaId: idCompraProductoDetalle,
+                      fkProducto: { idProducto },
+                      fkProductoSerial: { idProductoSerial },
+                      fkUbicacion: { idUbicacion },
+                    };
+
+                    return this.inventarioMovimientoService.guardar(mov);
+                  }),
+                  rx.catchError((err) => {
+                    logHttpError('POST ProductoSerial + InventarioMovimiento(serial)', err);
+                    throw err;
+                  })
+                )
+              );
+            }
+          }
+
+          // SIN SERIAL
+          else {
+            const cantidad = row.controls.quantity.value;
+
+            const mov: InventarioMovimiento = {
+              tipo: 'Compra',
+              cantidadEntrada: cantidad,
+              cantidadSalida: 0,
+              referenciaTipo: 'CompraDetalle',
+              referenciaId: idCompraProductoDetalle,
+              fkProducto: { idProducto },
+              fkProductoSerial: null,
+              fkUbicacion: { idUbicacion },
+            };
+
+            ops.push(
+              this.inventarioMovimientoService.guardar(mov).pipe(
+                rx.catchError((err) => {
+                  logHttpError('POST InventarioMovimiento(no-serial)', err);
+                  throw err;
+                })
+              )
+            );
+          }
+        }
+
+        // CORRECCIÓN: agregar el tipo explícito al array vacío
+        return (ops.length ? forkJoin(ops) : of([] as any[])).pipe(
+          rx.map((results: any[]) => ({ compraResp, results }))
+        );
+      }),
+
+      rx.catchError((err) => {
+        logHttpError('PIPELINE ERROR (compra)', err);
+        alert('Error guardando la compra. Revisa consola / backend.');
+        return of(null);
+      })
+    ).subscribe({
+      next: (finalResp: any) => {
+        if (!finalResp) return;
+
+        alert('✓ Compra guardada correctamente');
+
+        // ✅ limpiar UI después del OK
+        this.resetCompraForm();
+
+        // ✅ refrescar seriales existentes (recomendado)
+        this.refreshSerialCacheAfterSave();
+      },
+      error: () => {
+        // tu catchError ya maneja alert, pero igual lo dejo por seguridad
+      }
+    });
   }
+
 
   // ====== Click afuera ======
   @HostListener('document:click', ['$event'])
@@ -369,17 +610,69 @@ export default class NuevaCompraComponent {
   }
 
   readonly modalIndexes = computed(() =>
-  Array.from({ length: this.modalQuantity() }, (_, i) => i)
-);
+    Array.from({ length: this.modalQuantity() }, (_, i) => i)
+  );
 
-rowFilledSerialsCount(rowIndex: number): number {
-  const row = this.rows.at(rowIndex);
-  const serials = row.controls.serials.value ?? [];
-  let count = 0;
-  for (const s of serials) {
-    if ((s ?? '').trim()) count++;
+  rowFilledSerialsCount(rowIndex: number): number {
+    const row = this.rows.at(rowIndex);
+    const serials = row.controls.serials.value ?? [];
+    let count = 0;
+    for (const s of serials) {
+      if ((s ?? '').trim()) count++;
+    }
+    return count;
   }
-  return count;
-}
+
+  private loadSerialesExistentes(): void {
+    this.productoSerialService.listarProductosSerial().pipe(
+      rx.take(1)
+    ).subscribe({
+      next: (data: ProductoSerial[]) => {
+        this.serialesExistentesPorProducto.clear();
+
+        for (const s of (data ?? [])) {
+          const pid = s.idProducto;
+          const serial = (s.serial ?? '').trim();
+          if (!pid || !serial) continue;
+
+          const set = this.serialesExistentesPorProducto.get(pid) ?? new Set<string>();
+          set.add(serial.toUpperCase());
+          this.serialesExistentesPorProducto.set(pid, set);
+        }
+      },
+      error: (err) => {
+        console.error('Error cargando seriales existentes', err);
+        this.serialesExistentesPorProducto.clear();
+      }
+    });
+  }
+
+  private resetCompraForm(): void {
+    // 1) cerrar modal por si quedó abierto
+    this.closeSerialModal();
+
+    // 2) limpiar filas
+    this.rows.clear();
+
+    // 3) resetear campos editables
+    this.form.controls.ubicacion.setValue(null);
+    this.form.controls.observaciones.setValue('');
+
+    // 4) refrescar fecha
+    this.form.controls.fecha.setValue(this.formatNowEc());
+
+    // 5) (opcional) dejar 1 fila lista para seguir agregando
+    // this.addProductRow();
+
+    // 6) limpiar dropdowns
+    this.closeAutocompleteAll();
+
+    // 7) revalidar
+    this.form.updateValueAndValidity();
+  }
+
+  private refreshSerialCacheAfterSave(): void {
+    this.loadSerialesExistentes();
+  }
 
 }

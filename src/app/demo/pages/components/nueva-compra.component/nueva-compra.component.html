@@ -25,12 +25,13 @@
             Ubicación de Ingreso <span class="nc20-required">*</span>
           </label>
           <select [formControl]="form.controls.ubicacion">
-            <option value="">Seleccionar ubicación...</option>
-            <option value="almacen-principal">Almacén Principal</option>
-            <option value="sucursal-norte">Sucursal Norte</option>
-            <option value="sucursal-sur">Sucursal Sur</option>
-            <option value="bodega-1">Bodega 1</option>
-            <option value="bodega-2">Bodega 2</option>
+            <option [ngValue]="null">Seleccionar ubicación...</option>
+
+            @for (u of ubicaciones; track u.idUbicacion) {
+            <option [ngValue]="u.idUbicacion">
+              {{ u.nombre }} ({{ u.tipo }})
+            </option>
+            }
           </select>
         </div>
       </div>
@@ -71,16 +72,16 @@
             </td>
           </tr>
           } @else {
-          @for (row of rows.controls; track trackByIndex($index)) {
-          <tr class="nc20-product-row" [class.nc20-incomplete]="isRowIncomplete($index)">
+          @for (row of rows.controls; track $index; let rowIndex = $index) {
+          <tr class="nc20-product-row" [class.nc20-incomplete]="isRowIncomplete(rowIndex)">
             <td>
               <div class="nc20-autocomplete-wrapper">
                 <input type="text" class="nc20-autocomplete-input" placeholder="Buscar producto..."
-                  [formControl]="row.controls.productName" (focus)="openAutocomplete($index)" />
+                  [formControl]="row.controls.productName" (focus)="openAutocomplete(rowIndex)" />
 
                 <div class="nc20-autocomplete-results" [class.nc20-show]="row.controls.autocompleteOpen.value">
-                  @for (p of filteredProductsForRow($index); track p.id) {
-                  <div class="nc20-autocomplete-item" (click)="selectProduct($index, p)">
+                  @for (p of filteredProductsForRow(rowIndex); track p.id) {
+                  <div class="nc20-autocomplete-item" (click)="selectProduct(rowIndex, p)">
                     {{ p.name }}
                     @if (p.serialized) {
                     <span class="nc20-badge nc20-badge-yes">Serial</span>
@@ -189,7 +190,7 @@
                 [value]="modalSerials()[i] ?? ''" placeholder="Ingrese número de serie" (input)="setModalSerial(i, serialEl.value)"
                 (paste)="handlePasteSerials($event, i)" />
 
-              <button class="nc20-btn-scan" type="button" (click)="simulateScan($index)" title="Simular escaneo">
+              <button class="nc20-btn-scan" type="button" (click)="simulateScan(i)" title="Simular escaneo">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z">
@@ -198,7 +199,7 @@
               </button>
             </div>
 
-            <span class="nc20-duplicate-warning" [class.nc20-show]="modalDuplicateIndexes().has($index)">
+            <span class="nc20-duplicate-warning" [class.nc20-show]="modalDuplicateIndexes().has(i)">
               Este serial ya está ingresado
             </span>
           </div>
