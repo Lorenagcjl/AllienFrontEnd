@@ -90,6 +90,14 @@ export default class NuevaVentaComponent implements OnInit {
   private serialUbicacionCache = new Map<string, number>(); // serial -> idUbicacion actual
   private serialUbicacionInflight = new Map<string, Observable<number>>(); // evita llamadas repetidas mientras carga
 
+  // ===== Stock cache (NO SERIAL) =====
+  private stockNoSerialCache = new Map<string, number>(); // key: `${ubicacionId}-${productoId}`
+  private stockReady = false;
+
+  private stockKey(ubicacionId: number, productoId: number): string {
+    return `${ubicacionId}-${productoId}`;
+  }
+
   // ===== Modal seriales =====
   serialModalOpen = false;
   modalRowId?: string;
@@ -159,6 +167,7 @@ export default class NuevaVentaComponent implements OnInit {
     this.loadUbicaciones();
     this.loadProductos();
     this.loadSeriales();
+    this.loadStockNoSerial();
   }
 
   // ===== Loaders =====
@@ -238,6 +247,9 @@ export default class NuevaVentaComponent implements OnInit {
     this.usedSerials.clear();
     this.cartRows = [];
     this.cartRowCounter = 0;
+    this.loadStockNoSerial();
+    this.serialUbicacionCache.clear();
+    this.serialUbicacionInflight.clear();
   }
 
   // ===== Utils UI =====
@@ -368,6 +380,15 @@ export default class NuevaVentaComponent implements OnInit {
     }
 
     this.touchRows();
+    // ✅ clamp por stock si NO serial
+    if (!p.esConSerial && this.stockReady) {
+      const disponible = this.getStockNoSerialForRow(row) ?? 0;
+      if (row.quantity > disponible) {
+        row.quantity = Math.max(0, disponible);
+        alert(`Stock insuficiente en esta ubicación. Disponible: ${disponible}`);
+      }
+    }
+
   }
 
   // ===== Seriales helpers =====
@@ -521,8 +542,20 @@ export default class NuevaVentaComponent implements OnInit {
     return this.productos.find(p => p.idProducto === row.productId);
   }
 
-  rowStockText(_row: CartRow): string {
-    return 'N/D';
+  rowStockText(row: CartRow): string {
+    const p = this.getRowProduct(row);
+    if (!this.selectedUbicacionId || !p) return 'N/D';
+
+    if (!this.stockReady) return '...';
+
+    // NO SERIAL
+    if (!p.esConSerial) {
+      return String(this.getStockNoSerialForRow(row) ?? 0);
+    }
+
+    // SERIAL: por ahora muestra "Serial"
+    // (tu modal ya filtra por ubicación con buscarPorSerial)
+    return 'Serial';
   }
 
   rowSubtotal(row: CartRow): number {
@@ -541,6 +574,11 @@ export default class NuevaVentaComponent implements OnInit {
       if (!p) return false;
       if (row.quantity < 1) return false;
       if (p.esConSerial && row.serials.length !== row.quantity) return false;
+      if (!p.esConSerial && this.stockReady) {
+        const disponible = this.getStockNoSerialForRow(row) ?? 0;
+        if (row.quantity > disponible) return false;
+      }
+
     }
     return true;
   }
@@ -839,5 +877,51 @@ export default class NuevaVentaComponent implements OnInit {
     this.serialUbicacionInflight.set(serial, req$);
     return req$;
   }
+
+  private loadStockNoSerial(): void {
+    this.stockReady = false;
+    this.stockNoSerialCache.clear();
+
+    this.inventarioMovimientoService.listar().pipe(take(1)).subscribe({
+      next: (movs: InventarioMovimiento[]) => {
+        for (const m of (movs ?? [])) {
+          const ubi = m?.fkUbicacion?.idUbicacion;
+          const prod = m?.fkProducto?.idProducto;
+          const prodSerial = m?.fkProductoSerial?.idProductoSerial ?? null;
+
+          if (!ubi || !prod) continue;
+
+          // SOLO NO-SERIAL
+          if (prodSerial != null) continue;
+
+          const k = this.stockKey(ubi, prod);
+          const prev = this.stockNoSerialCache.get(k) ?? 0;
+
+          const entrada = Number(m?.cantidadEntrada ?? 0);
+          const salida = Number(m?.cantidadSalida ?? 0);
+
+          this.stockNoSerialCache.set(k, prev + (entrada - salida));
+        }
+
+        this.stockReady = true;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error cargando movimientos para stock', err);
+        this.stockReady = true; // para no bloquear UI
+      }
+    });
+  }
+
+  private getStockNoSerialForRow(row: CartRow): number | null {
+    const ubi = this.selectedUbicacionId;
+    const p = this.getRowProduct(row);
+    if (!ubi || !p) return null;
+    if (p.esConSerial) return null; // no aplica
+
+    const k = this.stockKey(ubi, p.idProducto);
+    return this.stockNoSerialCache.get(k) ?? 0;
+  }
+
 
 }
