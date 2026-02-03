@@ -13,7 +13,8 @@ import { AlertService } from 'src/app/@theme/services/alert.service';
 import { CompraProductoDetalleRequest, CompraProductoDetalleService } from 'src/app/@theme/services/compra-producto-detalle.service';
 import { CompraProductoService } from 'src/app/@theme/services/compra-producto.service';
 import { ProductoService } from 'src/app/@theme/services/producto.service';
-
+import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
+import { InventarioMovimiento } from 'src/app/demo/models/inventariomovimiento.model';
 import { CompraProductoDetalle } from 'src/app/demo/models/compra-producto-detalle.model';
 import { CompraProducto } from 'src/app/demo/models/compra-producto.model';
 import { Producto } from 'src/app/demo/models/producto.model';
@@ -40,7 +41,7 @@ export class CompraProductoDetalleModal implements OnChanges {
   private readonly compraService = inject(CompraProductoService);
   private readonly productoService = inject(ProductoService);
   private readonly alert = inject(AlertService);
-
+  private readonly movimientoService = inject(InventarioMovimientoService);
   @Input() open = false;
   @Input() seleccionado?: CompraProductoDetalle;
   @Input() idCompraProductoFijo?: number;
@@ -116,45 +117,78 @@ export class CompraProductoDetalleModal implements OnChanges {
   }
 
   async guardar(): Promise<void> {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.alert.toast('warning', 'Completa los campos requeridos');
-      return;
-    }
-
-    const ok = await this.alert.confirm(
-      this.isEdit ? 'Actualizar Registro' : 'Confirmar Adición',
-      this.isEdit ? '¿Guardar cambios en este item?' : '¿Añadir este producto a la compra?',
-      'Confirmar'
-    );
-    if (!ok) return;
-
-    this.loading = true;
-    const v = this.form.getRawValue();
-    const idCompra = this.idCompraProductoFijo ?? v.idCompraProducto;
-
-    const payload: CompraProductoDetalleRequest = {
-      cantidad: v.cantidad,
-      costoUnitario: v.costoUnitario,
-      fkCompraProducto: { idCompraProducto: idCompra },
-      fkProducto: { idProducto: v.idProducto },
-      fkUbicacion: { idUbicacion: v.idUbicacion },
-    };
-
-    const req$ = this.isEdit
-      ? this.service.actualizar(this.seleccionado!.idCompraProductoDetalle, payload)
-      : this.service.crear(payload);
-
-    req$.subscribe({
-      next: async () => {
-        this.loading = false;
-        await this.alert.toast('success', this.isEdit ? 'Actualizado' : 'Guardado');
-        this.saved.emit();
-      },
-      error: async (err) => {
-        this.loading = false;
-        await this.alert.error('Error', this.alert.getErrorMessage(err));
-      }
-    });
+  if (this.form.invalid) {
+    this.form.markAllAsTouched();
+    this.alert.toast('warning', 'Completa los campos requeridos');
+    return;
   }
+
+  const ok = await this.alert.confirm(
+    this.isEdit ? 'Actualizar Registro' : 'Confirmar Adición',
+    this.isEdit ? '¿Guardar cambios en este item?' : '¿Añadir este producto a la compra?',
+    'Confirmar'
+  );
+  if (!ok) return;
+
+  this.loading = true;
+  const v = this.form.getRawValue();
+  const idCompra = this.idCompraProductoFijo ?? v.idCompraProducto;
+
+  const payload: CompraProductoDetalleRequest = {
+    cantidad: v.cantidad,
+    costoUnitario: v.costoUnitario,
+    fkCompraProducto: { idCompraProducto: idCompra },
+    fkProducto: { idProducto: v.idProducto },
+    fkUbicacion: { idUbicacion: v.idUbicacion },
+  };
+
+  const req$ = this.isEdit
+    ? this.service.actualizar(this.seleccionado!.idCompraProductoDetalle, payload)
+    : this.service.crear(payload);
+
+  req$.subscribe({
+    next: async (res) => {
+      // res debe contener el idCompraProductoDetalle generado por el backend
+      if (!this.isEdit) {
+        // REGISTRAR MOVIMIENTO SOLO SI ES NUEVO
+        this.registrarMovimientoInventario(v, res.idCompraProductoDetalle);
+      } else {
+        this.loading = false;
+        await this.alert.toast('success', 'Actualizado');
+        this.saved.emit();
+      }
+    },
+    error: async (err) => {
+      this.loading = false;
+      await this.alert.error('Error', this.alert.getErrorMessage(err));
+    }
+  });
+}
+private registrarMovimientoInventario(v: any, idDetalle: number) {
+  const movimiento: InventarioMovimiento = {
+    tipo: 'Compra', // O el string exacto que maneje tu backend
+    cantidadEntrada: v.cantidad,
+    cantidadSalida: 0,
+    referenciaTipo: 'CompraDetalle', // Identificador para auditoría
+    referenciaId: idDetalle,
+    fkProducto: { idProducto: v.idProducto },
+    fkUbicacion: { idUbicacion: v.idUbicacion },
+    fkProductoSerial: null as any // Las compras suelen ser el paso previo a asignar seriales
+  };
+
+  this.movimientoService.guardar(movimiento).subscribe({
+    next: async () => {
+      this.loading = false;
+      await this.alert.toast('success', 'Compra e Inventario registrados');
+      this.saved.emit();
+    },
+    error: async (err) => {
+      this.loading = false;
+      console.error('Error al registrar inventario:', err);
+      // El detalle se guardó, pero el stock no se actualizó
+      await this.alert.error('Atención', 'Detalle guardado, pero falló la actualización de stock.');
+      this.saved.emit(); // Emitimos de todos modos porque el detalle sí se creó
+    }
+  });
+}
 }
