@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, concatMap, forkJoin, map, of, take } from 'rxjs';
+import { catchError, concatMap, forkJoin, map, Observable, of, take } from 'rxjs';
 
 import { ClienteService } from 'src/app/@theme/services/cliente.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
@@ -17,6 +17,7 @@ import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
 import { VentaService } from 'src/app/@theme/services/venta.service';
 import { DetalleVentaService } from 'src/app/@theme/services/detalleventa.service';
 import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
+import { InventarioMovimiento } from 'src/app/demo/models/inventariomovimiento.model';
 
 type EstadoSerial = 'Disponible' | 'Vendido' | 'Dañado';
 
@@ -86,6 +87,9 @@ export default class NuevaVentaComponent implements OnInit {
   serialesMov: ProductoSerialMovDto[] = [];
   private serialesPorProducto = new Map<number, string[]>();
 
+  private serialUbicacionCache = new Map<string, number>(); // serial -> idUbicacion actual
+  private serialUbicacionInflight = new Map<string, Observable<number>>(); // evita llamadas repetidas mientras carga
+
   // ===== Modal seriales =====
   serialModalOpen = false;
   modalRowId?: string;
@@ -139,6 +143,9 @@ export default class NuevaVentaComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.debugSerial('5126');
+
+
     const d = new Date();
     this.dateText = d.toLocaleDateString('es-EC', {
       year: 'numeric',
@@ -401,21 +408,41 @@ export default class NuevaVentaComponent implements OnInit {
     const p = this.getRowProduct(row);
     if (!p?.esConSerial || !row.productId) return;
 
+    if (!this.selectedUbicacionId) {
+      alert('Selecciona una ubicación antes de escoger seriales.');
+      return;
+    }
+
     this.modalRowId = row.id;
     this.modalProductId = row.productId;
     this.modalProductName = p.nombre;
     this.modalRequiredQty = row.quantity;
 
     const disponibles = this.getSerialesDisponibles(row.productId);
+    const idUb = this.selectedUbicacionId;
 
     // usados en otras filas (pero permitir los de esta fila)
     const usados = new Set(this.usedSerials);
     row.serials.forEach(s => usados.delete(s));
 
-    this.modalSerials = disponibles.filter(s => !usados.has(s));
-    this.modalSelected = new Set(row.serials.filter(s => this.modalSerials.includes(s)));
+    // ✅ pedir ubicación actual de cada serial y filtrar por ubicación seleccionada
+    forkJoin(
+      disponibles.map(serial =>
+        this.getUbicacionActualDeSerial$(serial).pipe(
+          map(ubId => ({ serial, ubId }))
+        )
+      )
+    ).pipe(take(1)).subscribe((pairs) => {
+      const serialesEnEstaUbicacion = pairs
+        .filter(x => x.ubId === idUb)
+        .map(x => x.serial);
 
-    this.serialModalOpen = true;
+      this.modalSerials = serialesEnEstaUbicacion.filter(s => !usados.has(s));
+      this.modalSelected = new Set(row.serials.filter(s => this.modalSerials.includes(s)));
+
+      this.serialModalOpen = true;
+      this.cdr.detectChanges();
+    });
   }
 
   closeSerialModal() {
@@ -521,7 +548,7 @@ export default class NuevaVentaComponent implements OnInit {
   // ==========================
   // ✅ Confirmar venta (BASE)
   // ==========================
-  confirmSale() {
+  confirmSale(): void {
     if (!this.canConfirmSale()) {
       alert('Por favor completa todos los campos requeridos');
       return;
@@ -533,46 +560,40 @@ export default class NuevaVentaComponent implements OnInit {
       return;
     }
 
+    const idUbicacion = this.selectedUbicacionId;
+    if (!idUbicacion) {
+      alert('Selecciona una ubicación');
+      return;
+    }
+
     const logHttpError = (tag: string, err: any) => {
       console.error(`❌ ${tag}`);
       console.error('status:', err?.status);
       console.error('url:', err?.url);
       console.error('message:', err?.message);
       console.error('err.error:', err?.error);
-      try {
-        console.error('err.error (string):', JSON.stringify(err?.error, null, 2));
-      } catch { }
     };
 
-    // =========================
-    // 1) CREAR VENTA
-    // =========================
+    // 1) VENTA (backend espera fkUsuario y numeroFactura)
     const ventaPayload: any = {
-      total: this.totalValue,
-      observaciones: this.observaciones?.trim() || '',
+      numeroFactura: (this.invoiceNumber ?? '').trim() || null,
+      total: 0, // o this.totalValue si tu backend no recalcula
+      observaciones: (this.observaciones ?? '').trim(),
       fkCliente: { idCliente: this.selectedClientId! },
-
-      // opcionales (si tu backend los acepta)
-      numeroFactura: this.invoiceNumber?.trim() || null,
-      fechaVenta: new Date().toISOString(),
+      fkUsuario: { idUsuario }, // ✅ clave
     };
-
-    console.log('➡️ [1] POST VENTA payload:', ventaPayload, 'idUsuario:', idUsuario);
 
     this.ventaService.guardarVenta(ventaPayload, idUsuario).pipe(
       take(1),
 
-      // =========================
-      // 2) CREAR DETALLES (uno por fila)
-      // =========================
+      // 2) DETALLES
       concatMap((ventaResp: any) => {
-        console.log('✅ [1] VENTA RESP:', ventaResp);
-
         const idVenta = ventaResp?.idVenta;
         if (!idVenta) throw new Error('La respuesta de venta no trajo idVenta');
 
         const detalleRequests = this.cartRows.map((row) => {
-          const p = this.getRowProduct(row)!;
+          const p = this.getRowProduct(row);
+          if (!p) throw new Error('Fila sin producto seleccionado');
 
           const detallePayload: any = {
             cantidad: row.quantity,
@@ -581,20 +602,18 @@ export default class NuevaVentaComponent implements OnInit {
             subtotal: this.rowSubtotal(row),
             fkVenta: { idVenta },
             fkProducto: { idProducto: p.idProducto },
-            fkUbicacion: { idUbicacion: this.selectedUbicacionId! },
+            fkUbicacion: { idUbicacion },
           };
-
-          console.log('➡️ [2] POST DETALLE payload:', detallePayload);
 
           return this.detalleVentaService.guardar(detallePayload).pipe(
             map((detalleResp: any) => {
-              console.log('✅ [2] DETALLE RESP:', detalleResp);
-              console.log('✅ [2] idDetalleVenta:', detalleResp?.idDetalleVenta);
-              return { row, p, detalleResp };
+              const idDetalleVenta = detalleResp?.idDetalleVenta;
+              if (!idDetalleVenta) throw new Error('DetalleVenta no devolvió idDetalleVenta');
+              return { row, p, idDetalleVenta };
             }),
             catchError((err) => {
               logHttpError('POST detalleVenta', err);
-              throw err;
+              throw err; // ✅ corta todo
             })
           );
         });
@@ -604,149 +623,94 @@ export default class NuevaVentaComponent implements OnInit {
         );
       }),
 
-      // =========================
-      // 3) VINCULAR SERIALES + MOVIMIENTOS + UPDATE SERIAL
-      // =========================
+      // 3) SERIAL + MOVIMIENTOS + UPDATE SERIAL
       concatMap(({ ventaResp, detallesCreados }: any) => {
-        const ops: any[] = [];
+        const ops: Observable<any>[] = [];
 
         for (const item of detallesCreados) {
           const row: CartRow = item.row;
           const p: Producto = item.p;
-          const detalleResp: any = item.detalleResp;
+          const idDetalleVenta: number = item.idDetalleVenta;
 
-          const idDetalleVenta = detalleResp?.idDetalleVenta;
-          if (!idDetalleVenta) throw new Error('DetalleVenta no devolvió idDetalleVenta');
-
-          // ---- PRODUCTO CON SERIAL
+          // ---- CON SERIAL
           if (p.esConSerial) {
             for (const serialStr of row.serials) {
               const serialObj = this.serialesMov.find(
                 (s) => s.serial === serialStr && s.productoId === p.idProducto
               );
+              if (!serialObj) throw new Error(`No encontré idProductoSerial para serial: ${serialStr}`);
 
-              if (!serialObj) {
-                throw new Error(`No encontré idProductoSerial para serial: ${serialStr}`);
-              }
-
-              const vinculoPayload: any = {
+              const vinculoPayload = {
                 fkDetalleVenta: { idDetalleVenta },
                 fkProductoSerial: { idProductoSerial: serialObj.idProductoSerial },
               };
 
-              // ✅ CAMBIO CLAVE: referenciaTipo debe ser VentaDetalle (igual que CompraDetalle)
-              const movPayload: any = {
-                tipo: 'Venta',
-                cantidadEntrada: 0,
-                cantidadSalida: 1,
-                referenciaTipo: 'VentaDetalle',     // ✅ IMPORTANTÍSIMO
-                referenciaId: idDetalleVenta,
-                fkProducto: { idProducto: p.idProducto },
-                fkProductoSerial: { idProductoSerial: serialObj.idProductoSerial },
-                fkUbicacion: { idUbicacion: this.selectedUbicacionId! },
-              };
+              const movPayload = this.buildMovVentaSerial({
+                idDetalleVenta,
+                idProducto: p.idProducto,
+                idProductoSerial: serialObj.idProductoSerial,
+                idUbicacion,
+              });
 
-              const updateSerialPayload: any = {
+              const updateSerialPayload = {
                 serial: serialObj.serial,
-                estado: 'VENDIDO',
+                estado: 'Vendido', // ⚠️ usa EXACTO lo que tu backend espera (Vendido vs VENDIDO)
                 fkProducto: { idProducto: p.idProducto },
               };
 
-              console.log('➡️ [3A] POST ventaDetalleSerial payload:', vinculoPayload);
-              console.log('➡️ [3A] POST inventarioMovimiento (serial) payload:', movPayload);
-              console.log('➡️ [3A] PUT productoSerial payload:', updateSerialPayload);
-
-              ops.push(
-                this.ventaDetalleSerialService.vincularSerialAVenta(vinculoPayload).pipe(
-                  catchError((err) => {
-                    logHttpError('POST ventaDetalleSerial', err);
-                    return of({ ok: false, where: 'ventaDetalleSerial', err });
-                  })
-                ),
-                this.inventarioMovimientoService.guardar(movPayload).pipe(
-                  catchError((err) => {
-                    logHttpError('POST inventarioMovimiento (serial)', err);
-                    return of({ ok: false, where: 'inventarioMovimiento-serial', err });
-                  })
-                ),
-                this.productoSerialService
-                  .actualizarProductoSerial(serialObj.idProductoSerial, updateSerialPayload)
-                  .pipe(
-                    catchError((err) => {
-                      logHttpError('PUT productoSerial (VENDIDO)', err);
-                      return of({ ok: false, where: 'productoSerial-update', err });
-                    })
-                  )
+              // ✅ SECUENCIAL por serial (si falla algo, revienta)
+              const op$ = this.ventaDetalleSerialService.vincularSerialAVenta(vinculoPayload).pipe(
+                concatMap(() => this.inventarioMovimientoService.guardar(movPayload)),
+                concatMap(() => this.productoSerialService.actualizarProductoSerial(serialObj.idProductoSerial, updateSerialPayload)),
+                catchError((err) => {
+                  logHttpError('OP serial (vinculo/mov/update)', err);
+                  throw err;
+                })
               );
+
+              ops.push(op$);
             }
           }
-          // ---- PRODUCTO SIN SERIAL
-          else {
-            // ✅ CAMBIO CLAVE: referenciaTipo debe ser VentaDetalle
-            const movPayload: any = {
-              tipo: 'Venta',
-              cantidadEntrada: 0,
-              cantidadSalida: row.quantity,
-              referenciaTipo: 'VentaDetalle',     // ✅ IMPORTANTÍSIMO
-              referenciaId: idDetalleVenta,
-              fkProducto: { idProducto: p.idProducto },
-              fkProductoSerial: null,
-              fkUbicacion: { idUbicacion: this.selectedUbicacionId! },
-            };
 
-            console.log('➡️ [3B] POST inventarioMovimiento (no-serial) payload:', movPayload);
+          // ---- SIN SERIAL
+          else {
+            const movPayload = this.buildMovVentaNoSerial({
+              idDetalleVenta,
+              idProducto: p.idProducto,
+              cantidad: row.quantity,
+              idUbicacion,
+            });
 
             ops.push(
               this.inventarioMovimientoService.guardar(movPayload).pipe(
                 catchError((err) => {
                   logHttpError('POST inventarioMovimiento (no-serial)', err);
-                  return of({ ok: false, where: 'inventarioMovimiento-no-serial', err });
+                  throw err;
                 })
               )
             );
           }
         }
 
-        if (!ops.length) return of({ ventaResp, results: [] });
-
-        return forkJoin(ops).pipe(
+        return (ops.length ? forkJoin(ops) : of([])).pipe(
           map((results) => ({ ventaResp, results }))
         );
       }),
 
-      // =========================
-      // 4) CATCH GLOBAL
-      // =========================
       catchError((err) => {
-        logHttpError('PIPELINE ERROR (general)', err);
+        logHttpError('PIPELINE ERROR (venta)', err);
         alert('Error confirmando la venta. Revisa consola / backend.');
         return of(null);
       })
     ).subscribe((finalResp: any) => {
       if (!finalResp) return;
 
-      const ventaResp = finalResp.ventaResp;
-      const results = finalResp.results ?? [];
+      alert(`✓ Venta realizada exitosamente\nFactura: ${finalResp.ventaResp?.numeroFactura ?? '(sin factura)'}\nTotal: $${this.totalValue.toFixed(2)}`);
 
-      const failed = results.filter((x: any) => x && x.ok === false);
-      if (failed.length) {
-        console.warn('⚠️ Operaciones fallidas:', failed);
-        alert(`⚠️ Venta creada, pero fallaron ${failed.length} operaciones (seriales/inventario/updates). Revisa consola.`);
-        return;
-      }
-
-      alert(
-        `✓ Venta realizada exitosamente\nFactura: ${ventaResp?.numeroFactura ?? '(sin factura)'}\nTotal: $${this.totalValue.toFixed(2)}`
-      );
-
-      // ✅ limpiar formulario
       this.resetForm();
-
-      // ✅ recargar seriales para que ya no aparezcan disponibles
-      this.loadSeriales();
+      this.loadSeriales(); // refresca seriales disponibles
     });
   }
-
 
   trackByRowId(_index: number, row: { id: string }) {
     return row.id;
@@ -779,6 +743,101 @@ export default class NuevaVentaComponent implements OnInit {
 
     // fuerza refresh visual
     this.cdr.detectChanges();
+  }
+
+  private buildMovVentaSerial(args: {
+    idDetalleVenta: number;
+    idProducto: number;
+    idProductoSerial: number;
+    idUbicacion: number;
+  }): any {
+    return {
+      tipo: 'Venta',
+      cantidadEntrada: 0,
+      cantidadSalida: 1,
+      referenciaTipo: 'VentaDetalle',
+      referenciaId: args.idDetalleVenta,
+      fkProducto: { idProducto: args.idProducto },
+      fkProductoSerial: { idProductoSerial: args.idProductoSerial },
+      fkUbicacion: { idUbicacion: args.idUbicacion },
+    };
+  }
+
+  private buildMovVentaNoSerial(args: {
+    idDetalleVenta: number;
+    idProducto: number;
+    cantidad: number;
+    idUbicacion: number;
+  }): any {
+    return {
+      tipo: 'Venta',
+      cantidadEntrada: 0,
+      cantidadSalida: args.cantidad,
+      referenciaTipo: 'VentaDetalle',
+      referenciaId: args.idDetalleVenta,
+      fkProducto: { idProducto: args.idProducto },
+      fkProductoSerial: null,
+      fkUbicacion: { idUbicacion: args.idUbicacion },
+    };
+  }
+
+  private debugSerial(serial: string): void {
+    this.inventarioMovimientoService
+      .buscarPorSerial(serial)
+      .pipe(take(1))
+      .subscribe(
+        (movs: InventarioMovimiento[]) => {
+          console.log('SERIAL:', serial);
+          console.log('MOVS:', movs);
+
+          const last = [...(movs ?? [])].sort((a, b) => {
+            const da = new Date(a?.fecha ?? 0).getTime();
+            const db = new Date(b?.fecha ?? 0).getTime();
+            if (da !== db) return db - da;
+            return (b?.idInventarioMovimiento ?? 0) - (a?.idInventarioMovimiento ?? 0);
+          })[0];
+
+          console.log('LAST:', last);
+          console.log(
+            'LAST UBICACION:',
+            last?.fkUbicacion?.idUbicacion
+          );
+        },
+        (e) => console.error('ERROR debugSerial', e)
+      );
+  }
+
+  private getUbicacionActualDeSerial$(serial: string): Observable<number> {
+    const cached = this.serialUbicacionCache.get(serial);
+    if (cached != null) return of(cached);
+
+    const inflight = this.serialUbicacionInflight.get(serial);
+    if (inflight) return inflight;
+
+    const req$ = this.inventarioMovimientoService.buscarPorSerial(serial).pipe(
+      take(1),
+      map((movs: any[]) => {
+        const last = [...(movs ?? [])].sort((a, b) => {
+          const da = new Date(a?.fecha ?? 0).getTime();
+          const db = new Date(b?.fecha ?? 0).getTime();
+          if (da !== db) return db - da;
+          return (b?.idInventarioMovimiento ?? 0) - (a?.idInventarioMovimiento ?? 0);
+        })[0];
+
+        const idUb = last?.fkUbicacion?.idUbicacion ?? 0;
+        this.serialUbicacionCache.set(serial, idUb);
+        this.serialUbicacionInflight.delete(serial);
+        return idUb;
+      }),
+      catchError(() => {
+        // si falla, asumimos "no ubicable"
+        this.serialUbicacionInflight.delete(serial);
+        return of(0);
+      })
+    );
+
+    this.serialUbicacionInflight.set(serial, req$);
+    return req$;
   }
 
 }
