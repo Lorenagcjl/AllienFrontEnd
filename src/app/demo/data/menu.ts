@@ -217,5 +217,22 @@ export const menus: Navigation[] = [
         roles: ['Administrador', 'Empleado']
       }
     ]
+  },
+  {
+    id: 'other',
+    title: 'Admin Catalogos',
+    type: 'group',
+    icon: 'icon-navigation',
+    children: [
+      {
+        id: 'catalogos',
+        title: 'Catalogos',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/catalogo',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
+      }
+    ]
   }
 ];

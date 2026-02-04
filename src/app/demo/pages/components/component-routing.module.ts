@@ -49,6 +49,10 @@ const routes: Routes = [
         path: 'nueva-compra',
         loadComponent: () => import('./nueva-compra.component/nueva-compra.component')
       },
+      {
+        path: 'catalogo',
+        loadComponent: () => import('./catalogo-management.component/catalogo-management.component')
+      },
       // {
       //   path: 'movimiento-detalle',
       //   loadComponent: () => import('./movimiento-detalle/movimiento-detalle')
