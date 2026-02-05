@@ -1,0 +1,165 @@
+<div class="iva-config__container">
+  <div class="iva-config__topbar">
+    <h1 class="iva-config__title">Configuración de IVA</h1>
+    <p class="iva-config__subtitle">Administra el porcentaje de impuesto aplicado a las ventas</p>
+  </div>
+
+  <div class="iva-config__content">
+    <!-- Estado carga/error -->
+    <div *ngIf="ivasLoading()" style="margin: 8px 0;">
+      Cargando IVAs...
+    </div>
+
+    <div *ngIf="ivasError()" style="margin: 8px 0; color: #b00020;">
+      {{ ivasError() }}
+    </div>
+
+    <!-- Configuración actual -->
+    <div class="iva-config__current">
+      <svg class="iva-config__current-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      IVA Actual: <span>{{ currentTax | number:'1.0-2' }}</span>%
+    </div>
+
+    <div class="iva-config__info">
+      <h3 class="iva-config__info-title">📋 Información Importante</h3>
+      <p class="iva-config__info-text">
+        Selecciona el porcentaje de IVA que se aplicará automáticamente a todas las ventas.
+      </p>
+    </div>
+
+    <!-- Selector de IVA desde BD -->
+    <div class="iva-config__section">
+      <h2 class="iva-config__section-title">Porcentaje de IVA</h2>
+
+      <div class="iva-config__tax-grid">
+        @for (iva of ivas(); track iva.idDetalleCatalogo) {
+        <button type="button" class="iva-config__tax-card"
+          [class.iva-config__tax-card--selected]="!isCustomMode && selectedIvaId === iva.idDetalleCatalogo"
+          [class.iva-config__tax-card--disabled]="isCustomMode" (click)="onSelectIva(iva.idDetalleCatalogo)"
+          [disabled]="isCustomMode">
+
+          <span class="iva-config__check" aria-hidden="true">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </span>
+
+          <div class="iva-config__tax-percentage">{{ iva.valorNumerico | number:'1.0-2' }}%</div>
+          <div class="iva-config__tax-label">{{ iva.descripcion }}</div>
+          <div class="iva-config__tax-desc">Código: {{ iva.codigoDetalle }}</div>
+        </button>
+        }
+      </div>
+
+      <div *ngIf="!ivasLoading() && ivas().length === 0" style="margin-top: 8px;">
+        No hay IVAs activos en el catálogo "IVA".
+      </div>
+    </div>
+
+    <!-- Opciones adicionales -->
+    <div class="iva-config__section">
+      <h2 class="iva-config__section-title">Opciones Avanzadas</h2>
+
+      <div class="iva-config__options">
+        <div class="iva-config__option-row">
+          <div class="iva-config__option-label">
+            <h4 class="iva-config__option-title">IVA Personalizado</h4>
+            <p class="iva-config__option-text">Permite ingresar un porcentaje específico de IVA</p>
+          </div>
+
+          <div class="iva-config__option-control">
+            <label class="iva-config__toggle">
+              <input type="checkbox" [checked]="isCustomMode" (change)="onToggleCustom($event)">
+              <span class="iva-config__slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="iva-config__option-row" *ngIf="isCustomMode">
+          <div class="iva-config__option-label">
+            <h4 class="iva-config__option-title">Porcentaje Personalizado</h4>
+            <p class="iva-config__option-text">Ingresa el valor exacto del IVA (0-100)</p>
+          </div>
+
+          <div class="iva-config__option-control">
+            <div class="iva-config__custom-input">
+              <input type="number" inputmode="decimal" min="0" max="100" step="0.01" placeholder="0.00"
+                [value]="customTaxInput" (input)="onCustomTaxInput($event)" />
+              <span class="iva-config__unit">%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="iva-config__option-row">
+          <div class="iva-config__option-label">
+            <h4 class="iva-config__option-title">Mostrar IVA Separado</h4>
+            <p class="iva-config__option-text">Desglosa el impuesto en facturas y recibos</p>
+          </div>
+
+          <div class="iva-config__option-control">
+            <label class="iva-config__toggle">
+              <input type="checkbox" [checked]="showSeparate" (change)="onShowSeparateChange($event)">
+              <span class="iva-config__slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="iva-config__option-row">
+          <div class="iva-config__option-label">
+            <h4 class="iva-config__option-title">Incluir IVA en Precios</h4>
+            <p class="iva-config__option-text">Los precios mostrados ya incluyen el impuesto</p>
+          </div>
+
+          <div class="iva-config__option-control">
+            <label class="iva-config__toggle">
+              <input type="checkbox" [checked]="includeTax" (change)="onIncludeTaxChange($event)">
+              <span class="iva-config__slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vista previa de cálculo -->
+    <div class="iva-config__section">
+      <h2 class="iva-config__section-title">Vista Previa</h2>
+
+      <div class="iva-config__preview">
+        <div class="iva-config__preview-title">
+          Ejemplo de Cálculo (Producto de ${{ baseAmount | number:'1.2-2' }})
+        </div>
+
+        <div class="iva-config__calc-row">
+          <span class="iva-config__calc-label">Subtotal:</span>
+          <span class="iva-config__calc-value">${{ previewSubtotal | number:'1.2-2' }}</span>
+        </div>
+
+        <div class="iva-config__calc-row">
+          <span class="iva-config__calc-label">IVA ({{ effectiveTaxRate | number:'1.0-2' }}%):</span>
+          <span class="iva-config__calc-value">${{ previewTaxAmount | number:'1.2-2' }}</span>
+        </div>
+
+        <div class="iva-config__calc-row iva-config__calc-row--total">
+          <span class="iva-config__calc-label">Total:</span>
+          <span class="iva-config__calc-value iva-config__calc-value--total">
+            ${{ previewTotal | number:'1.2-2' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="iva-config__actions">
+      <button type="button" class="iva-config__btn iva-config__btn--secondary" (click)="onCancel()">
+        Cancelar
+      </button>
+
+      <button type="button" class="iva-config__btn iva-config__btn--primary" (click)="onSave()">
+        Guardar Configuración
+      </button>
+    </div>
+  </div>
+</div>

@@ -53,6 +53,10 @@ const routes: Routes = [
         path: 'catalogo',
         loadComponent: () => import('./catalogo-management.component/catalogo-management.component')
       },
+      {
+        path: 'config-iva',
+        loadComponent: () => import('./iva-config.component/iva-config.component')
+      },
       // {
       //   path: 'movimiento-detalle',
       //   loadComponent: () => import('./movimiento-detalle/movimiento-detalle')

@@ -234,5 +234,22 @@ export const menus: Navigation[] = [
         roles: ['Administrador', 'Empleado']
       }
     ]
+  },
+  {
+    id: 'other',
+    title: 'Configuracion IVA',
+    type: 'group',
+    icon: 'icon-navigation',
+    children: [
+      {
+        id: 'catalogos',
+        title: 'Establecer IVA',
+        type: 'item',
+        classes: 'nav-item',
+        url: '/component/config-iva',
+        icon: '#custom-clipboard',
+        roles: ['Administrador', 'Empleado']
+      }
+    ]
   }
 ];
