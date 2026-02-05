@@ -65,15 +65,18 @@ export default class ClienteComponent implements OnInit, AfterViewInit {
   }
 
   cargarClientes(): void {
-    this.cargando = true;
+    this.cargando = true; // Inicia la barra de progreso
+
     this.clienteService.listarClientes().subscribe({
       next: (data) => {
-        this.dataSource.data = data ?? [];
+        this.dataSource.data = (data ?? []).filter((c: Cliente) => c.esActivo !== false);
         this.cargando = false;
       },
       error: (err) => {
         this.cargando = false;
+        this.dataSource.data = [];
         this.alertService.error('Error', 'No se pudieron cargar los clientes');
+        console.error(err);
       },
     });
   }

@@ -79,6 +79,10 @@ const routes: Routes = [
         path: 'compra-producto-detalle/:idCompraProducto',
         loadComponent: () => import('./compra-producto-detalle.component/compra-producto-detalle.component'),
       },
+      {
+        path: 'inventariomovimiento',
+        loadComponent: () => import('./inventariomovimiento/inventariomovimiento'),
+      }
     ]
   }
 ];

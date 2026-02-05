@@ -52,8 +52,10 @@ export class MovimientoFormComponent implements OnInit {
   }
 
   cargarUbicaciones() {
-    this.ubicacionService.listarUbicaciones().subscribe(res => this.ubicaciones = res);
-  }
+  this.ubicacionService.listarUbicaciones().subscribe(res => {
+    this.ubicaciones = (res ?? []).filter((u: any) => u.esActivo !== false);
+  });
+}
 
   @HostListener('document:keydown.escape')
   onEsc(): void {

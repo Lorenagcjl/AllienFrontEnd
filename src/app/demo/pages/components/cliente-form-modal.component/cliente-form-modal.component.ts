@@ -9,8 +9,6 @@ import { AlertService } from 'src/app/@theme/services/alert.service';
 import { ClienteService } from 'src/app/@theme/services/cliente.service';
 import { Cliente } from 'src/app/demo/models/cliente.model';
 
-const solamenteLetras = '^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]*$';
-
 @Component({
   selector: 'app-cliente-form-modal',
   standalone: true,
@@ -23,23 +21,35 @@ export class ClienteFormModalComponent implements OnInit {
   private readonly clienteService = inject(ClienteService);
   private readonly alertService = inject(AlertService);
 
+  private readonly solamenteLetras = '^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]*$';
+
   @Input() cliente?: Cliente;
   @Output() closed = new EventEmitter<void>();
-  @Output() saved = new EventEmitter<boolean>();
+  @Output() saved = new EventEmitter<boolean>(); 
 
   cargando = false;
 
   form: FormGroup = this.fb.group({
     idCliente: [null],
-    primerNombre: ['', [Validators.required, Validators.pattern(solamenteLetras)]],
-    segundoNombre: ['', [Validators.pattern(solamenteLetras)]],
-    primerApellido: ['', [Validators.required, Validators.pattern(solamenteLetras)]],
-    segundoApellido: ['', [Validators.pattern(solamenteLetras)]],
-    documento: ['', [Validators.required, Validators.pattern('^[0-9]*$')]],
-    telefono: ['', [Validators.required]],
+    primerNombre: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
+    segundoNombre: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
+    primerApellido: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
+    segundoApellido: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
+    documento: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]], 
+    telefono: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]], 
     email: ['', [Validators.required, Validators.email]],
     direccion: ['', [Validators.required]],
   });
+
+  validarEntrada(event: KeyboardEvent, tipo: 'letras' | 'numeros'): void {
+    const regex = tipo === 'letras' ? /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/ : /[0-9]/;
+    const key = event.key;
+
+    // Si la tecla presionada no coincide con el regex, cancelamos el evento
+    if (key.length === 1 && !regex.test(key)) {
+      event.preventDefault();
+    }
+  }
 
   get editando(): boolean {
     return !!this.cliente?.idCliente;

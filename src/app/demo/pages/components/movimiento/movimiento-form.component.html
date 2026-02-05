@@ -18,8 +18,10 @@
             <mat-select formControlName="tipo">
               @for (tipo of tiposMovimiento; track tipo) {
                 <mat-option [value]="tipo">{{ tipo }}</mat-option>
+                
               }
             </mat-select>
+              <mat-error>El tipo es obligatorio</mat-error>
           </mat-form-field>
         </div>
 
@@ -31,6 +33,7 @@
                 <mat-option [value]="u.idUbicacion">{{ u.nombre }}</mat-option>
               }
             </mat-select>
+            <mat-error>La ubicación es obligatoria</mat-error>
           </mat-form-field>
         </div>
 
@@ -40,8 +43,10 @@
             <mat-select formControlName="idUbicacionDestino">
               @for (u of ubicaciones; track u.idUbicacion) {
                 <mat-option [value]="u.idUbicacion">{{ u.nombre }}</mat-option>
+                
               }
             </mat-select>
+              <mat-error>La ubicación es obligatoria</mat-error>
           </mat-form-field>
         </div>
 

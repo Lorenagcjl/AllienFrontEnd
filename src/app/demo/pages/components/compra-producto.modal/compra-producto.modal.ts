@@ -44,7 +44,7 @@ export class CompraProductoModal implements OnChanges {
   form = this.fb.nonNullable.group({
     fechaIngreso: ['', [Validators.required]],
     idUsuario: [1, [Validators.required, Validators.min(1)]],
-    observaciones: ['', [Validators.maxLength(500)]],
+    observaciones: ['', [Validators.required, Validators.maxLength(500)]],
   });
 
   get isEdit(): boolean {

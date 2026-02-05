@@ -9,7 +9,7 @@
         <app-card [showHeader]="false" class="auth-form-card" [padding]="40">
           <div class="text-center">
             <a href="javascript:">
-              <img src="assets/images/logo-dark.svg" alt="logo" />
+              <img src="assets/images/logoallien.jpg" alt="logo" style="max-width: 100px; height: auto;"/>
             </a>
           </div>
           
@@ -36,10 +36,6 @@
               }
             </mat-form-field>
 
-            <div class="check-me">
-              <mat-checkbox class="float-start" color="primary">Recordarme</mat-checkbox>
-              <a class="f-w-400 f-14 text-primary-500 m-b-0" href="javascript:">¿Olvidaste tu contraseña?</a>
-            </div>
 
             <div class="grid">
               <button
@@ -55,10 +51,6 @@
 
           </form>
 
-          <div class="check-me m-t-20">
-            <h6 class="f-w-400 text-muted m-b-0">¿No tienes cuenta?</h6>
-            <a [routerLink]="['/auth/register']" class="text-primary-500">Crear cuenta</a>
-          </div>
         </app-card>
       </div>
     </div>
