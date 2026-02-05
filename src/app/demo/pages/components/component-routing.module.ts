@@ -49,10 +49,6 @@ const routes: Routes = [
         path: 'nueva-compra',
         loadComponent: () => import('./nueva-compra.component/nueva-compra.component')
       },
-      // {
-      //   path: 'movimiento-detalle',
-      //   loadComponent: () => import('./movimiento-detalle/movimiento-detalle')
-      // },
       {
         path: 'venta-detalle-serial',
         loadComponent: () => import('./venta-detalle-serial/venta-detalle-serial')
@@ -71,6 +67,10 @@ const routes: Routes = [
         path: 'compra-producto-detalle/:idCompraProducto',
         loadComponent: () => import('./compra-producto-detalle.component/compra-producto-detalle.component'),
       },
+      {
+        path: 'inventariomovimiento',
+        loadComponent: () => import('./inventariomovimiento/inventariomovimiento'),
+      }
     ]
   }
 ];

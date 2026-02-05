@@ -52,9 +52,16 @@ export class MovimientoDetalleForm implements OnInit {
   }
 
   cargarCombos() {
-    this.productoService.listarProductos().subscribe(res => this.productos = res);
-    this.movimientoService.listar().subscribe(res => this.movimientos = res);
-  }
+  // Productos activos para el combo
+  this.productoService.listarProductos().subscribe(res => {
+    this.productos = (res ?? []).filter((p: any) => p.esActivo !== false);
+  });
+
+  // Movimientos activos para el combo
+  this.movimientoService.listar().subscribe(res => {
+    this.movimientos = (res ?? []).filter((m: any) => m.esActivo !== false);
+  });
+}
 
   @HostListener('document:keydown.escape')
   onEsc(): void {

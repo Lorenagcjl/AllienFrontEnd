@@ -7,7 +7,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { Usuario } from 'src/app/demo/models/user.model';
 
-const solamenteLetras = '^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]*$';
+
 @Component({
   selector: 'app-user-form',
   standalone: true,
@@ -19,7 +19,7 @@ export class UserFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private usuarioService = inject(UsuarioService);
   private alertService = inject(AlertService);
-
+  private solamenteLetras = '^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]*$';
   @Input() usuarioSeleccionado?: Usuario;
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<boolean>();
@@ -29,17 +29,24 @@ export class UserFormComponent implements OnInit {
 
   userForm: FormGroup = this.fb.group({
     idUsuario: [null],
-    primerNombre: ['', [Validators.required, Validators.pattern(solamenteLetras)]],
-    segundoNombre: ['', [Validators.required, Validators.pattern(solamenteLetras)]],
-    primerApellido: ['', [Validators.required, Validators.pattern(solamenteLetras)]],
-    segundoApellido: ['', [Validators.required, Validators.pattern(solamenteLetras)]],
-    nombreUsuario: ['', Validators.required],
+    primerNombre: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
+    segundoNombre: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
+    primerApellido: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
+    segundoApellido: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
+    nombreUsuario: ['', [Validators.required]],
     correoElectronico: ['', [Validators.required, Validators.email]],
     cedula: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
     clave: ['', Validators.required],
     rol: ['', Validators.required]
   });
 
+  validarEntrada(event: KeyboardEvent, tipo: 'letras' | 'numeros'): void {
+    const regex = tipo === 'letras' ? /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/ : /[0-9]/;
+    const key = event.key;
+    if (key.length === 1 && !regex.test(key)) {
+      event.preventDefault();
+    }
+  }
   ngOnInit(): void {
     if (this.usuarioSeleccionado) {
       this.userForm.patchValue(this.usuarioSeleccionado);

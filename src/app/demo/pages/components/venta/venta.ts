@@ -99,7 +99,7 @@ export default class VentaComponent implements OnInit, AfterViewInit {
   async anularVenta(venta: VentaResponse) {
     const confirmado = await this.alertService.confirm(
       '¿Anular Factura?',
-      `¿Estás seguro de anular la factura ${venta.numeroFactura}? Esta acción devolverá el stock.`,
+      `¿Estás seguro de anular la factura ${venta.numeroFactura}?`,
       'Sí, anular'
     );
 

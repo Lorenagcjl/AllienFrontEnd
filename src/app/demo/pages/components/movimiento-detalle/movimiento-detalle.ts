@@ -59,22 +59,27 @@ export default class MovimientoDetalleComponent implements OnInit, AfterViewInit
   }
 
   cargarProductos() {
-    this.productoService.listarProductos().subscribe(res => this.productos = res);
-  }
+  this.productoService.listarProductos().subscribe(res => {
+    // Solo productos activos
+    this.productos = (res ?? []).filter((p: any) => p.esActivo !== false);
+  });
+}
 
-  cargarDetalles() {
-    this.cargando = true;
-    this.detalleService.listarMovimientoDetalles().subscribe({
-      next: (data) => {
-        this.dataSource.data = data;
-        this.cargando = false;
-      },
-      error: () => {
-        this.cargando = false;
-        this.alertService.error('Error', 'No se pudieron cargar los detalles');
-      }
-    });
-  }
+cargarDetalles() {
+  this.cargando = true;
+  this.detalleService.listarMovimientoDetalles().subscribe({
+    next: (data) => {
+      // Filtramos los detalles activos antes de pasarlos al dataSource
+      this.dataSource.data = (data ?? []).filter((d: any) => d.esActivo !== false);
+      this.cargando = false;
+    },
+    error: (err) => {
+      this.cargando = false;
+      this.alertService.error('Error', 'No se pudieron cargar los detalles');
+      console.error(err);
+    }
+  });
+}
 
   // Lógica de formulario igual que Usuarios
   abrirFormulario(detalle?: any) {
