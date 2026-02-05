@@ -1,10 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { take } from 'rxjs';
+import { catchError, concatMap, forkJoin, map, Observable, of, take } from 'rxjs';
+import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
+import { MovimientoDetalleService } from 'src/app/@theme/services/movimiento-detalle.service';
+import { MovimientoSeriesService } from 'src/app/@theme/services/movimiento-series.service';
+import { MovimientoService } from 'src/app/@theme/services/movimiento.service';
 import { ProductoSerialService } from 'src/app/@theme/services/producto-serial.service';
 import { ProductoService } from 'src/app/@theme/services/producto.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
+import { InventarioMovimiento } from 'src/app/demo/models/inventariomovimiento.model';
 import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
 import { Producto } from 'src/app/demo/models/producto.model';
 import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
@@ -41,6 +46,11 @@ type EstadoSerial = 'Disponible' | 'Vendido' | 'Dañado';
 })
 
 export default class NuevoMovimientoComponent {
+  private readonly movimientoService = inject(MovimientoService);
+  private readonly movimientoDetalleService = inject(MovimientoDetalleService);
+  private readonly movimientoSeriesService = inject(MovimientoSeriesService);
+  private readonly inventarioMovimientoService = inject(InventarioMovimientoService);
+
   private readonly ubicacionService = inject(UbicacionService);
   private readonly productoService = inject(ProductoService);
   private readonly productoSerialService = inject(ProductoSerialService);
@@ -59,6 +69,16 @@ export default class NuevoMovimientoComponent {
 
   // cache simple: para no recalcular siempre (opcional)
   private readonly serialesPorProducto = new Map<number, string[]>();
+
+  // cache kardex
+  private kardexCache: InventarioMovimiento[] = [];
+
+  // stock por (producto|ubicacion)
+  private stockByPU = new Map<string, number>();
+
+  // para UI en tabla
+  readonly stockLabelByRow = signal<Record<number, string>>({});
+
 
   // ===== Form =====
   readonly form = this.fb.group({
@@ -111,9 +131,29 @@ export default class NuevoMovimientoComponent {
     this.cargarProductos();
     this.cargarSeriales();
 
-    this.form.controls.origen.valueChanges.subscribe(o => {
+    this.form.controls.origen.valueChanges.subscribe((o) => {
       const d = this.form.controls.destino.value;
       if (o != null && d != null && o === d) this.form.controls.destino.setValue(null);
+
+      // ✅ limpiar selección previa (porque cambió el origen)
+      for (let i = 0; i < this.productsFA.length; i++) {
+        const r = this.productsFA.at(i);
+        r.controls.serials.setValue([], { emitEvent: false });
+
+        // si alguna cantidad estaba deshabilitada por stock=0, la vuelves a habilitar
+        if (r.controls.quantity.disabled) {
+          r.controls.quantity.enable({ emitEvent: false });
+          if ((r.controls.quantity.value ?? 0) <= 0) {
+            r.controls.quantity.setValue(1, { emitEvent: false });
+          }
+        }
+      }
+
+      if (o != null) {
+        this.revalidateAllRowsAgainstStock(o);
+      } else {
+        this.stockLabelByRow.set({});
+      }
     });
 
     this.form.controls.destino.valueChanges.subscribe(d => {
@@ -341,6 +381,7 @@ export default class NuevoMovimientoComponent {
     row.controls.serials.setValue([]);
 
     this.closeAutocomplete();
+    this.applyStockValidationToRow(index);
   }
 
   // ===== Cantidad / stock =====
@@ -356,6 +397,7 @@ export default class NuevoMovimientoComponent {
       const current = row.controls.serials.value ?? [];
       if (current.length > qty) row.controls.serials.setValue(current.slice(0, qty));
     }
+    this.applyStockValidationToRow(index);
   }
 
   // ===== Seriales =====
@@ -368,26 +410,54 @@ export default class NuevoMovimientoComponent {
   openSerialModal(index: number): void {
     const row = this.productsFA.at(index);
     const productId = row.controls.productId.value;
-
     const product = this.findProduct(productId);
+
+    const origen = this.form.controls.origen.value;
+    if (!origen) {
+      alert('Selecciona ubicación de origen primero.');
+      return;
+    }
+
     if (!product?.esConSerial || productId == null) return;
 
     const allDisponibles = this.getSerialesDisponibles(productId);
     const usados = this.serialesUsadosPorProducto(productId, index);
 
-    const serialsParaModal = allDisponibles.filter(s => !usados.has(s));
+    forkJoin(
+      allDisponibles.map(serial =>
+        this.inventarioMovimientoService.buscarPorSerial(serial).pipe(
+          take(1),
+          map(movs => {
+            const last = [...(movs ?? [])].sort((a, b) => {
+              const da = new Date(a?.fecha ?? 0).getTime();
+              const db = new Date(b?.fecha ?? 0).getTime();
+              if (da !== db) return db - da;
+              return (b?.idInventarioMovimiento ?? 0) - (a?.idInventarioMovimiento ?? 0);
+            })[0];
 
-    this._modalRowIndex.set(index);
-    this._modalSerials.set(serialsParaModal);
+            const idUb = last?.fkUbicacion?.idUbicacion ?? 0;
+            return { serial, idUb };
+          }),
+          catchError(() => of({ serial, idUb: 0 }))
+        )
+      )
+    ).pipe(take(1)).subscribe(pairs => {
+      const serialsEnOrigen = pairs
+        .filter(x => x.idUb === origen)
+        .map(x => x.serial);
 
-    const existing = row.controls.serials.value ?? [];
-    // OJO: si “existing” tenía alguno que ahora está en usados (porque lo agarró otra fila),
-    // lo limpiamos:
-    const limpio = existing.filter(s => !usados.has(s));
-    row.controls.serials.setValue(limpio);
+      const serialsParaModal = serialsEnOrigen.filter(s => !usados.has(s));
 
-    this._modalSelected.set(new Set(limpio));
-    this._modalOpen.set(true);
+      this._modalRowIndex.set(index);
+      this._modalSerials.set(serialsParaModal);
+
+      const existing = row.controls.serials.value ?? [];
+      const limpio = existing.filter(s => serialsParaModal.includes(s));
+      row.controls.serials.setValue(limpio);
+
+      this._modalSelected.set(new Set(limpio));
+      this._modalOpen.set(true);
+    });
   }
 
   toggleSerial(serial: string): void {
@@ -451,7 +521,6 @@ export default class NuevoMovimientoComponent {
   saveMovement(): void {
     this.form.markAllAsTouched();
 
-    // validación origen/destino
     if (this.locationError()) {
       alert('Por favor corrige los errores en las ubicaciones');
       return;
@@ -460,8 +529,6 @@ export default class NuevoMovimientoComponent {
       alert('Debes seleccionar origen y destino');
       return;
     }
-
-    // debe existir al menos un producto
     if (this.productsFA.length === 0) {
       alert('Debes agregar al menos un producto');
       return;
@@ -491,23 +558,224 @@ export default class NuevoMovimientoComponent {
           return;
         }
       }
-
     }
 
-    const payload = {
-      origen: this.form.controls.origen.value,
-      destino: this.form.controls.destino.value,
-      tipo: this.form.controls.tipo.value,
-      observaciones: this.form.controls.observaciones.value,
-      items: this.productsFA.controls.map((r) => ({
-        productId: r.controls.productId.value!,
-        quantity: r.controls.quantity.value,
-        serials: r.controls.serials.value,
-      })),
+    const idUsuario = Number(localStorage.getItem('idUsuario') ?? '0');
+    if (!idUsuario) {
+      alert('No se encontró idUsuario en sesión. Vuelve a iniciar sesión.');
+      return;
+    }
+
+    const idUbOrigen = this.form.controls.origen.value!;
+    const idUbDestino = this.form.controls.destino.value!;
+    const tipo = this.form.controls.tipo.value ?? 'traslado';
+    const observaciones = (this.form.controls.observaciones.value ?? '').trim();
+
+    const logHttpError = (tag: string, err: any) => {
+      console.error(`❌ ${tag}`);
+      console.error('status:', err?.status);
+      console.error('url:', err?.url);
+      console.error('message:', err?.message);
+      console.error('err.error:', err?.error);
     };
 
-    alert('✓ Movimiento guardado correctamente');
-    console.log('Datos del movimiento:', payload);
+    // 1) MOVIMIENTO (cabecera)
+    const movPayload = {
+      tipo: (tipo ?? 'traslado').toUpperCase(), // TRASLADO / AJUSTE / DEVOLUCION (según tu backend)
+      observaciones,
+      idUsuario,
+      idUbicacionOrigen: idUbOrigen,
+      idUbicacionDestino: idUbDestino,
+    };
+
+    this.movimientoService.crear(movPayload as any).pipe(
+      take(1),
+
+      // 2) DETALLES
+      concatMap((movResp: any) => {
+        const idMovimiento = movResp?.idMovimiento;
+        if (!idMovimiento) throw new Error('Movimiento no devolvió idMovimiento');
+
+        const detalleRequests = this.productsFA.controls.map((r) => {
+          const pid = r.controls.productId.value!;
+          const qty = r.controls.quantity.value;
+
+          const detallePayload: any = {
+            cantidad: qty,
+            fkMovimiento: { idMovimiento },
+            fkProducto: { idProducto: pid },
+          };
+
+          return this.movimientoDetalleService.crear(detallePayload).pipe(
+            map((detalleResp: any) => {
+              const idMovimientoDetalle = detalleResp?.idMovimientoDetalle;
+              if (!idMovimientoDetalle) throw new Error('MovimientoDetalle no devolvió idMovimientoDetalle');
+
+              return {
+                row: r,
+                idMovimientoDetalle,
+                idProducto: pid,
+                cantidad: qty,
+              };
+            }),
+            catchError((err) => {
+              logHttpError('POST MovimientoDetalle', err);
+              throw err;
+            })
+          );
+        });
+
+        return forkJoin(detalleRequests).pipe(
+          map((detallesCreados) => ({ movResp, detallesCreados }))
+        );
+      }),
+
+      // 3) SERIAL (si aplica) + KARDEX (2 movimientos por item)
+      concatMap(({ movResp, detallesCreados }: any) => {
+        const ops: Observable<any>[] = [];
+
+        for (const item of detallesCreados) {
+          const row = item.row as ProductRowForm;
+          const idMovimientoDetalle = item.idMovimientoDetalle as number;
+          const idProducto = item.idProducto as number;
+          const cantidad = item.cantidad as number;
+
+          const product = this.findProduct(idProducto);
+          if (!product) throw new Error('Producto no encontrado al procesar detalle');
+
+          // CON SERIAL
+          if (product.esConSerial) {
+            const serials = (row.controls.serials.value ?? []).map(s => (s ?? '').trim()).filter(Boolean);
+
+            for (const serialStr of serials) {
+              // buscar idProductoSerial desde tu dataset ya cargado
+              const serialObj = this.serialesMov().find(s => s.serial === serialStr && s.productoId === idProducto);
+              if (!serialObj) throw new Error(`No encontré idProductoSerial para serial: ${serialStr}`);
+
+              const detalleSerialPayload: any = {
+                idMovimientoDetalle,
+                fkProductoSerial: { idProductoSerial: serialObj.idProductoSerial },
+              };
+
+              const [movOut, movIn] = this.buildKardexTrasladoSerial({
+                idMovimientoDetalle,
+                idProducto,
+                idProductoSerial: serialObj.idProductoSerial,
+                idUbOrigen,
+                idUbDestino,
+              });
+              console.log('[KARDEX SERIAL] =>', {
+                serial: serialStr,
+                idProducto,
+                idProductoSerial: serialObj.idProductoSerial,
+                idUbOrigen,
+                idUbDestino,
+                movOut,
+                movIn,
+              });
+
+              // secuencial por serial: crea detalleSerial -> salida -> entrada
+              const op$ = this.movimientoSeriesService.crearMovimientoSeries(detalleSerialPayload).pipe(
+                concatMap(() => this.inventarioMovimientoService.buscarPorSerial(serialStr).pipe(take(1))),
+                concatMap((movs) => {
+                  const last = [...(movs ?? [])].sort((a, b) => {
+                    const da = new Date(a?.fecha ?? 0).getTime();
+                    const db = new Date(b?.fecha ?? 0).getTime();
+                    if (da !== db) return db - da;
+                    return (b?.idInventarioMovimiento ?? 0) - (a?.idInventarioMovimiento ?? 0);
+                  })[0];
+
+                  const ubActual = last?.fkUbicacion?.idUbicacion ?? 0;
+
+                  console.log('[SERIAL UBICACION antes de guardar]', {
+                    serial: serialStr,
+                    idProducto,
+                    ubActual,
+                    idUbOrigen,
+                  });
+
+                  if (ubActual !== idUbOrigen) {
+                    throw new Error(`El serial ${serialStr} no está en el origen. Actual: ${ubActual}, Origen: ${idUbOrigen}`);
+                  }
+
+                  return this.inventarioMovimientoService.guardar(movOut);
+                }),
+                concatMap(() => this.inventarioMovimientoService.guardar(movIn)),
+                catchError((err) => {
+                  logHttpError('OP Serial Traslado (detalleSerial + kardex)', err);
+                  throw err;
+                })
+              );
+
+              ops.push(op$);
+            }
+          }
+
+          // SIN SERIAL
+          else {
+            const [movOut, movIn] = this.buildKardexTrasladoNoSerial({
+              idMovimientoDetalle,
+              idProducto,
+              cantidad,
+              idUbOrigen,
+              idUbDestino,
+            });
+            console.log('[KARDEX NO-SERIAL] =>', {
+              idProducto,
+              cantidad,
+              idUbOrigen,
+              idUbDestino,
+              movOut,
+              movIn,
+            });
+
+            ops.push(
+              this.inventarioMovimientoService.obtenerStock(idProducto, idUbOrigen).pipe(
+                take(1),
+                concatMap((stock) => {
+                  console.log('[STOCK BACKEND NO-SERIAL antes de guardar]', { idProducto, idUbOrigen, stock });
+                  return this.inventarioMovimientoService.guardar(movOut);
+                }),
+                concatMap(() => this.inventarioMovimientoService.guardar(movIn)),
+                catchError((err) => { logHttpError('OP No-Serial Traslado (kardex)', err); throw err; })
+              )
+            );
+          }
+        }
+
+        return (ops.length ? forkJoin(ops) : of([])).pipe(
+          map((results) => ({ movResp, results }))
+        );
+      }),
+
+      catchError((err) => {
+        logHttpError('PIPELINE ERROR (movimiento)', err);
+
+        const msg =
+          err?.error?.message ||
+          err?.error?.mensaje ||
+          err?.message ||
+          'Error guardando movimiento.';
+
+        // si es 409 (stock), muestra mensaje directo
+        if (err?.status === 409) {
+          alert(msg);
+        } else {
+          alert('Error guardando movimiento. Revisa consola / backend.');
+        }
+        return of(null);
+      })
+    ).subscribe((finalResp) => {
+      if (!finalResp) return;
+
+      alert('✓ Movimiento guardado correctamente');
+
+      // limpiar form
+      this.cancel();
+
+      // refrescar seriales (para que ya no aparezcan en origen, etc.)
+      this.cargarSeriales();
+    });
   }
 
   cancel(): void {
@@ -533,6 +801,149 @@ export default class NuevoMovimientoComponent {
     }
 
     return used;
+  }
+
+
+
+  private buildKardexTrasladoSerial(args: {
+    idMovimientoDetalle: number;
+    idProducto: number;
+    idProductoSerial: number;
+    idUbOrigen: number;
+    idUbDestino: number;
+  }) {
+    const base = {
+      tipo: 'Traslado' as const,
+      referenciaTipo: 'MovimientoDetalle' as const,
+      referenciaId: args.idMovimientoDetalle,
+      fkProducto: { idProducto: args.idProducto },
+      fkProductoSerial: { idProductoSerial: args.idProductoSerial },
+    };
+
+    return [
+      { ...base, cantidadEntrada: 0, cantidadSalida: 1, fkUbicacion: { idUbicacion: args.idUbOrigen } },
+      { ...base, cantidadEntrada: 1, cantidadSalida: 0, fkUbicacion: { idUbicacion: args.idUbDestino } },
+    ];
+  }
+
+  private buildKardexTrasladoNoSerial(args: {
+    idMovimientoDetalle: number;
+    idProducto: number;
+    cantidad: number;
+    idUbOrigen: number;
+    idUbDestino: number;
+  }) {
+    const base = {
+      tipo: 'Traslado' as const,
+      referenciaTipo: 'MovimientoDetalle' as const,
+      referenciaId: args.idMovimientoDetalle,
+      fkProducto: { idProducto: args.idProducto },
+      fkProductoSerial: null,
+    };
+
+    return [
+      { ...base, cantidadEntrada: 0, cantidadSalida: args.cantidad, fkUbicacion: { idUbicacion: args.idUbOrigen } },
+      { ...base, cantidadEntrada: args.cantidad, cantidadSalida: 0, fkUbicacion: { idUbicacion: args.idUbDestino } },
+    ];
+  }
+
+  private refreshStockFromKardex(idUbicacionOrigen: number): void {
+    this.inventarioMovimientoService.listar().pipe(
+      take(1),
+      catchError((err) => {
+        console.error('Error cargando kardex', err);
+        return of([] as InventarioMovimiento[]);
+      })
+    ).subscribe((movs) => {
+      this.kardexCache = movs ?? [];
+      this.rebuildStockMap(idUbicacionOrigen);
+      this.revalidateAllRowsAgainstStock(idUbicacionOrigen);
+    });
+  }
+
+  private keyPU(idProducto: number, idUbicacion: number) {
+    return `${idProducto}|${idUbicacion}`;
+  }
+
+  private rebuildStockMap(idUbicacionOrigen: number): void {
+    this.stockByPU.clear();
+
+    for (const m of (this.kardexCache ?? [])) {
+      const idProducto = (m as any)?.fkProducto?.idProducto;
+      const idUb = (m as any)?.fkUbicacion?.idUbicacion;
+
+      if (!idProducto || !idUb) continue;
+      if (idUb !== idUbicacionOrigen) continue;
+
+      const entrada = Number((m as any)?.cantidadEntrada ?? 0);
+      const salida = Number((m as any)?.cantidadSalida ?? 0);
+
+      const k = this.keyPU(idProducto, idUb);
+      const prev = this.stockByPU.get(k) ?? 0;
+      this.stockByPU.set(k, prev + entrada - salida);
+    }
+  }
+
+  private getStockDisponible(idProducto: number, idUbicacion: number): number {
+    return Math.max(0, this.stockByPU.get(this.keyPU(idProducto, idUbicacion)) ?? 0);
+  }
+
+  private applyStockValidationToRow(index: number): void {
+    const idUb = this.form.controls.origen.value;
+    if (!idUb) return;
+
+    const row = this.productsFA.at(index);
+    const pid = row.controls.productId.value;
+    const product = this.findProduct(pid);
+    if (!product || !pid) return;
+
+    // serial se valida por ubicación en el modal
+    if (product.esConSerial) {
+      this.setRowStockLabel(index, 'Serial');
+      return;
+    }
+
+    this.inventarioMovimientoService.obtenerStock(pid, idUb).pipe(take(1)).subscribe({
+      next: (stock) => {
+        const s = Math.max(0, Number(stock ?? 0));
+        this.setRowStockLabel(index, String(s));
+
+        if (s <= 0) {
+          row.controls.quantity.setValue(0, { emitEvent: false });
+          row.controls.quantity.disable({ emitEvent: false });
+          row.controls.quantity.setValidators([Validators.required, Validators.max(0)]);
+          row.controls.quantity.updateValueAndValidity({ emitEvent: false });
+          return;
+        }
+
+        row.controls.quantity.enable({ emitEvent: false });
+        row.controls.quantity.setValidators([Validators.required, Validators.min(1), Validators.max(s)]);
+        row.controls.quantity.updateValueAndValidity({ emitEvent: false });
+
+        const qty = row.controls.quantity.value ?? 1;
+        if (qty > s) {
+          row.controls.quantity.setValue(s, { emitEvent: false });
+          alert(`Stock insuficiente en origen. Disponible: ${s}`);
+        }
+      },
+      error: () => {
+        this.setRowStockLabel(index, '0');
+        row.controls.quantity.setValue(0, { emitEvent: false });
+        row.controls.quantity.disable({ emitEvent: false });
+      }
+    });
+  }
+
+
+  private setRowStockLabel(index: number, label: string) {
+    const current = this.stockLabelByRow();
+    this.stockLabelByRow.set({ ...current, [index]: label });
+  }
+
+  private revalidateAllRowsAgainstStock(idUb: number): void {
+    for (let i = 0; i < this.productsFA.length; i++) {
+      this.applyStockValidationToRow(i);
+    }
   }
 
 }

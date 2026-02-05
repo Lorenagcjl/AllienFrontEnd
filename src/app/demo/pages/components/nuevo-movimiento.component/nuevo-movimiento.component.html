@@ -133,7 +133,9 @@
 
             <!-- Stock -->
             <td>
-              <span class="inv-mov__stock-label">N/D</span>
+              <span class="inv-mov__stock-label">
+                {{ stockLabelByRow()[i] ?? '...' }}
+              </span>
             </td>
 
             <!-- Cantidad -->
