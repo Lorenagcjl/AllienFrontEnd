@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, concatMap, forkJoin, map, Observable, of, take } from 'rxjs';
+import { catchError, concatMap, forkJoin, map, Observable, of, Subject, take, takeUntil } from 'rxjs';
 
 import { ClienteService } from 'src/app/@theme/services/cliente.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
@@ -18,6 +18,7 @@ import { VentaService } from 'src/app/@theme/services/venta.service';
 import { DetalleVentaService } from 'src/app/@theme/services/detalleventa.service';
 import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
 import { InventarioMovimiento } from 'src/app/demo/models/inventariomovimiento.model';
+import { IvaConfigGlobalService } from 'src/app/@theme/services/iva-config-global.service';
 
 type EstadoSerial = 'Disponible' | 'Vendido' | 'Dañado';
 
@@ -58,6 +59,12 @@ export default class NuevaVentaComponent implements OnInit {
   private inventarioMovimientoService = inject(InventarioMovimientoService);
 
   private cdr = inject(ChangeDetectorRef);
+
+  private readonly ivaGlobal = inject(IvaConfigGlobalService);
+  private readonly destroy$ = new Subject<void>();
+
+  ivaRatePercent = 0;   // ej 15
+  includeTax = false;   // opcional si quieres respetarlo
 
   // ===== Cabecera =====
   invoiceNumber = '';
@@ -111,14 +118,18 @@ export default class NuevaVentaComponent implements OnInit {
   // =======================
   // ✅ TOTALES (IVA 15%)
   // =======================
-  readonly ivaRate = 0.15;
+  // readonly ivaRate = 0.15;
 
   get subtotalValue(): number {
     return this.cartRows.reduce((acc, r) => acc + this.rowSubtotal(r), 0);
   }
 
+  get ivaRateDecimal(): number {
+    return (this.ivaRatePercent ?? 0) / 100; // 15 -> 0.15
+  }
+
   get taxValue(): number {
-    return this.subtotalValue * this.ivaRate;
+    return this.subtotalValue * this.ivaRateDecimal;
   }
 
   get totalValue(): number {
@@ -168,6 +179,19 @@ export default class NuevaVentaComponent implements OnInit {
     this.loadProductos();
     this.loadSeriales();
     this.loadStockNoSerial();
+
+    this.ivaGlobal.config$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(cfg => {
+        this.ivaRatePercent = Number(cfg?.taxRate ?? 0);  // 15
+        this.includeTax = !!cfg?.includeTax;
+        this.cdr.detectChanges();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   // ===== Loaders =====

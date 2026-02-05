@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { take } from 'rxjs';
 import { DetalleCatalogoService } from 'src/app/@theme/services/detalle-catalogo.service';
+import { IvaConfigGlobalService } from 'src/app/@theme/services/iva-config-global.service';
 import { DetalleCatalogoResponseDto } from 'src/app/demo/models/detalle-catalogo.model';
 
 type IvaConfig = {
@@ -23,6 +24,7 @@ type IvaConfig = {
 })
 export default class IvaConfigComponent {
   private readonly detalleCatalogoService = inject(DetalleCatalogoService);
+  private readonly ivaGlobal = inject(IvaConfigGlobalService);
 
   // ==== IVAs desde BD ====
   readonly ivas = signal<DetalleCatalogoResponseDto[]>([]);
@@ -164,26 +166,30 @@ export default class IvaConfigComponent {
   }
 
   onSave(): void {
-    const config: IvaConfig = {
-      taxRate: this.effectiveTaxRate,
-      isCustom: this.isCustomMode,
-      showSeparate: this.showSeparate,
-      includeTax: this.includeTax,
+    const taxRate = this.effectiveTaxRate; // porcentaje ej: 15
+
+    // 1) Guardar GLOBAL
+    this.ivaGlobal.setConfig({
+      taxRate,
       idDetalleCatalogo: this.isCustomMode ? null : this.selectedIvaId,
-    };
+      includeTax: this.includeTax,
+      showSeparate: this.showSeparate,
+      isCustom: this.isCustomMode,
+    });
 
-    // Simula persistencia
-    console.log('Configuración guardada:', config);
+    // 2) Actualiza badge local
+    this.currentTax = taxRate;
 
-    // Actualiza badge
-    this.currentTax = this.effectiveTaxRate;
+    // 3) (Opcional) log
+    console.log('IVA global guardado:', this.ivaGlobal.snapshot);
 
+    // 4) Un solo alert
     alert(
-      `✓ Configuración guardada\n\n` +
-      `IVA: ${this.effectiveTaxRate.toFixed(2)}%\n` +
+      `✓ IVA guardado\n\n` +
+      `IVA: ${taxRate.toFixed(2)}%\n` +
       `Modo: ${this.isCustomMode ? 'Personalizado' : this.selectedIvaLabel}\n` +
-      `Mostrar separado: ${config.showSeparate ? 'Sí' : 'No'}\n` +
-      `Incluir en precios: ${config.includeTax ? 'Sí' : 'No'}`
+      `Mostrar separado: ${this.showSeparate ? 'Sí' : 'No'}\n` +
+      `Incluir en precios: ${this.includeTax ? 'Sí' : 'No'}`
     );
   }
 

@@ -201,7 +201,8 @@
         </div>
 
         <div class="nv-summary-row">
-          <span class="nv-summary-label">IVA (15%):</span>
+          <!-- <span class="nv-summary-label">IVA (15%):</span> -->
+          <span class="nv-summary-label">IVA ({{ ivaRatePercent | number:'1.0-2' }}%):</span>
           <span class="nv-summary-value">${{ taxValue.toFixed(2) }}</span>
         </div>
 
