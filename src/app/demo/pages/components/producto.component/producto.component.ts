@@ -107,7 +107,20 @@ export default class ProductoComponent implements AfterViewInit {
   }
 
   editar(row: Producto): void {
-    this.abrirFormulario(row);
+    const id = row.idProducto;
+    if (!id) return;
+
+    this.cargando = true;
+    this.productoService.obtenerPorId(id).subscribe({
+      next: (productoCompleto) => {
+        this.cargando = false;
+        this.abrirFormulario(productoCompleto); // ✅ ya trae foto
+      },
+      error: (err) => {
+        this.cargando = false;
+        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar el producto para editar.'));
+      }
+    });
   }
 
   async eliminar(row: Producto): Promise<void> {

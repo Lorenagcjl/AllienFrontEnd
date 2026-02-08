@@ -16,7 +16,7 @@
             <mat-label>Nombre</mat-label>
             <input matInput formControlName="nombre" placeholder="Ej. Laptop Gaming">
             @if (productoForm.get('nombre')?.invalid && productoForm.get('nombre')?.touched) {
-              <mat-error>Nombre requerido (mín. 2)</mat-error>
+            <mat-error>Nombre requerido (mín. 2)</mat-error>
             }
           </mat-form-field>
         </div>
@@ -26,7 +26,7 @@
             <mat-label>Marca</mat-label>
             <input matInput formControlName="marca" placeholder="Ej. Asus">
             @if (productoForm.get('marca')?.invalid && productoForm.get('marca')?.touched) {
-              <mat-error>Marca requerida</mat-error>
+            <mat-error>Marca requerida</mat-error>
             }
           </mat-form-field>
         </div>
@@ -36,7 +36,7 @@
             <mat-label>Tipo</mat-label>
             <input matInput formControlName="tipo" placeholder="Ej. Electrónica">
             @if (productoForm.get('tipo')?.invalid && productoForm.get('tipo')?.touched) {
-              <mat-error>Tipo requerido</mat-error>
+            <mat-error>Tipo requerido</mat-error>
             }
           </mat-form-field>
         </div>
@@ -48,7 +48,7 @@
             <span matPrefix>$&nbsp;</span>
 
             @if (editando) {
-            <mat-hint>El precio se cambia desde “Cambiar precio”.</mat-hint>
+            <mat-hint>El precio se cambia desde "Cambiar precio".</mat-hint>
             }
 
             @if (productoForm.get('precioVenta')?.invalid && productoForm.get('precioVenta')?.touched) {
@@ -62,20 +62,65 @@
             <mat-label>Descripción</mat-label>
             <textarea matInput formControlName="descripcion" rows="2" placeholder="Detalles del producto..."></textarea>
             @if (productoForm.get('descripcion')?.invalid && productoForm.get('descripcion')?.touched) {
-              <mat-error>Descripción requerida</mat-error>
+            <mat-error>Descripción requerida</mat-error>
             }
           </mat-form-field>
         </div>
 
+        <!-- ========================================== -->
+        <!-- SECCIÓN MEJORADA DE FOTO -->
+        <!-- ========================================== -->
         <div class="col-12">
-          <mat-form-field appearance="outline" class="w-100">
-            <mat-label>URL de la Foto</mat-label>
-            <input matInput formControlName="foto" placeholder="http://...">
-            <mat-icon matSuffix>image</mat-icon>
-            @if (productoForm.get('foto')?.invalid && productoForm.get('foto')?.touched) {
-              <mat-error>Foto requerida</mat-error>
+          <div class="photo-upload-section">
+            <label class="photo-upload-label">Foto del Producto</label>
+
+            <!-- Input file oculto -->
+            <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)"
+              class="file-input-hidden" />
+
+            <!-- Botón personalizado para subir -->
+            @if (!productoForm.value.foto) {
+            <div class="file-upload-button" (click)="fileInput.click()" role="button" tabindex="0">
+              <i class="ti ti-photo-plus"></i>
+              <span>Seleccionar imagen</span>
+            </div>
+
+            <div class="file-input-hint">
+              Formatos: JPG, PNG, GIF (máx. 5MB)
+            </div>
             }
-          </mat-form-field>
+
+            <!-- Error de validación -->
+            @if (productoForm.get('foto')?.invalid && productoForm.get('foto')?.touched) {
+            <div class="file-input-error">
+              <i class="ti ti-alert-circle"></i>
+              <span>La foto del producto es requerida</span>
+            </div>
+            }
+
+            <!-- Previsualización de la imagen -->
+            @if (productoForm.value.foto) {
+            <div class="photo-preview-container">
+              <div class="photo-preview-wrapper">
+                <img [src]="'data:image/*;base64,' + productoForm.value.foto" alt="Preview del producto"
+                  class="photo-preview-image" />
+
+                <!-- Overlay con botones de acción -->
+                <div class="photo-overlay">
+                  <button type="button" class="photo-action-button change-button" (click)="fileInput.click()"
+                    matTooltip="Cambiar imagen">
+                    <i class="ti ti-pencil"></i>
+                  </button>
+
+                  <button type="button" class="photo-action-button delete-button" (click)="eliminarFoto()"
+                    matTooltip="Eliminar imagen">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
         </div>
 
         <div class="col-md-6">
@@ -86,7 +131,7 @@
               <mat-option [value]="false">No requiere serial</mat-option>
             </mat-select>
             @if (productoForm.get('esConSerial')?.invalid && productoForm.get('esConSerial')?.touched) {
-              <mat-error>Seleccione una opción</mat-error>
+            <mat-error>Seleccione una opción</mat-error>
             }
           </mat-form-field>
         </div>
@@ -97,7 +142,7 @@
             <input matInput type="number" formControlName="porcentajeComision" placeholder="0">
             <span matSuffix>%</span>
             @if (productoForm.get('porcentajeComision')?.invalid && productoForm.get('porcentajeComision')?.touched) {
-              <mat-error>Valor entre 0 y 100</mat-error>
+            <mat-error>Valor entre 0 y 100</mat-error>
             }
           </mat-form-field>
         </div>

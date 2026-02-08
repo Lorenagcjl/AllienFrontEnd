@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 function nowLocalDateTimeString(): string {
   return new Date().toISOString().slice(0, 19);
@@ -17,12 +18,16 @@ function nowLocalDateTimeString(): string {
 @Component({
   selector: 'app-producto-form-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule,
-  MatFormFieldModule, // Importar de @angular/material/form-field
-  MatInputModule,     // Importar de @angular/material/input
-  MatButtonModule,    // Importar de @angular/material/button
-  MatSelectModule,    // Importar de @angular/material/select
-  MatIconModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatSelectModule,
+    MatIconModule,
+    MatTooltipModule
+  ],
   templateUrl: './producto-form-modal.component.html',
   styleUrls: ['./producto-form-modal.component.scss'],
 })
@@ -46,10 +51,7 @@ export class ProductoFormModalComponent implements OnInit {
     tipo: ['', [Validators.required, Validators.minLength(2)]],
     foto: ['', [Validators.required]],
     descripcion: ['', [Validators.required, Validators.minLength(3)]],
-
-    // 👇 lo controlamos en ngOnInit (enabled/disabled)
     precioVenta: [{ value: null as number | null, disabled: false }, [Validators.required, Validators.min(0)]],
-
     esConSerial: [null as boolean | null, [Validators.required]],
     porcentajeComision: [null as number | null, [Validators.required, Validators.min(0), Validators.max(100)]],
     fechaCreacion: [nowLocalDateTimeString(), [Validators.required]],
@@ -69,17 +71,13 @@ export class ProductoFormModalComponent implements OnInit {
         fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
       });
 
-      // ✅ Opción A: si es edición, NO permitir editar precio aquí
       this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
-
     } else {
-      // nuevo
       this.productoForm.patchValue({ fechaCreacion: nowLocalDateTimeString() });
       this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
     }
   }
 
-  // Cerrar con ESC (opcional, recomendado)
   @HostListener('document:keydown.escape')
   onEsc(): void {
     this.onClose();
@@ -89,14 +87,12 @@ export class ProductoFormModalComponent implements OnInit {
     this.closed.emit();
   }
 
-  // ✅ Cierra SOLO si el click fue en el backdrop (afuera)
   onBackdropClick(event: MouseEvent): void {
     if (event.target === event.currentTarget) {
       this.onClose();
     }
   }
 
-  // ✅ Enter / Space en el backdrop
   onBackdropKeydown(event: KeyboardEvent): void {
     event.preventDefault();
     this.onClose();
@@ -117,10 +113,8 @@ export class ProductoFormModalComponent implements OnInit {
     );
     if (!confirmado) return;
 
-    // ⚠️ getRawValue incluye disabled (precioVenta), value NO cambia en edición
     const v = this.productoForm.getRawValue();
 
-    // ✅ payload sin precioVenta cuando editas (recomendado)
     const payloadBase = {
       nombre: v.nombre ?? '',
       marca: v.marca ?? '',
@@ -132,7 +126,6 @@ export class ProductoFormModalComponent implements OnInit {
       fechaCreacion: v.fechaCreacion ?? nowLocalDateTimeString(),
     };
 
-    // ✅ solo al crear mandas precioVenta
     const payload = this.editando
       ? payloadBase
       : { ...payloadBase, precioVenta: Number(v.precioVenta) };
@@ -171,4 +164,49 @@ export class ProductoFormModalComponent implements OnInit {
       }
     });
   }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      this.alert.warning('Formato no válido', 'Solo se permiten JPG, PNG, GIF o WEBP.');
+      input.value = '';
+      this.productoForm.get('foto')?.markAsTouched();
+      return;
+    }
+
+    const maxSize = 25 * 1024; // ✅ 25KB
+    if (file.size > maxSize) {
+      this.alert.warning('Archivo muy grande', 'La imagen no debe superar 25 KB.');
+      input.value = '';
+      this.productoForm.get('foto')?.markAsTouched();
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1] ?? '';
+
+      this.productoForm.patchValue({ foto: base64 });
+      this.productoForm.get('foto')?.markAsDirty();
+      this.productoForm.get('foto')?.markAsTouched();
+
+      input.value = ''; // ✅ permite volver a seleccionar el mismo archivo
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /**
+   * Elimina la foto del formulario
+   */
+  eliminarFoto(): void {
+    this.productoForm.patchValue({ foto: '' });
+    this.productoForm.get('foto')?.markAsDirty();
+    this.productoForm.get('foto')?.markAsTouched();
+  }
+
 }

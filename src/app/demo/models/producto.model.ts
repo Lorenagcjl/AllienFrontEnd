@@ -3,7 +3,7 @@ export interface Producto {
   nombre: string;
   marca: string;
   tipo: string;
-  foto: string;
+  foto?: string | null;
   descripcion: string;
   precioVenta: number;
   esConSerial: boolean;
