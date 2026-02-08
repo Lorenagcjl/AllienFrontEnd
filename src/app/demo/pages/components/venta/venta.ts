@@ -15,21 +15,23 @@ import { AlertService } from 'src/app/@theme/services/alert.service';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { VentaformComponent } from '../ventaform/ventaform';
 import DetalleventaComponent from '../detalleventa/detalleventa';
+import { finalize } from 'rxjs';
+import { generarFacturaPdf } from 'src/app/@theme/utils/factura-pdf';
 
 @Component({
   selector: 'app-venta',
   standalone: true,
   imports: [
-    CommonModule, 
-    SharedModule, 
-    MatFormFieldModule, 
-    MatInputModule, 
-    MatTableModule, 
-    MatSortModule, 
-    MatPaginatorModule, 
-    MatDialogModule, 
+    CommonModule,
+    SharedModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatTableModule,
+    MatSortModule,
+    MatPaginatorModule,
+    MatDialogModule,
     MatProgressBarModule,
-    VentaformComponent 
+    VentaformComponent
   ],
   templateUrl: './venta.html',
   styleUrls: ['./venta.scss'],
@@ -106,7 +108,7 @@ export default class VentaComponent implements OnInit, AfterViewInit {
     if (confirmado) {
       this.cargando = true;
       const loadingId = this.alertService.loading('Anulando...', 'Procesando devolución de inventario');
-      
+
       this.ventaService.eliminarVenta(venta.idVenta).subscribe({
         next: () => {
           this.alertService.close(loadingId);
@@ -131,4 +133,20 @@ export default class VentaComponent implements OnInit, AfterViewInit {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
   }
+
+  imprimirFactura(venta: VentaResponse) {
+    this.cargando = true;
+
+    this.ventaService.obtenerFactura(venta.idVenta)
+      .pipe(finalize(() => this.cargando = false))
+      .subscribe({
+        next: (factura) => {
+          generarFacturaPdf(factura);
+        },
+        error: () => {
+          this.alertService.error('Error', 'No se pudo generar la factura');
+        }
+      });
+  }
+
 }

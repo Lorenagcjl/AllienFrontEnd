@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { VentaRequest, VentaResponse } from 'src/app/demo/models/venta.model';
+import { FacturaVentaResponse } from 'src/app/demo/models/factura-venta.model';
 
 @Injectable({
   providedIn: 'root'
@@ -10,20 +11,24 @@ import { VentaRequest, VentaResponse } from 'src/app/demo/models/venta.model';
 export class VentaService {
   private apiUrl = 'http://localhost:8080/api/venta';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   listarVentas(): Observable<VentaResponse[]> {
     return this.http.get<VentaResponse[]>(this.apiUrl);
   }
-  
+
+  obtenerFactura(idVenta: number): Observable<FacturaVentaResponse> {
+    return this.http.get<FacturaVentaResponse>(`${this.apiUrl}/${idVenta}/factura`);
+  }
+
   guardarVenta(venta: VentaRequest, idUsuario: number): Observable<VentaResponse> {
     return this.http.post<VentaResponse>(`${this.apiUrl}?idUsuario=${idUsuario}`, venta);
   }
-// src/app/@theme/services/venta.service.ts
+  // src/app/@theme/services/venta.service.ts
 
-actualizarVenta(idVenta: number, venta: any): Observable<VentaResponse> {
-  return this.http.put<VentaResponse>(`${this.apiUrl}/${idVenta}`, venta);
-}
+  actualizarVenta(idVenta: number, venta: any): Observable<VentaResponse> {
+    return this.http.put<VentaResponse>(`${this.apiUrl}/${idVenta}`, venta);
+  }
 
   eliminarVenta(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);

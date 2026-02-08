@@ -19,7 +19,7 @@
   }
 
   <table mat-table [dataSource]="dataSource" matSort [class.loading-table]="cargando">
-    
+
     <ng-container matColumnDef="numeroFactura">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Factura </th>
       <td mat-cell *matCellDef="let row"> <b>{{row.numeroFactura}}</b> </td>
@@ -42,7 +42,7 @@
 
     <ng-container matColumnDef="total">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Total </th>
-      <td mat-cell *matCellDef="let row"> 
+      <td mat-cell *matCellDef="let row">
         <span class="badge bg-light-success text-success">{{row.total | currency}}</span>
       </td>
     </ng-container>
@@ -60,6 +60,11 @@
 
         <button mat-icon-button color="warn" (click)="anularVenta(row)" matTooltip="Anular Factura" [disabled]="cargando">
           <i class="ti ti-trash f-18"></i>
+        </button>
+
+        <button mat-icon-button color="accent" (click)="imprimirFactura(row); $event.stopPropagation()"
+          matTooltip="Generar Factura PDF" [disabled]="cargando">
+          <i class="ti ti-file-text f-18"></i>
         </button>
       </td>
     </ng-container>
@@ -84,9 +89,9 @@
 </div>
 
 @if (modalOpen) {
-  <app-ventaform 
-    [ventaSeleccionada]="ventaParaEditar" 
-    (closed)="cerrarModal()" 
+  <app-ventaform
+    [ventaSeleccionada]="ventaParaEditar"
+    (closed)="cerrarModal()"
     (saved)="onSaved($event)">
   </app-ventaform>
 }
