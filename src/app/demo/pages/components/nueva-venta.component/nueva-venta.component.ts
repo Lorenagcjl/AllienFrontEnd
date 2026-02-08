@@ -208,8 +208,12 @@ export default class NuevaVentaComponent implements OnInit {
   private loadUbicaciones() {
     this.ubicacionService.listarUbicaciones().pipe(take(1)).subscribe({
       next: data => {
-        this.ubicaciones = (data ?? []).filter(u => u.idUbicacion != null);
-        // ✅ ayuda con NG0100 en algunos setups
+        this.ubicaciones = (data ?? []).filter(u =>
+          u.idUbicacion != null &&
+          u.esPuntoVenta === true &&
+          u.esActivo === true
+        );
+
         this.cdr.detectChanges();
       },
       error: err => {
@@ -218,6 +222,21 @@ export default class NuevaVentaComponent implements OnInit {
       },
     });
   }
+
+  // private loadUbicaciones() {
+  //   this.ubicacionService.listarUbicaciones().pipe(take(1)).subscribe({
+  //     next: data => {
+  //       this.ubicaciones = (data ?? []).filter(u =>
+  //         u.idUbicacion != null && u.esPuntoVenta === true
+  //       );
+  //       this.cdr.detectChanges();
+  //     },
+  //     error: err => {
+  //       console.error('Error cargando ubicaciones', err);
+  //       this.ubicaciones = [];
+  //     },
+  //   });
+  // }
 
   private loadProductos(): void {
     this.productoService.listarProductos().pipe(take(1)).subscribe({

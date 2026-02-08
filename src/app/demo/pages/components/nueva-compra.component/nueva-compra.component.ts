@@ -149,18 +149,38 @@ export default class NuevaCompraComponent {
   }
 
   private loadUbicaciones(): void {
-    this.ubicacionService.listarUbicaciones().pipe(
-      rx.take(1)
-    ).subscribe({
-      next: (data) => {
-        this.ubicaciones = (data ?? []).filter(u => u.idUbicacion != null);
-      },
-      error: (err) => {
-        console.error('Error cargando ubicaciones', err);
-        this.ubicaciones = [];
-      }
-    });
+    this.ubicacionService.listarUbicaciones()
+      .pipe(rx.take(1))
+      .subscribe({
+        next: (data) => {
+          this.ubicaciones = (data ?? []).filter(u =>
+            u.idUbicacion != null &&
+            u.esPuntoVenta !== true &&
+            u.esActivo === true
+          );
+        },
+        error: (err) => {
+          console.error('Error cargando ubicaciones', err);
+          this.ubicaciones = [];
+        }
+      });
   }
+
+  // private loadUbicaciones(): void {
+  //   this.ubicacionService.listarUbicaciones()
+  //     .pipe(rx.take(1))
+  //     .subscribe({
+  //       next: (data) => {
+  //         this.ubicaciones = (data ?? [])
+  //           .filter(u => u.idUbicacion != null)
+  //           .filter(u => u.esPuntoVenta !== true); // <-- no punto de venta
+  //       },
+  //       error: (err) => {
+  //         console.error('Error cargando ubicaciones', err);
+  //         this.ubicaciones = [];
+  //       }
+  //     });
+  // }
 
   // ====== UI helpers ======
   trackByIndex = (i: number) => i;
