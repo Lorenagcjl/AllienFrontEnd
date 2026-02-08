@@ -3,4 +3,6 @@ export interface Ubicacion {
   nombre: string;
   tipo: string;
   descripcion: string;
+  esActivo?: boolean;
+  esPuntoVenta?: boolean;
 }

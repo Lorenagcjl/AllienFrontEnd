@@ -8,16 +8,18 @@ import { MatOptionModule } from '@angular/material/core';
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-ubicacion-form-modal',
   standalone: true,
   imports: [
-    CommonModule, 
-    ReactiveFormsModule, 
-    SharedModule, 
-    MatSelectModule, 
-    MatOptionModule
+    CommonModule,
+    ReactiveFormsModule,
+    SharedModule,
+    MatSelectModule,
+    MatOptionModule,
+    MatCheckboxModule
   ],
   templateUrl: './ubicacion-form-modal.component.html',
   styleUrls: ['./ubicacion-form-modal.component.scss'],
@@ -37,6 +39,7 @@ export class UbicacionFormModalComponent implements OnInit {
     nombre: ['', [Validators.required]],
     tipo: ['', [Validators.required]],
     descripcion: ['', [Validators.required]],
+    esPuntoVenta: [false],
   });
 
   ngOnInit(): void {
@@ -45,6 +48,7 @@ export class UbicacionFormModalComponent implements OnInit {
         nombre: this.ubicacion.nombre ?? '',
         tipo: this.ubicacion.tipo ?? '',
         descripcion: this.ubicacion.descripcion ?? '',
+        esPuntoVenta: this.ubicacion.esPuntoVenta ?? false,
       });
     }
   }
@@ -80,7 +84,10 @@ export class UbicacionFormModalComponent implements OnInit {
 
     this.cargando = true;
     const loadingId = this.alert.loading('Guardando...', 'Procesando datos');
-    const payload = this.form.value;
+    const payload = {
+      ...this.form.value,
+      esPuntoVenta: !!this.form.value.esPuntoVenta,
+    };
 
     const request = this.ubicacion?.idUbicacion
       ? this.ubicacionService.actualizarUbicacion(this.ubicacion.idUbicacion, payload)

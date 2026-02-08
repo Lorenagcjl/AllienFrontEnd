@@ -11,6 +11,7 @@ import { AlertService } from 'src/app/@theme/services/alert.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
 import { UbicacionFormModalComponent } from '../ubicacion-form-modal.component/ubicacion-form-modal.component';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-ubicacion',
@@ -23,6 +24,7 @@ import { UbicacionFormModalComponent } from '../ubicacion-form-modal.component/u
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatIconModule,
     UbicacionFormModalComponent,
     MatProgressBarModule
   ],
@@ -33,7 +35,7 @@ export default class UbicacionComponent {
   private readonly ubicacionService = inject(UbicacionService);
   private readonly alert = inject(AlertService);
 
-  displayedColumns: string[] = ['idUbicacion', 'nombre', 'tipo', 'descripcion', 'acciones'];
+  displayedColumns: string[] = ['idUbicacion', 'nombre', 'tipo', 'esPuntoVenta', 'descripcion', 'acciones'];
   dataSource = new MatTableDataSource<Ubicacion>([]);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -42,17 +44,20 @@ export default class UbicacionComponent {
   modalOpen = false;
   ubicacionSeleccionada?: Ubicacion;
   isEditing = false;
-cargando = false;
+  cargando = false;
   ngAfterViewInit(): void {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
 
     this.dataSource.filterPredicate = (row: Ubicacion, filter: string) => {
       const f = filter.trim().toLowerCase();
+
       return (
         (row.nombre ?? '').toLowerCase().includes(f) ||
         (row.tipo ?? '').toLowerCase().includes(f) ||
-        (row.descripcion ?? '').toLowerCase().includes(f)
+        (row.descripcion ?? '').toLowerCase().includes(f) ||
+        (row.esPuntoVenta && ['punto', 'venta', 'punto de venta', 'si', 'true'].some(k => k.includes(f))) ||
+        (!row.esPuntoVenta && ['no', 'false'].some(k => k.includes(f)))
       );
     };
 
@@ -61,7 +66,7 @@ cargando = false;
 
   cargar(): void {
     this.cargando = true; // Inicia la barra azul
-    
+
     this.ubicacionService.listarUbicaciones().subscribe({
       next: (data) => {
         // Filtramos para mostrar solo los que tienen esActivo: true (o distinto de false)

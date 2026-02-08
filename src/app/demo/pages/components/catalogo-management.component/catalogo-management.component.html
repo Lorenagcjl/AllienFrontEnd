@@ -127,6 +127,7 @@
                     <th>Valor</th>
                     <th>Orden</th>
                     <th>Estado</th>
+                    <th>Creado</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
@@ -144,6 +145,7 @@
                         {{ detail.esActivo ? 'Activo' : 'Inactivo' }}
                       </span>
                     </td>
+                    <td>{{ detail.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
                     <td>
                       <div class="actions-cell">
                         <button class="btn-icon edit" type="button" title="Editar" style="padding: 6px;"

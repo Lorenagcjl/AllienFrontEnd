@@ -1,6 +1,6 @@
 <div class="modal-manual-backdrop" (click)="onBackdropClick($event)">
   <div class="modal-manual-content shadow-lg">
-    
+
     <div class="modal-header-custom">
       <h2 class="mat-headline-6 mb-0">{{ ubicacion?.idUbicacion ? 'Editar Ubicación' : 'Nueva Ubicación' }}</h2>
       <button mat-icon-button (click)="onClose()" type="button">
@@ -32,6 +32,12 @@
             <textarea matInput formControlName="descripcion" rows="3"></textarea>
             <mat-error>Requerido</mat-error>
           </mat-form-field>
+        </div>
+
+        <div class="col-12">
+          <mat-checkbox formControlName="esPuntoVenta">
+            Es Punto de Venta
+          </mat-checkbox>
         </div>
       </form>
     </div>
