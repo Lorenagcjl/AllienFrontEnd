@@ -46,7 +46,10 @@ export class ProductoFormModalComponent implements OnInit {
     tipo: ['', [Validators.required, Validators.minLength(2)]],
     foto: ['', [Validators.required]],
     descripcion: ['', [Validators.required, Validators.minLength(3)]],
-    precioVenta: [null as number | null, [Validators.required, Validators.min(0)]],
+
+    // 👇 lo controlamos en ngOnInit (enabled/disabled)
+    precioVenta: [{ value: null as number | null, disabled: false }, [Validators.required, Validators.min(0)]],
+
     esConSerial: [null as boolean | null, [Validators.required]],
     porcentajeComision: [null as number | null, [Validators.required, Validators.min(0), Validators.max(100)]],
     fechaCreacion: [nowLocalDateTimeString(), [Validators.required]],
@@ -65,11 +68,14 @@ export class ProductoFormModalComponent implements OnInit {
         porcentajeComision: this.producto.porcentajeComision ?? null,
         fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
       });
+
+      // ✅ Opción A: si es edición, NO permitir editar precio aquí
+      this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
+
     } else {
-      // Si es "Nuevo", aseguras defaults limpios
-      this.productoForm.patchValue({
-        fechaCreacion: nowLocalDateTimeString(),
-      });
+      // nuevo
+      this.productoForm.patchValue({ fechaCreacion: nowLocalDateTimeString() });
+      this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
     }
   }
 
@@ -103,7 +109,6 @@ export class ProductoFormModalComponent implements OnInit {
       return;
     }
 
-    // Confirmación al dar Guardar
     const confirmado = await this.alert.confirm(
       'Confirmar',
       this.editando ? '¿Guardar cambios del producto?' : '¿Crear el producto?',
@@ -112,19 +117,25 @@ export class ProductoFormModalComponent implements OnInit {
     );
     if (!confirmado) return;
 
+    // ⚠️ getRawValue incluye disabled (precioVenta), value NO cambia en edición
     const v = this.productoForm.getRawValue();
 
-    const payload = {
+    // ✅ payload sin precioVenta cuando editas (recomendado)
+    const payloadBase = {
       nombre: v.nombre ?? '',
       marca: v.marca ?? '',
       tipo: v.tipo ?? '',
       foto: v.foto ?? '',
       descripcion: v.descripcion ?? '',
-      precioVenta: Number(v.precioVenta),
       esConSerial: !!v.esConSerial,
       porcentajeComision: Number(v.porcentajeComision),
       fechaCreacion: v.fechaCreacion ?? nowLocalDateTimeString(),
     };
+
+    // ✅ solo al crear mandas precioVenta
+    const payload = this.editando
+      ? payloadBase
+      : { ...payloadBase, precioVenta: Number(v.precioVenta) };
 
     this.alert.loading('Guardando...', this.editando ? 'Actualizando producto.' : 'Creando producto.');
 
@@ -142,15 +153,10 @@ export class ProductoFormModalComponent implements OnInit {
           this.saved.emit(true);
         },
         error: async (err) => {
-          console.error(err);
           this.alert.close();
-          await this.alert.error(
-            'Error al actualizar',
-            this.alert.getErrorMessage(err, 'No se pudo actualizar el producto.')
-          );
+          await this.alert.error('Error al actualizar', this.alert.getErrorMessage(err, 'No se pudo actualizar el producto.'));
         }
       });
-
       return;
     }
 
@@ -160,12 +166,8 @@ export class ProductoFormModalComponent implements OnInit {
         this.saved.emit(true);
       },
       error: async (err) => {
-        console.error(err);
         this.alert.close();
-        await this.alert.error(
-          'Error al crear',
-          this.alert.getErrorMessage(err, 'No se pudo crear el producto.')
-        );
+        await this.alert.error('Error al crear', this.alert.getErrorMessage(err, 'No se pudo crear el producto.'));
       }
     });
   }

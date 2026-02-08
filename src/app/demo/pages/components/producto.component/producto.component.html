@@ -6,7 +6,7 @@
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
   </div>
-  
+
   <div class="col-auto">
     <button mat-raised-button color="primary" (click)="abrirFormulario()" [disabled]="cargando">
       <i class="ti ti-plus me-1"></i> Nuevo Producto
@@ -80,6 +80,10 @@
         <button mat-icon-button color="warn" (click)="eliminar(row)" [disabled]="cargando" matTooltip="Eliminar">
           <i class="ti ti-trash f-18"></i>
         </button>
+        <button mat-icon-button color="accent" (click)="abrirCambioPrecio(row)" [disabled]="cargando"
+          matTooltip="Cambiar precio">
+          <i class="ti ti-currency-dollar f-18"></i>
+        </button>
       </td>
     </ng-container>
 
@@ -97,9 +101,15 @@
 </div>
 
 @if (modalOpen) {
-  <app-producto-form-modal 
-    [producto]="productoSeleccionado" 
-    (closed)="cerrarModal()" 
+  <app-producto-form-modal
+    [producto]="productoSeleccionado"
+    (closed)="cerrarModal()"
     (saved)="onSaved($event)">
   </app-producto-form-modal>
+}
+
+@if (changePriceOpen) {
+<app-change-price-modal [idProducto]="productoParaPrecio!.idProducto" [precioActual]="productoParaPrecio!.precioVenta"
+  (closed)="cerrarCambioPrecio()" (saved)="onPrecioCambiado($event)">
+</app-change-price-modal>
 }

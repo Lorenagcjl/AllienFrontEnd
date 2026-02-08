@@ -15,6 +15,7 @@ import { ProductoSerialService } from 'src/app/@theme/services/producto-serial.s
 import { AlertService } from 'src/app/@theme/services/alert.service';
 import { Producto } from 'src/app/demo/models/producto.model';
 import { ProductoFormModalComponent } from '../producto-form-modal.component/producto-form-modal.component';
+import { ChangePriceModalComponent } from '../change-price-modal.component/change-price-modal.component';
 
 @Component({
   selector: 'app-producto.component',
@@ -30,7 +31,8 @@ import { ProductoFormModalComponent } from '../producto-form-modal.component/pro
     MatProgressBarModule,
     MatIconModule,
     MatTooltipModule,
-    ProductoFormModalComponent
+    ProductoFormModalComponent,
+    ChangePriceModalComponent
   ],
   templateUrl: './producto.component.html',
   styleUrl: './producto.component.scss',
@@ -153,4 +155,24 @@ export default class ProductoComponent implements AfterViewInit {
       }
     });
   }
+
+  changePriceOpen = false;
+  productoParaPrecio?: Producto;
+
+  abrirCambioPrecio(p: Producto) {
+    this.productoParaPrecio = p;
+    this.changePriceOpen = true;
+  }
+
+  cerrarCambioPrecio() {
+    this.changePriceOpen = false;
+    this.productoParaPrecio = undefined;
+  }
+
+  onPrecioCambiado(ok: boolean) {
+    if (!ok) return;
+    this.cerrarCambioPrecio();
+    this.cargarProductos(); // refresca precio vigente en la tabla
+  }
+
 }

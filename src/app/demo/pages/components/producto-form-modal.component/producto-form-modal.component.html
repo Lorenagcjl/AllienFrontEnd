@@ -1,6 +1,6 @@
 <div class="modal-manual-backdrop" (click)="onBackdropClick($event)">
   <div class="modal-manual-content shadow-lg">
-    
+
     <div class="modal-header-custom">
       <h2 class="mat-headline-6 mb-0">{{ editando ? 'Editar Producto' : 'Nuevo Producto' }}</h2>
       <button mat-icon-button (click)="onClose()" type="button">
@@ -10,7 +10,7 @@
 
     <div class="modal-body-custom">
       <form [formGroup]="productoForm" class="row gx-3">
-        
+
         <div class="col-md-6">
           <mat-form-field appearance="outline" class="w-100">
             <mat-label>Nombre</mat-label>
@@ -44,10 +44,15 @@
         <div class="col-md-6">
           <mat-form-field appearance="outline" class="w-100">
             <mat-label>Precio Venta</mat-label>
-            <input matInput type="number" formControlName="precioVenta" placeholder="0.00">
+            <input matInput type="number" formControlName="precioVenta" placeholder="0.00" [readonly]="editando">
             <span matPrefix>$&nbsp;</span>
+
+            @if (editando) {
+            <mat-hint>El precio se cambia desde “Cambiar precio”.</mat-hint>
+            }
+
             @if (productoForm.get('precioVenta')?.invalid && productoForm.get('precioVenta')?.touched) {
-              <mat-error>Precio válido requerido</mat-error>
+            <mat-error>Precio válido requerido</mat-error>
             }
           </mat-form-field>
         </div>

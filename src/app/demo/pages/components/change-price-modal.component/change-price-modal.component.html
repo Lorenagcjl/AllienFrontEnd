@@ -1,0 +1,35 @@
+<div class="modal-manual-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal-manual-content shadow-lg">
+
+    <div class="modal-header-custom">
+      <h2 class="mat-headline-6 mb-0">Cambiar precio</h2>
+      <button mat-icon-button (click)="onClose()" type="button">
+        <i class="ti ti-x f-20"></i>
+      </button>
+    </div>
+
+    <div class="modal-body-custom">
+      <form [formGroup]="form" class="row gx-3">
+        <div class="col-12">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Nuevo precio de venta</mat-label>
+            <input matInput type="number" formControlName="precioVenta" placeholder="0.00">
+            <span matPrefix>$&nbsp;</span>
+
+            @if (form.get('precioVenta')?.invalid && form.get('precioVenta')?.touched) {
+            <mat-error>Ingresa un precio válido</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-actions-custom">
+      <button mat-button type="button" (click)="onClose()" [disabled]="cargando">Cancelar</button>
+      <button mat-raised-button color="primary" (click)="guardar()" [disabled]="form.invalid || cargando">
+        {{ cargando ? 'Guardando...' : 'Guardar' }}
+      </button>
+    </div>
+
+  </div>
+</div>

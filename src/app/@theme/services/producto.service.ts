@@ -20,18 +20,14 @@ export class ProductoService {
   }
 
   crearProducto(payload: Partial<Producto>): Observable<Producto> {
-    // POST /api/producto
     return this.http.post<Producto>(this.apiUrl, payload);
   }
 
   actualizarProducto(id: number, payload: Partial<Producto>): Observable<Producto> {
-    // PUT /api/producto/{id}
-    // (el backend fuerza el id del path; no dependes del id en el body)
     return this.http.put<Producto>(`${this.apiUrl}/${id}`, payload);
   }
 
   eliminarProducto(id: number): Observable<void> {
-    // DELETE /api/producto/{id}
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
