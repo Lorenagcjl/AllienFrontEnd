@@ -66,11 +66,11 @@ export class UserFormComponent implements OnInit {
     this.closed.emit();
   }
   // Dentro de UserFormComponent
-onBackdropClick(event: MouseEvent): void {
-  if (event.target === event.currentTarget) {
-    this.onClose();
+  onBackdropClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.onClose();
+    }
   }
-}
 
   async save() {
     if (this.userForm.invalid) {
@@ -90,9 +90,10 @@ onBackdropClick(event: MouseEvent): void {
     const loadingId = this.alertService.loading('Guardando...', 'Procesando datos del usuario');
 
     const datos = this.userForm.value;
-    const request = datos.idUsuario 
+
+    const request = datos.idUsuario
       ? this.usuarioService.actualizar(datos.idUsuario, datos)
-      : this.usuarioService.guardar(datos);
+      : this.usuarioService.crear(datos);
 
     request.subscribe({
       next: () => {
@@ -100,10 +101,10 @@ onBackdropClick(event: MouseEvent): void {
         this.alertService.toast('success', 'Guardado exitosamente');
         this.saved.emit(true);
       },
-      error: (err) => {
+      error: (err: Error) => {
         this.cargando = false;
         this.alertService.close(loadingId);
-        this.alertService.error('Error', this.alertService.getErrorMessage(err));
+        this.alertService.error('Error', err.message);
       }
     });
   }

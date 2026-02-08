@@ -25,7 +25,7 @@ export class ClienteFormModalComponent implements OnInit {
 
   @Input() cliente?: Cliente;
   @Output() closed = new EventEmitter<void>();
-  @Output() saved = new EventEmitter<boolean>(); 
+  @Output() saved = new EventEmitter<boolean>();
 
   cargando = false;
 
@@ -35,8 +35,8 @@ export class ClienteFormModalComponent implements OnInit {
     segundoNombre: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
     primerApellido: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
     segundoApellido: ['', [Validators.required, Validators.pattern(this.solamenteLetras)]],
-    documento: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]], 
-    telefono: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]], 
+    documento: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
+    telefono: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
     email: ['', [Validators.required, Validators.email]],
     direccion: ['', [Validators.required]],
   });
@@ -91,7 +91,7 @@ export class ClienteFormModalComponent implements OnInit {
     const loadingId = this.alertService.loading('Guardando...', 'Procesando datos del cliente');
 
     const datos = this.form.getRawValue();
-    const request = this.editando 
+    const request = this.editando
       ? this.clienteService.actualizarCliente(datos.idCliente, datos)
       : this.clienteService.crearCliente(datos);
 
@@ -101,10 +101,10 @@ export class ClienteFormModalComponent implements OnInit {
         this.alertService.toast('success', 'Guardado exitosamente');
         this.saved.emit(true);
       },
-      error: (err) => {
+      error: (err: Error) => {
         this.cargando = false;
         this.alertService.close(loadingId);
-        this.alertService.error('Error', this.alertService.getErrorMessage(err));
+        this.alertService.error('Error', err.message);
       }
     });
   }

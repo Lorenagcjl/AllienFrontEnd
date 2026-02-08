@@ -41,15 +41,15 @@ export default class ClienteComponent implements OnInit, AfterViewInit {
   clienteSeleccionado?: Cliente;
 
   displayedColumns: string[] = [
-    'idCliente', 
-    'nombres', 
-    'apellidos', 
-    'documento', 
-    'telefono', 
+    'idCliente',
+    'nombres',
+    'apellidos',
+    'documento',
+    'telefono',
     'estado', // Columna de estado agregada
     'acciones'
   ];
-  
+
   dataSource = new MatTableDataSource<Cliente>([]);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -65,17 +65,17 @@ export default class ClienteComponent implements OnInit, AfterViewInit {
   }
 
   cargarClientes(): void {
-    this.cargando = true; // Inicia la barra de progreso
+    this.cargando = true;
 
     this.clienteService.listarClientes().subscribe({
       next: (data) => {
         this.dataSource.data = (data ?? []).filter((c: Cliente) => c.esActivo !== false);
         this.cargando = false;
       },
-      error: (err) => {
+      error: (err: Error) => {
         this.cargando = false;
         this.dataSource.data = [];
-        this.alertService.error('Error', 'No se pudieron cargar los clientes');
+        this.alertService.error('Error', err.message); // ✅ mensaje limpio del backend
         console.error(err);
       },
     });
@@ -83,31 +83,30 @@ export default class ClienteComponent implements OnInit, AfterViewInit {
 
   async cambiarEstado(cliente: Cliente) {
     const accion = cliente.esActivo ? 'desactivar' : 'activar';
-    
+
     const confirmado = await this.alertService.confirm(
       `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} cliente?`,
       `¿Estás seguro de que deseas ${accion} al cliente ${cliente.primerNombre} ${cliente.primerApellido}?`,
       `Sí, ${accion}`
     );
 
-    if (confirmado) {
-      this.cargando = true;
-      const loadingId = this.alertService.loading('Procesando...', 'Actualizando estado del cliente');
+    if (!confirmado) return;
 
-      // Usamos eliminarCliente porque tu Backend hace el Toggle Lógico allí
-      this.clienteService.eliminarCliente(cliente.idCliente!).subscribe({
-        next: () => {
-          this.alertService.close(loadingId);
-          this.cargarClientes();
-          this.alertService.toast('success', `Cliente ${accion === 'activar' ? 'activado' : 'desactivado'}`);
-        },
-        error: (err) => {
-          this.cargando = false;
-          this.alertService.close(loadingId);
-          this.alertService.error('Error', this.alertService.getErrorMessage(err));
-        }
-      });
-    }
+    this.cargando = true;
+    const loadingId = this.alertService.loading('Procesando...', 'Actualizando estado del cliente');
+
+    this.clienteService.eliminarCliente(cliente.idCliente!).subscribe({
+      next: () => {
+        this.alertService.close(loadingId);
+        this.cargarClientes();
+        this.alertService.toast('success', `Cliente ${accion === 'activar' ? 'activado' : 'desactivado'}`);
+      },
+      error: (err: Error) => {
+        this.cargando = false;
+        this.alertService.close(loadingId);
+        this.alertService.error('Error', err.message); // ✅ ya no uses getErrorMessage
+      }
+    });
   }
 
   applyFilter(event: Event): void {

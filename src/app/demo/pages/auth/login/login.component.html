@@ -12,11 +12,11 @@
               <img src="assets/images/logoallien.jpg" alt="logo" style="max-width: 100px; height: auto;"/>
             </a>
           </div>
-          
+
           <h4 class="text-center m-t-20 m-b-25 f-20 f-w-500">Inicia Sesión</h4>
-          
+
           <form [formGroup]="loginForm" class="text-start">
-            
+
             <label class="f-w-500">Correo Electrónico</label>
             <mat-form-field appearance="outline" class="w-100 m-t-5">
               <input matInput formControlName="email" placeholder="ejemplo@correo.com" />
@@ -56,3 +56,7 @@
     </div>
   </div>
 </div>
+@if (mostrarCambioPassword) {
+<app-change-password-modal [idUsuario]="idUsuarioLogin!" [obligatorio]="true" (changed)="onPasswordChanged()">
+</app-change-password-modal>
+}
