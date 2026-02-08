@@ -57,6 +57,10 @@ const routes: Routes = [
         path: 'config-iva',
         loadComponent: () => import('./iva-config.component/iva-config.component')
       },
+      {
+        path: 'historial-precios',
+        loadComponent: () => import('./historial-precios.component/historial-precios.component')
+      },
       // {
       //   path: 'movimiento-detalle',
       //   loadComponent: () => import('./movimiento-detalle/movimiento-detalle')

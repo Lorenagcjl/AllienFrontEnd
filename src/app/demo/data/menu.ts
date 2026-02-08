@@ -70,7 +70,7 @@ export const menus: Navigation[] = [
         icon: '#custom-clipboard',
         roles: ['Administrador', 'Empleado']
       }
-      
+
     ]
   },
   {
@@ -121,6 +121,13 @@ export const menus: Navigation[] = [
         icon: '#custom-level',
         children: [
           {
+            id: 'historialPrecioVenta',
+            title: 'Historial Precio Venta',
+            type: 'item',
+            url: '/component/historial-precios',
+            roles: ['Administrador', 'Empleado']
+          },
+          {
             id: 'productoSerial',
             title: 'Producto Serial',
             type: 'item',
@@ -162,7 +169,7 @@ export const menus: Navigation[] = [
         url: '/component/movimiento-detalle',
         roles: ['Administrador']
       },
-      
+
       {
         id: 'venta-detalle-serial',
         title: 'Venta Detalle Serial',
@@ -170,7 +177,7 @@ export const menus: Navigation[] = [
         url: '/component/venta-detalle-serial',
         roles: ['Administrador']
       },
-      
+
       {
         id: 'inventariomovimiento',
         title: 'Inventario Movimiento',

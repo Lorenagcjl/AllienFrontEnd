@@ -9,15 +9,14 @@ export class ProductoPrecioVentaService {
   private http = inject(HttpClient);
 
   private productoUrl = 'http://localhost:8080/api/producto';
-  private precioUrl = 'http://localhost:8080/api/productoPrecioVenta';
 
-  // PATCH /api/producto/{id}/precio  (cambia el vigente y guarda historial)
+  // PATCH /api/producto/{id}/precio
   cambiarPrecio(idProducto: number, nuevoPrecio: number): Observable<void> {
     return this.http.patch<void>(`${this.productoUrl}/${idProducto}/precio`, { precioVenta: nuevoPrecio });
   }
 
-  // GET /api/productoPrecioVenta/producto/{idProducto} (historial)
+  // GET /api/producto/{id}/historial-precios
   obtenerHistorial(idProducto: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.precioUrl}/producto/${idProducto}`);
+    return this.http.get<any[]>(`${this.productoUrl}/${idProducto}/historial-precios`);
   }
 }
