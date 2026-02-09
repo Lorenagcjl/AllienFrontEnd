@@ -152,7 +152,7 @@
                     [disabled]="!row.controls.productId.value">
                     <ng-container
                       *ngIf="row.controls.serials.value?.length === row.controls.quantity.value; else pickSerials">
-                      {{ row.controls.serials.value.length }} seleccionados ✓
+                      {{ row.controls.serials.value.length }} seleccionados
                     </ng-container>
                     <ng-template #pickSerials>Seleccionar Seriales</ng-template>
                   </button>

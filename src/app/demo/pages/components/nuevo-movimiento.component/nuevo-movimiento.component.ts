@@ -13,7 +13,7 @@ import { InventarioMovimiento } from 'src/app/demo/models/inventariomovimiento.m
 import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
 import { Producto } from 'src/app/demo/models/producto.model';
 import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
-
+import { AlertService } from 'src/app/@theme/services/alert.service';
 
 type MovementType = 'traslado' | 'ajuste' | 'devolucion';
 
@@ -46,6 +46,7 @@ type EstadoSerial = 'Disponible' | 'Vendido' | 'Dañado';
 })
 
 export default class NuevoMovimientoComponent {
+  private alertSvc = inject(AlertService);
   private readonly movimientoService = inject(MovimientoService);
   private readonly movimientoDetalleService = inject(MovimientoDetalleService);
   private readonly movimientoSeriesService = inject(MovimientoSeriesService);
@@ -335,12 +336,26 @@ export default class NuevoMovimientoComponent {
     this.productsFA.push(this.createRow());
   }
 
-  removeProductRow(index: number): void {
-    this.productsFA.removeAt(index);
-    if (this._modalRowIndex() === index) this.closeSerialModal();
-    const m = this._modalRowIndex();
-    if (m !== null && m > index) this._modalRowIndex.set(m - 1);
+ async removeProductRow(index: number): Promise<void> {
+  const ok = await this.alertSvc.confirm(
+    'Quitar producto',
+    '¿Deseas eliminar este producto?',
+    'Sí, quitar',
+    'Cancelar'
+  );
+  if (!ok) return;
+
+  this.productsFA.removeAt(index);
+
+  if (this._modalRowIndex() === index) {
+    this.closeSerialModal();
   }
+
+  const m = this._modalRowIndex();
+  if (m !== null && m > index) {
+    this._modalRowIndex.set(m - 1);
+  }
+}
 
   // ===== Autocomplete =====
   openAutocomplete(index: number): void {
@@ -366,23 +381,26 @@ export default class NuevoMovimientoComponent {
   }
 
   selectProduct(index: number, product: Producto): void {
-    const yaExiste = this.productsFA.controls.some((r, i) =>
-      i !== index && r.controls.productId.value === product.idProducto
+  const yaExiste = this.productsFA.controls.some((r, i) =>
+    i !== index && r.controls.productId.value === product.idProducto
+  );
+
+  if (yaExiste) {
+    this.alertSvc.warning(
+      'Producto repetido',
+      'Este producto ya fue agregado. Ajusta la cantidad en la fila existente.'
     );
-
-    if (yaExiste) {
-      alert('Este producto ya fue agregado. Ajusta la cantidad en la fila existente.');
-      return;
-    }
-
-    const row = this.productsFA.at(index);
-    row.controls.productQuery.setValue(product.nombre);
-    row.controls.productId.setValue(product.idProducto);
-    row.controls.serials.setValue([]);
-
-    this.closeAutocomplete();
-    this.applyStockValidationToRow(index);
+    return;
   }
+
+  const row = this.productsFA.at(index);
+  row.controls.productQuery.setValue(product.nombre);
+  row.controls.productId.setValue(product.idProducto);
+  row.controls.serials.setValue([]);
+
+  this.closeAutocomplete();
+  this.applyStockValidationToRow(index);
+}
 
   // ===== Cantidad / stock =====
   onQuantityChanged(index: number): void {
@@ -408,107 +426,119 @@ export default class NuevoMovimientoComponent {
   }
 
   openSerialModal(index: number): void {
-    const row = this.productsFA.at(index);
-    const productId = row.controls.productId.value;
-    const product = this.findProduct(productId);
+  const row = this.productsFA.at(index);
+  const productId = row.controls.productId.value;
+  const product = this.findProduct(productId);
 
-    const origen = this.form.controls.origen.value;
-    if (!origen) {
-      alert('Selecciona ubicación de origen primero.');
-      return;
-    }
-
-    if (!product?.esConSerial || productId == null) return;
-
-    const allDisponibles = this.getSerialesDisponibles(productId);
-    const usados = this.serialesUsadosPorProducto(productId, index);
-
-    forkJoin(
-      allDisponibles.map(serial =>
-        this.inventarioMovimientoService.buscarPorSerial(serial).pipe(
-          take(1),
-          map(movs => {
-            const last = [...(movs ?? [])].sort((a, b) => {
-              const da = new Date(a?.fecha ?? 0).getTime();
-              const db = new Date(b?.fecha ?? 0).getTime();
-              if (da !== db) return db - da;
-              return (b?.idInventarioMovimiento ?? 0) - (a?.idInventarioMovimiento ?? 0);
-            })[0];
-
-            const idUb = last?.fkUbicacion?.idUbicacion ?? 0;
-            return { serial, idUb };
-          }),
-          catchError(() => of({ serial, idUb: 0 }))
-        )
-      )
-    ).pipe(take(1)).subscribe(pairs => {
-      const serialsEnOrigen = pairs
-        .filter(x => x.idUb === origen)
-        .map(x => x.serial);
-
-      const serialsParaModal = serialsEnOrigen.filter(s => !usados.has(s));
-
-      this._modalRowIndex.set(index);
-      this._modalSerials.set(serialsParaModal);
-
-      const existing = row.controls.serials.value ?? [];
-      const limpio = existing.filter(s => serialsParaModal.includes(s));
-      row.controls.serials.setValue(limpio);
-
-      this._modalSelected.set(new Set(limpio));
-      this._modalOpen.set(true);
-    });
+  const origen = this.form.controls.origen.value;
+  if (!origen) {
+    this.alertSvc.warning(
+      'Falta ubicación',
+      'Selecciona ubicación de origen primero.'
+    );
+    return;
   }
+
+  if (!product?.esConSerial || productId == null) return;
+
+  const allDisponibles = this.getSerialesDisponibles(productId);
+  const usados = this.serialesUsadosPorProducto(productId, index);
+
+  forkJoin(
+    allDisponibles.map(serial =>
+      this.inventarioMovimientoService.buscarPorSerial(serial).pipe(
+        take(1),
+        map(movs => {
+          const last = [...(movs ?? [])].sort((a, b) => {
+            const da = new Date(a?.fecha ?? 0).getTime();
+            const db = new Date(b?.fecha ?? 0).getTime();
+            if (da !== db) return db - da;
+            return (b?.idInventarioMovimiento ?? 0) - (a?.idInventarioMovimiento ?? 0);
+          })[0];
+
+          const idUb = last?.fkUbicacion?.idUbicacion ?? 0;
+          return { serial, idUb };
+        }),
+        catchError(() => of({ serial, idUb: 0 }))
+      )
+    )
+  ).pipe(take(1)).subscribe(pairs => {
+    const serialsEnOrigen = pairs
+      .filter(x => x.idUb === origen)
+      .map(x => x.serial);
+
+    const serialsParaModal = serialsEnOrigen.filter(s => !usados.has(s));
+
+    this._modalRowIndex.set(index);
+    this._modalSerials.set(serialsParaModal);
+
+    const existing = row.controls.serials.value ?? [];
+    const limpio = existing.filter(s => serialsParaModal.includes(s));
+    row.controls.serials.setValue(limpio);
+
+    this._modalSelected.set(new Set(limpio));
+    this._modalOpen.set(true);
+  });
+}
 
   toggleSerial(serial: string): void {
-    const idx = this._modalRowIndex();
-    if (idx === null) return;
+  const idx = this._modalRowIndex();
+  if (idx === null) return;
 
-    const row = this.productsFA.at(idx);
-    const productoId = row.controls.productId.value;
-    if (productoId == null) return;
+  const row = this.productsFA.at(idx);
+  const productoId = row.controls.productId.value;
+  if (productoId == null) return;
 
-    const usados = this.serialesUsadosPorProducto(productoId, idx);
-    if (usados.has(serial)) {
-      alert('Ese serial ya fue seleccionado en otra fila para este producto.');
+  const usados = this.serialesUsadosPorProducto(productoId, idx);
+  if (usados.has(serial)) {
+    this.alertSvc.warning(
+      'Serial duplicado',
+      'Ese serial ya fue seleccionado en otra fila para este producto.'
+    );
+    return;
+  }
+
+  const required = this.modalRequiredCount();
+  const set = new Set(this._modalSelected());
+
+  if (set.has(serial)) {
+    set.delete(serial);
+  } else {
+    if (set.size >= required) {
+      this.alertSvc.warning(
+        'Límite de seriales',
+        `Solo puedes seleccionar ${required} seriales`
+      );
       return;
     }
-
-    const required = this.modalRequiredCount();
-    const set = new Set(this._modalSelected());
-
-    if (set.has(serial)) {
-      set.delete(serial);
-    } else {
-      if (set.size >= required) {
-        alert(`Solo puedes seleccionar ${required} seriales`);
-        return;
-      }
-      set.add(serial);
-    }
-
-    this._modalSelected.set(set);
+    set.add(serial);
   }
+
+  this._modalSelected.set(set);
+}
 
   isSerialSelected(serial: string): boolean {
     return this._modalSelected().has(serial);
   }
 
   confirmSerials(): void {
-    const idx = this._modalRowIndex();
-    if (idx === null) return;
+  const idx = this._modalRowIndex();
+  if (idx === null) return;
 
-    const required = this.modalRequiredCount();
-    const selected = Array.from(this._modalSelected());
+  const required = this.modalRequiredCount();
+  const selected = Array.from(this._modalSelected());
 
-    if (selected.length !== required) {
-      alert(`Debes seleccionar exactamente ${required} seriales. Actualmente: ${selected.length}`);
-      return;
-    }
-
-    this.productsFA.at(idx).controls.serials.setValue(selected);
-    this.closeSerialModal();
+  if (selected.length !== required) {
+    this.alertSvc.warning(
+      'Seriales incompletos',
+      `Debes seleccionar exactamente ${required} seriales. Actualmente: ${selected.length}`
+    );
+    return;
   }
+
+  this.productsFA.at(idx).controls.serials.setValue(selected);
+  this.closeSerialModal();
+}
 
   closeSerialModal(): void {
     this._modalOpen.set(false);
@@ -518,265 +548,272 @@ export default class NuevoMovimientoComponent {
   }
 
   // ===== Guardar =====
-  saveMovement(): void {
-    this.form.markAllAsTouched();
+  async saveMovement(): Promise<void> {
+  this.form.markAllAsTouched();
 
-    if (this.locationError()) {
-      alert('Por favor corrige los errores en las ubicaciones');
-      return;
-    }
-    if (this.form.controls.origen.invalid || this.form.controls.destino.invalid) {
-      alert('Debes seleccionar origen y destino');
-      return;
-    }
-    if (this.productsFA.length === 0) {
-      alert('Debes agregar al menos un producto');
-      return;
-    }
+  if (this.locationError()) {
+    await this.alertSvc.warning(
+      'Ubicaciones inválidas',
+      'Por favor corrige los errores en las ubicaciones'
+    );
+    return;
+  }
 
-    // validar filas
-    for (let i = 0; i < this.productsFA.length; i++) {
-      const row = this.productsFA.at(i);
-      const pid = row.controls.productId.value;
-      const product = this.findProduct(pid);
+  if (this.form.controls.origen.invalid || this.form.controls.destino.invalid) {
+    await this.alertSvc.warning(
+      'Ubicaciones requeridas',
+      'Debes seleccionar origen y destino'
+    );
+    return;
+  }
 
-      if (!product) {
-        alert('Completa todos los productos');
-        return;
-      }
+  if (this.productsFA.length === 0) {
+    await this.alertSvc.warning(
+      'Sin productos',
+      'Debes agregar al menos un producto'
+    );
+    return;
+  }
 
-      const qty = row.controls.quantity.value;
-      if (qty < 1) {
-        alert('La cantidad debe ser mayor o igual a 1');
-        return;
-      }
+  // validar filas
+  for (let i = 0; i < this.productsFA.length; i++) {
+    const row = this.productsFA.at(i);
+    const pid = row.controls.productId.value;
+    const product = this.findProduct(pid);
 
-      if (product.esConSerial) {
-        const serials = row.controls.serials.value ?? [];
-        if (serials.length !== qty) {
-          alert(`Debes seleccionar seriales para: ${product.nombre}`);
-          return;
-        }
-      }
-    }
-
-    const idUsuario = Number(localStorage.getItem('idUsuario') ?? '0');
-    if (!idUsuario) {
-      alert('No se encontró idUsuario en sesión. Vuelve a iniciar sesión.');
+    if (!product) {
+      await this.alertSvc.warning(
+        'Producto incompleto',
+        'Completa todos los productos'
+      );
       return;
     }
 
-    const idUbOrigen = this.form.controls.origen.value!;
-    const idUbDestino = this.form.controls.destino.value!;
-    const tipo = this.form.controls.tipo.value ?? 'traslado';
-    const observaciones = (this.form.controls.observaciones.value ?? '').trim();
+    const qty = row.controls.quantity.value;
+    if (qty < 1) {
+      await this.alertSvc.warning(
+        'Cantidad inválida',
+        'La cantidad debe ser mayor o igual a 1'
+      );
+      return;
+    }
 
-    const logHttpError = (tag: string, err: any) => {
-      console.error(`❌ ${tag}`);
-      console.error('status:', err?.status);
-      console.error('url:', err?.url);
-      console.error('message:', err?.message);
-      console.error('err.error:', err?.error);
-    };
-
-    // 1) MOVIMIENTO (cabecera)
-    const movPayload = {
-      tipo: (tipo ?? 'traslado').toUpperCase(), // TRASLADO / AJUSTE / DEVOLUCION (según tu backend)
-      observaciones,
-      idUsuario,
-      idUbicacionOrigen: idUbOrigen,
-      idUbicacionDestino: idUbDestino,
-    };
-
-    this.movimientoService.crear(movPayload as any).pipe(
-      take(1),
-
-      // 2) DETALLES
-      concatMap((movResp: any) => {
-        const idMovimiento = movResp?.idMovimiento;
-        if (!idMovimiento) throw new Error('Movimiento no devolvió idMovimiento');
-
-        const detalleRequests = this.productsFA.controls.map((r) => {
-          const pid = r.controls.productId.value!;
-          const qty = r.controls.quantity.value;
-
-          const detallePayload: any = {
-            cantidad: qty,
-            fkMovimiento: { idMovimiento },
-            fkProducto: { idProducto: pid },
-          };
-
-          return this.movimientoDetalleService.crear(detallePayload).pipe(
-            map((detalleResp: any) => {
-              const idMovimientoDetalle = detalleResp?.idMovimientoDetalle;
-              if (!idMovimientoDetalle) throw new Error('MovimientoDetalle no devolvió idMovimientoDetalle');
-
-              return {
-                row: r,
-                idMovimientoDetalle,
-                idProducto: pid,
-                cantidad: qty,
-              };
-            }),
-            catchError((err) => {
-              logHttpError('POST MovimientoDetalle', err);
-              throw err;
-            })
-          );
-        });
-
-        return forkJoin(detalleRequests).pipe(
-          map((detallesCreados) => ({ movResp, detallesCreados }))
+    if (product.esConSerial) {
+      const serials = row.controls.serials.value ?? [];
+      if (serials.length !== qty) {
+        await this.alertSvc.warning(
+          'Seriales incompletos',
+          `Debes seleccionar seriales para: ${product.nombre}`
         );
-      }),
+        return;
+      }
+    }
+  }
 
-      // 3) SERIAL (si aplica) + KARDEX (2 movimientos por item)
-      concatMap(({ movResp, detallesCreados }: any) => {
-        const ops: Observable<any>[] = [];
+  // ✅ CONFIRMACIÓN (igual a confirmSale)
+  const confirmed = await this.alertSvc.confirm(
+    'Confirmar movimiento',
+    'Se registrará el movimiento de inventario. ¿Deseas continuar?',
+    'Sí, confirmar',
+    'Cancelar'
+  );
+  if (!confirmed) return;
 
-        for (const item of detallesCreados) {
-          const row = item.row as ProductRowForm;
-          const idMovimientoDetalle = item.idMovimientoDetalle as number;
-          const idProducto = item.idProducto as number;
-          const cantidad = item.cantidad as number;
+  const idUsuario = Number(localStorage.getItem('idUsuario') ?? '0');
+  if (!idUsuario) {
+    await this.alertSvc.error(
+      'Sesión inválida',
+      'No se encontró idUsuario en sesión. Vuelve a iniciar sesión.'
+    );
+    return;
+  }
 
-          const product = this.findProduct(idProducto);
-          if (!product) throw new Error('Producto no encontrado al procesar detalle');
+  const idUbOrigen = this.form.controls.origen.value!;
+  const idUbDestino = this.form.controls.destino.value!;
+  const tipo = this.form.controls.tipo.value ?? 'traslado';
+  const observaciones = (this.form.controls.observaciones.value ?? '').trim();
 
-          // CON SERIAL
-          if (product.esConSerial) {
-            const serials = (row.controls.serials.value ?? []).map(s => (s ?? '').trim()).filter(Boolean);
+  const logHttpError = (tag: string, err: any) => {
+    console.error(`❌ ${tag}`);
+    console.error('status:', err?.status);
+    console.error('url:', err?.url);
+    console.error('message:', err?.message);
+    console.error('err.error:', err?.error);
+  };
 
-            for (const serialStr of serials) {
-              // buscar idProductoSerial desde tu dataset ya cargado
-              const serialObj = this.serialesMov().find(s => s.serial === serialStr && s.productoId === idProducto);
-              if (!serialObj) throw new Error(`No encontré idProductoSerial para serial: ${serialStr}`);
+  // 1) MOVIMIENTO (cabecera)
+  const movPayload = {
+    tipo: (tipo ?? 'traslado').toUpperCase(),
+    observaciones,
+    idUsuario,
+    idUbicacionOrigen: idUbOrigen,
+    idUbicacionDestino: idUbDestino,
+  };
 
-              const detalleSerialPayload: any = {
-                idMovimientoDetalle,
-                fkProductoSerial: { idProductoSerial: serialObj.idProductoSerial },
-              };
+  this.movimientoService.crear(movPayload as any).pipe(
+    take(1),
 
-              const [movOut, movIn] = this.buildKardexTrasladoSerial({
-                idMovimientoDetalle,
-                idProducto,
-                idProductoSerial: serialObj.idProductoSerial,
-                idUbOrigen,
-                idUbDestino,
-              });
-              console.log('[KARDEX SERIAL] =>', {
-                serial: serialStr,
-                idProducto,
-                idProductoSerial: serialObj.idProductoSerial,
-                idUbOrigen,
-                idUbDestino,
-                movOut,
-                movIn,
-              });
+    // 2) DETALLES
+    concatMap((movResp: any) => {
+      const idMovimiento = movResp?.idMovimiento;
+      if (!idMovimiento) throw new Error('Movimiento no devolvió idMovimiento');
 
-              // secuencial por serial: crea detalleSerial -> salida -> entrada
-              const op$ = this.movimientoSeriesService.crearMovimientoSeries(detalleSerialPayload).pipe(
-                concatMap(() => this.inventarioMovimientoService.buscarPorSerial(serialStr).pipe(take(1))),
-                concatMap((movs) => {
-                  const last = [...(movs ?? [])].sort((a, b) => {
-                    const da = new Date(a?.fecha ?? 0).getTime();
-                    const db = new Date(b?.fecha ?? 0).getTime();
-                    if (da !== db) return db - da;
-                    return (b?.idInventarioMovimiento ?? 0) - (a?.idInventarioMovimiento ?? 0);
-                  })[0];
+      const detalleRequests = this.productsFA.controls.map((r) => {
+        const pid = r.controls.productId.value!;
+        const qty = r.controls.quantity.value;
 
-                  const ubActual = last?.fkUbicacion?.idUbicacion ?? 0;
+        const detallePayload: any = {
+          cantidad: qty,
+          fkMovimiento: { idMovimiento },
+          fkProducto: { idProducto: pid },
+        };
 
-                  console.log('[SERIAL UBICACION antes de guardar]', {
-                    serial: serialStr,
-                    idProducto,
-                    ubActual,
-                    idUbOrigen,
-                  });
-
-                  if (ubActual !== idUbOrigen) {
-                    throw new Error(`El serial ${serialStr} no está en el origen. Actual: ${ubActual}, Origen: ${idUbOrigen}`);
-                  }
-
-                  return this.inventarioMovimientoService.guardar(movOut);
-                }),
-                concatMap(() => this.inventarioMovimientoService.guardar(movIn)),
-                catchError((err) => {
-                  logHttpError('OP Serial Traslado (detalleSerial + kardex)', err);
-                  throw err;
-                })
-              );
-
-              ops.push(op$);
+        return this.movimientoDetalleService.crear(detallePayload).pipe(
+          map((detalleResp: any) => {
+            const idMovimientoDetalle = detalleResp?.idMovimientoDetalle;
+            if (!idMovimientoDetalle) {
+              throw new Error('MovimientoDetalle no devolvió idMovimientoDetalle');
             }
-          }
 
-          // SIN SERIAL
-          else {
-            const [movOut, movIn] = this.buildKardexTrasladoNoSerial({
+            return {
+              row: r,
+              idMovimientoDetalle,
+              idProducto: pid,
+              cantidad: qty,
+            };
+          }),
+          catchError((err) => {
+            logHttpError('POST MovimientoDetalle', err);
+            throw err;
+          })
+        );
+      });
+
+      return forkJoin(detalleRequests).pipe(
+        map((detallesCreados) => ({ movResp, detallesCreados }))
+      );
+    }),
+
+    // 3) SERIAL + KARDEX
+    concatMap(({ detallesCreados }: any) => {
+      const ops: Observable<any>[] = [];
+
+      for (const item of detallesCreados) {
+        const row = item.row as ProductRowForm;
+        const idMovimientoDetalle = item.idMovimientoDetalle as number;
+        const idProducto = item.idProducto as number;
+        const cantidad = item.cantidad as number;
+
+        const product = this.findProduct(idProducto);
+        if (!product) throw new Error('Producto no encontrado al procesar detalle');
+
+        if (product.esConSerial) {
+          const serials = (row.controls.serials.value ?? [])
+            .map(s => (s ?? '').trim())
+            .filter(Boolean);
+
+          for (const serialStr of serials) {
+            const serialObj = this.serialesMov().find(
+              s => s.serial === serialStr && s.productoId === idProducto
+            );
+            if (!serialObj) {
+              throw new Error(`No encontré idProductoSerial para serial: ${serialStr}`);
+            }
+
+            const detalleSerialPayload: any = {
+              idMovimientoDetalle,
+              fkProductoSerial: { idProductoSerial: serialObj.idProductoSerial },
+            };
+
+            const [movOut, movIn] = this.buildKardexTrasladoSerial({
               idMovimientoDetalle,
               idProducto,
-              cantidad,
+              idProductoSerial: serialObj.idProductoSerial,
               idUbOrigen,
               idUbDestino,
-            });
-            console.log('[KARDEX NO-SERIAL] =>', {
-              idProducto,
-              cantidad,
-              idUbOrigen,
-              idUbDestino,
-              movOut,
-              movIn,
             });
 
-            ops.push(
-              this.inventarioMovimientoService.obtenerStock(idProducto, idUbOrigen).pipe(
-                take(1),
-                concatMap((stock) => {
-                  console.log('[STOCK BACKEND NO-SERIAL antes de guardar]', { idProducto, idUbOrigen, stock });
-                  return this.inventarioMovimientoService.guardar(movOut);
-                }),
-                concatMap(() => this.inventarioMovimientoService.guardar(movIn)),
-                catchError((err) => { logHttpError('OP No-Serial Traslado (kardex)', err); throw err; })
-              )
+            const op$ = this.movimientoSeriesService.crearMovimientoSeries(detalleSerialPayload).pipe(
+              concatMap(() =>
+                this.inventarioMovimientoService.buscarPorSerial(serialStr).pipe(take(1))
+              ),
+              concatMap((movs) => {
+                const last = [...(movs ?? [])].sort((a, b) => {
+                  const da = new Date(a?.fecha ?? 0).getTime();
+                  const db = new Date(b?.fecha ?? 0).getTime();
+                  if (da !== db) return db - da;
+                  return (b?.idInventarioMovimiento ?? 0) - (a?.idInventarioMovimiento ?? 0);
+                })[0];
+
+                const ubActual = last?.fkUbicacion?.idUbicacion ?? 0;
+                if (ubActual !== idUbOrigen) {
+                  throw new Error(
+                    `El serial ${serialStr} no está en el origen. Actual: ${ubActual}, Origen: ${idUbOrigen}`
+                  );
+                }
+
+                return this.inventarioMovimientoService.guardar(movOut);
+              }),
+              concatMap(() => this.inventarioMovimientoService.guardar(movIn)),
+              catchError((err) => {
+                logHttpError('OP Serial Traslado (detalleSerial + kardex)', err);
+                throw err;
+              })
             );
+
+            ops.push(op$);
           }
-        }
-
-        return (ops.length ? forkJoin(ops) : of([])).pipe(
-          map((results) => ({ movResp, results }))
-        );
-      }),
-
-      catchError((err) => {
-        logHttpError('PIPELINE ERROR (movimiento)', err);
-
-        const msg =
-          err?.error?.message ||
-          err?.error?.mensaje ||
-          err?.message ||
-          'Error guardando movimiento.';
-
-        // si es 409 (stock), muestra mensaje directo
-        if (err?.status === 409) {
-          alert(msg);
         } else {
-          alert('Error guardando movimiento. Revisa consola / backend.');
+          const [movOut, movIn] = this.buildKardexTrasladoNoSerial({
+            idMovimientoDetalle,
+            idProducto,
+            cantidad,
+            idUbOrigen,
+            idUbDestino,
+          });
+
+          ops.push(
+            this.inventarioMovimientoService.obtenerStock(idProducto, idUbOrigen).pipe(
+              take(1),
+              concatMap(() => this.inventarioMovimientoService.guardar(movOut)),
+              concatMap(() => this.inventarioMovimientoService.guardar(movIn)),
+              catchError((err) => {
+                logHttpError('OP No-Serial Traslado (kardex)', err);
+                throw err;
+              })
+            )
+          );
         }
-        return of(null);
-      })
-    ).subscribe((finalResp) => {
-      if (!finalResp) return;
+      }
 
-      alert('✓ Movimiento guardado correctamente');
+      return (ops.length ? forkJoin(ops) : of([]));
+    }),
 
-      // limpiar form
-      this.cancel();
+    catchError((err) => {
+      logHttpError('PIPELINE ERROR (movimiento)', err);
 
-      // refrescar seriales (para que ya no aparezcan en origen, etc.)
-      this.cargarSeriales();
-    });
-  }
+      if (err?.status === 409) {
+        this.alertSvc.error('Conflicto de stock', err?.error?.message ?? err?.message);
+      } else {
+        this.alertSvc.error(
+          'Error',
+          'Error guardando movimiento. Revisa consola / backend.'
+        );
+      }
+      return of(null);
+    })
+  ).subscribe((finalResp) => {
+    if (!finalResp) return;
+
+    this.alertSvc.success(
+      'Movimiento guardado',
+      'Movimiento guardado correctamente'
+    );
+
+    this.cancel();
+    this.cargarSeriales();
+  });
+}
 
   cancel(): void {
     // ajusta a tu navegación real
@@ -923,7 +960,10 @@ export default class NuevoMovimientoComponent {
         const qty = row.controls.quantity.value ?? 1;
         if (qty > s) {
           row.controls.quantity.setValue(s, { emitEvent: false });
-          alert(`Stock insuficiente en origen. Disponible: ${s}`);
+          this.alertSvc.warning(
+            'Stock insuficiente',
+            `Stock insuficiente en origen. Disponible: ${s}`
+          );
         }
       },
       error: () => {

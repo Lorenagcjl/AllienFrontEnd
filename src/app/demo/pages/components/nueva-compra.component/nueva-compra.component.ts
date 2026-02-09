@@ -20,6 +20,8 @@ import { ProductoSerial } from 'src/app/demo/models/producto-serial.model';
 import { Producto } from 'src/app/demo/models/producto.model';
 import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
 
+import { AlertService } from 'src/app/@theme/services/alert.service';
+
 
 type Product = { id: number; name: string; serialized: boolean };
 
@@ -40,6 +42,7 @@ type RowForm = FormGroup<{
   styleUrl: './nueva-compra.component.scss',
 })
 export default class NuevaCompraComponent {
+  private alertSvc = inject(AlertService);
   private ubicacionService = inject(UbicacionService);
 
   ubicaciones: Ubicacion[] = [];
@@ -217,11 +220,20 @@ export default class NuevaCompraComponent {
     this.rows.push(row);
   }
 
-  removeProductRow(index: number): void {
-    this.rows.removeAt(index);
-    this.closeAutocompleteAll();
-    this.form.updateValueAndValidity();
-  }
+  async removeProductRow(index: number): Promise<void> {
+  const ok = await this.alertSvc.confirm(
+    'Quitar producto',
+    '¿Deseas eliminar este producto?',
+    'Sí, quitar',
+    'Cancelar'
+  );
+
+  if (!ok) return;
+
+  this.rows.removeAt(index);
+  this.closeAutocompleteAll();
+  this.form.updateValueAndValidity();
+}
 
   // ====== Autocomplete ======
   openAutocomplete(index: number): void {
@@ -240,19 +252,32 @@ export default class NuevaCompraComponent {
   }
 
   selectProduct(index: number, product: Product): void {
-    const row = this.rows.at(index);
+  const row = this.rows.at(index);
 
-    row.controls.productName.setValue(product.name, { emitEvent: false });
-    row.controls.productId.setValue(product.id, { emitEvent: false });
-    row.controls.autocompleteOpen.setValue(false, { emitEvent: false });
+  const yaExiste = this.rows.controls.some(
+    (r, i) => i !== index && r.controls.productId.value === product.id
+  );
 
-    if (!product.serialized) {
-      row.controls.serials.setValue([], { emitEvent: false });
-    }
-
-    // si serializado, deja botón de gestionar seriales en estado "incompleto"
-    this.form.updateValueAndValidity();
+  if (yaExiste) {
+    this.alertSvc.warning(
+      'Producto repetido',
+      'Este producto ya fue agregado. Ajusta la cantidad en la fila existente.'
+    );
+    return;
   }
+
+  row.controls.productName.setValue(product.name, { emitEvent: false });
+  row.controls.productId.setValue(product.id, { emitEvent: false });
+  row.controls.autocompleteOpen.setValue(false, { emitEvent: false });
+
+  if (!product.serialized) {
+    row.controls.serials.setValue([], { emitEvent: false });
+  }
+
+  // si serializado, deja botón de gestionar seriales en estado "incompleto"
+  this.form.updateValueAndValidity();
+}
+
 
   productForRow(index: number): Product | null {
     const id = this.rows.at(index).controls.productId.value;
@@ -314,37 +339,47 @@ export default class NuevaCompraComponent {
   }
 
   confirmSerials(): void {
-    if (!this.modalComplete()) {
-      alert('Debes ingresar todos los seriales y sin duplicados.');
-      return;
-    }
-
-    const rowIdx = this.modalRowIndex();
-    if (rowIdx === null) return;
-
-    const row = this.rows.at(rowIdx);
-    const productId = row.controls.productId.value;
-
-    if (!productId) {
-      alert('Selecciona un producto antes de ingresar seriales.');
-      return;
-    }
-
-    const serials = this.modalSerials().map(s => s.trim()).filter(Boolean);
-
-    // ✅ validar contra seriales ya existentes en BD para este producto
-    const existentes = this.serialesExistentesPorProducto.get(productId) ?? new Set<string>();
-
-    const repetidosEnBD = serials.filter(s => existentes.has(s.toUpperCase()));
-    if (repetidosEnBD.length > 0) {
-      alert(`Estos seriales ya existen para este producto:\n- ${Array.from(new Set(repetidosEnBD)).join('\n- ')}`);
-      return;
-    }
-
-    row.controls.serials.setValue(serials, { emitEvent: false });
-    this.form.updateValueAndValidity();
-    this.closeSerialModal();
+  if (!this.modalComplete()) {
+    this.alertSvc.warning(
+      'Seriales incompletos',
+      'Debes ingresar todos los seriales y sin duplicados.'
+    );
+    return;
   }
+
+  const rowIdx = this.modalRowIndex();
+  if (rowIdx === null) return;
+
+  const row = this.rows.at(rowIdx);
+  const productId = row.controls.productId.value;
+
+  if (!productId) {
+    this.alertSvc.warning(
+      'Producto no seleccionado',
+      'Selecciona un producto antes de ingresar seriales.'
+    );
+    return;
+  }
+
+  const serials = this.modalSerials().map(s => s.trim()).filter(Boolean);
+
+  // ✅ validar contra seriales ya existentes en BD para este producto
+  const existentes = this.serialesExistentesPorProducto.get(productId) ?? new Set<string>();
+
+  const repetidosEnBD = serials.filter(s => existentes.has(s.toUpperCase()));
+  if (repetidosEnBD.length > 0) {
+    this.alertSvc.warning(
+      'Seriales ya existentes',
+      `Estos seriales ya existen para este producto:\n- ${Array.from(new Set(repetidosEnBD)).join('\n- ')}`
+    );
+    return;
+  }
+
+  row.controls.serials.setValue(serials, { emitEvent: false });
+  this.form.updateValueAndValidity();
+  this.closeSerialModal();
+}
+
 
   // ====== Validaciones visuales de fila ======
   rowSerialStatus(index: number): 'na' | 'empty' | 'partial' | 'complete' {
@@ -390,22 +425,40 @@ export default class NuevaCompraComponent {
   }
 
   savePurchase(): void {
-    if (!this.canSave()) {
-      alert('Por favor completa todos los campos requeridos y los seriales de productos serializados.');
-      return;
-    }
+  if (!this.canSave()) {
+    this.alertSvc.warning(
+      'Faltan datos',
+      'Por favor completa todos los campos requeridos y los seriales de productos serializados.'
+    );
+    return;
+  }
 
-    const idUsuario = Number(localStorage.getItem('idUsuario') ?? '0');
-    if (!idUsuario) {
-      alert('No se encontró idUsuario en sesión. Vuelve a iniciar sesión.');
-      return;
-    }
+  const idUsuario = Number(localStorage.getItem('idUsuario') ?? '0');
+  if (!idUsuario) {
+    this.alertSvc.error(
+      'Sesión inválida',
+      'No se encontró idUsuario en sesión. Vuelve a iniciar sesión.'
+    );
+    return;
+  }
 
-    const idUbicacion = this.form.controls.ubicacion.value;
-    if (!idUbicacion) {
-      alert('Selecciona una ubicación.');
-      return;
-    }
+  const idUbicacion = this.form.controls.ubicacion.value;
+  if (!idUbicacion) {
+    this.alertSvc.warning(
+      'Falta ubicación',
+      'Selecciona una ubicación.'
+    );
+    return;
+  }
+
+  // ✅ CONFIRMACIÓN
+  this.alertSvc.confirm(
+    'Confirmar compra',
+    'Se registrará la compra con los productos ingresados. ¿Deseas continuar?',
+    'Sí, confirmar',
+    'Cancelar'
+  ).then((confirmed) => {
+    if (!confirmed) return;
 
     const logHttpError = (tag: string, err: any) => {
       console.error(`❌ ${tag}`);
@@ -414,6 +467,11 @@ export default class NuevaCompraComponent {
       console.error('message:', err?.message);
       console.error('err.error:', err?.error);
     };
+
+    const loadingId = this.alertSvc.loading(
+      'Guardando compra...',
+      'Procesando, por favor espera.'
+    );
 
     const compraPayload: CompraProductoRequest = {
       fechaIngreso: new Date().toISOString(),
@@ -466,15 +524,19 @@ export default class NuevaCompraComponent {
           const row: RowForm = item.row;
           const detalleResp: any = item.detalleResp;
 
-          const idCompraProductoDetalle: number | undefined = detalleResp?.idCompraProductoDetalle;
-          if (!idCompraProductoDetalle) throw new Error('Detalle no devolvió idCompraProductoDetalle');
+          const idCompraProductoDetalle: number | undefined =
+            detalleResp?.idCompraProductoDetalle;
+          if (!idCompraProductoDetalle)
+            throw new Error('Detalle no devolvió idCompraProductoDetalle');
 
           const idProducto = row.controls.productId.value!;
           const product = this.productsData.find(p => p.id === idProducto)!;
 
           // CON SERIAL
           if (product.serialized) {
-            const serials = (row.controls.serials.value ?? []).map(s => s.trim()).filter(Boolean);
+            const serials = (row.controls.serials.value ?? [])
+              .map(s => s.trim())
+              .filter(Boolean);
 
             for (const serialStr of serials) {
               const serialPayload = {
@@ -486,8 +548,10 @@ export default class NuevaCompraComponent {
               ops.push(
                 this.productoSerialService.crearProductoSerial(serialPayload).pipe(
                   rx.concatMap((serialResp: any) => {
-                    const idProductoSerial: number | undefined = serialResp?.idProductoSerial;
-                    if (!idProductoSerial) throw new Error('ProductoSerial no devolvió idProductoSerial');
+                    const idProductoSerial: number | undefined =
+                      serialResp?.idProductoSerial;
+                    if (!idProductoSerial)
+                      throw new Error('ProductoSerial no devolvió idProductoSerial');
 
                     const mov: InventarioMovimiento = {
                       tipo: 'Compra',
@@ -537,7 +601,6 @@ export default class NuevaCompraComponent {
           }
         }
 
-        // CORRECCIÓN: agregar el tipo explícito al array vacío
         return (ops.length ? forkJoin(ops) : of([] as any[])).pipe(
           rx.map((results: any[]) => ({ compraResp, results }))
         );
@@ -545,26 +608,32 @@ export default class NuevaCompraComponent {
 
       rx.catchError((err) => {
         logHttpError('PIPELINE ERROR (compra)', err);
-        alert('Error guardando la compra. Revisa consola / backend.');
+
+        this.alertSvc.close(loadingId);
+
+        const msg = this.alertSvc.getErrorMessage(err);
+        this.alertSvc.error('No se pudo guardar la compra', msg);
+
         return of(null);
       })
-    ).subscribe({
-      next: (finalResp: any) => {
-        if (!finalResp) return;
+    ).subscribe((finalResp: any) => {
+      this.alertSvc.close(loadingId);
 
-        alert('✓ Compra guardada correctamente');
+      if (!finalResp) return;
 
-        // ✅ limpiar UI después del OK
-        this.resetCompraForm();
+      this.alertSvc.success(
+        'Compra registrada',
+        'La compra se guardó correctamente.'
+      );
 
-        // ✅ refrescar seriales existentes (recomendado)
-        this.refreshSerialCacheAfterSave();
-      },
-      error: () => {
-        // tu catchError ya maneja alert, pero igual lo dejo por seguridad
-      }
+      // ✅ limpiar UI
+      this.resetCompraForm();
+
+      // ✅ refrescar cache de seriales
+      this.refreshSerialCacheAfterSave();
     });
-  }
+  });
+}
 
 
   // ====== Click afuera ======
