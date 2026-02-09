@@ -20,7 +20,6 @@ export class AlertService {
   }
 
   close(loadingId?: number): void {
-    // Si me dan token, cierro solo si coincide con el último loading
     if (typeof loadingId === 'number' && loadingId !== this.activeLoadingId) return;
     Swal.close();
   }

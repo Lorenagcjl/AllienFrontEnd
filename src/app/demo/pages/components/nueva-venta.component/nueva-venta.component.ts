@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, concatMap, forkJoin, map, Observable, of, Subject, take, takeUntil } from 'rxjs';
+import { catchError, concatMap, EMPTY, finalize, forkJoin, map, Observable, of, Subject, take, takeUntil, throwError } from 'rxjs';
 
 import { ClienteService } from 'src/app/@theme/services/cliente.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
@@ -19,6 +19,7 @@ import { DetalleVentaService } from 'src/app/@theme/services/detalleventa.servic
 import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
 import { InventarioMovimiento } from 'src/app/demo/models/inventariomovimiento.model';
 import { IvaConfigGlobalService } from 'src/app/@theme/services/iva-config-global.service';
+import { AlertService } from 'src/app/@theme/services/alert.service';
 
 type EstadoSerial = 'Disponible' | 'Vendido' | 'Dañado';
 
@@ -47,6 +48,7 @@ type CartRow = {
   styleUrl: './nueva-venta.component.scss',
 })
 export default class NuevaVentaComponent implements OnInit {
+  private alertSvc = inject(AlertService);
   private clienteService = inject(ClienteService);
   private ubicacionService = inject(UbicacionService);
   private productoService = inject(ProductoService);
@@ -343,7 +345,15 @@ export default class NuevaVentaComponent implements OnInit {
     this.cartRows = [...this.cartRows, row];
   }
 
-  removeCartRow(rowId: string) {
+  async removeCartRow(rowId: string) {
+    const ok = await this.alertSvc.confirm(
+      'Quitar producto',
+      '¿Deseas eliminar este producto del carrito?',
+      'Sí, quitar',
+      'Cancelar'
+    );
+    if (!ok) return;
+
     const row = this.cartRows.find(r => r.id === rowId);
     if (row) row.serials.forEach(s => this.usedSerials.delete(s));
     this.cartRows = this.cartRows.filter(r => r.id !== rowId);
@@ -379,7 +389,7 @@ export default class NuevaVentaComponent implements OnInit {
   selectProduct(row: CartRow, p: Producto) {
     const yaExiste = this.cartRows.some(r => r.id !== row.id && r.productId === p.idProducto);
     if (yaExiste) {
-      alert('Este producto ya fue agregado. Ajusta la cantidad en la fila existente.');
+      this.alertSvc.warning('Producto repetido', 'Este producto ya fue agregado. Ajusta la cantidad en la fila existente.');
       return;
     }
 
@@ -428,7 +438,7 @@ export default class NuevaVentaComponent implements OnInit {
       const disponible = this.getStockNoSerialForRow(row) ?? 0;
       if (row.quantity > disponible) {
         row.quantity = Math.max(0, disponible);
-        alert(`Stock insuficiente en esta ubicación. Disponible: ${disponible}`);
+        this.alertSvc.warning('Stock insuficiente', `Disponible en esta ubicación: ${disponible}`);
       }
     }
 
@@ -473,7 +483,7 @@ export default class NuevaVentaComponent implements OnInit {
     if (!p?.esConSerial || !row.productId) return;
 
     if (!this.selectedUbicacionId) {
-      alert('Selecciona una ubicación antes de escoger seriales.');
+      this.alertSvc.warning('Falta ubicación', 'Selecciona una ubicación antes de escoger seriales.');
       return;
     }
 
@@ -543,7 +553,7 @@ export default class NuevaVentaComponent implements OnInit {
 
     if (next) {
       if (this.modalSelected.size >= this.modalRequiredQty) {
-        alert(`Solo puedes seleccionar ${this.modalRequiredQty} seriales`);
+        this.alertSvc.warning('Límite de seriales', `Solo puedes seleccionar ${this.modalRequiredQty} serial(es).`);
         input.checked = false;
         return;
       }
@@ -565,7 +575,7 @@ export default class NuevaVentaComponent implements OnInit {
     const selected = Array.from(this.modalSelected);
 
     if (selected.length !== this.modalRequiredQty) {
-      alert(`Debes seleccionar exactamente ${this.modalRequiredQty} seriales`);
+      this.alertSvc.warning('Seriales incompletos', `Debes seleccionar exactamente ${this.modalRequiredQty} serial(es).`);
       return;
     }
 
@@ -629,21 +639,29 @@ export default class NuevaVentaComponent implements OnInit {
   // ==========================
   // ✅ Confirmar venta (BASE)
   // ==========================
-  confirmSale(): void {
+  async confirmSale(): Promise<void> {
     if (!this.canConfirmSale()) {
-      alert('Por favor completa todos los campos requeridos');
+      await this.alertSvc.warning('Faltan datos', 'Por favor completa todos los campos requeridos.');
       return;
     }
 
+    const confirmed = await this.alertSvc.confirm(
+      'Confirmar venta',
+      `Se registrará la venta por $${this.totalValue.toFixed(2)}. ¿Deseas continuar?`,
+      'Sí, confirmar',
+      'Cancelar'
+    );
+    if (!confirmed) return;
+
     const idUsuario = Number(localStorage.getItem('idUsuario') ?? '0');
     if (!idUsuario) {
-      alert('No se encontró idUsuario en sesión. Vuelve a iniciar sesión.');
+      await this.alertSvc.error('Sesión inválida', 'No se encontró idUsuario en sesión. Vuelve a iniciar sesión.');
       return;
     }
 
     const idUbicacion = this.selectedUbicacionId;
     if (!idUbicacion) {
-      alert('Selecciona una ubicación');
+      await this.alertSvc.warning('Falta ubicación', 'Selecciona una ubicación.');
       return;
     }
 
@@ -655,13 +673,15 @@ export default class NuevaVentaComponent implements OnInit {
       console.error('err.error:', err?.error);
     };
 
-    // 1) VENTA (backend espera fkUsuario y numeroFactura)
+    const loadingId = this.alertSvc.loading('Confirmando venta...', 'Procesando, por favor espera.');
+
+    // 1) VENTA
     const ventaPayload: any = {
       numeroFactura: (this.invoiceNumber ?? '').trim() || null,
       total: 0, // o this.totalValue si tu backend no recalcula
       observaciones: (this.observaciones ?? '').trim(),
       fkCliente: { idCliente: this.selectedClientId! },
-      fkUsuario: { idUsuario }, // ✅ clave
+      fkUsuario: { idUsuario },
     };
 
     this.ventaService.guardarVenta(ventaPayload, idUsuario).pipe(
@@ -694,7 +714,7 @@ export default class NuevaVentaComponent implements OnInit {
             }),
             catchError((err) => {
               logHttpError('POST detalleVenta', err);
-              throw err; // ✅ corta todo
+              return throwError(() => err); // ✅ NO throw err
             })
           );
         });
@@ -735,17 +755,21 @@ export default class NuevaVentaComponent implements OnInit {
 
               const updateSerialPayload = {
                 serial: serialObj.serial,
-                estado: 'Vendido', // ⚠️ usa EXACTO lo que tu backend espera (Vendido vs VENDIDO)
+                estado: 'Vendido', // debe coincidir con el backend
                 fkProducto: { idProducto: p.idProducto },
               };
 
-              // ✅ SECUENCIAL por serial (si falla algo, revienta)
               const op$ = this.ventaDetalleSerialService.vincularSerialAVenta(vinculoPayload).pipe(
                 concatMap(() => this.inventarioMovimientoService.guardar(movPayload)),
-                concatMap(() => this.productoSerialService.actualizarProductoSerial(serialObj.idProductoSerial, updateSerialPayload)),
+                concatMap(() =>
+                  this.productoSerialService.actualizarProductoSerial(
+                    serialObj.idProductoSerial,
+                    updateSerialPayload
+                  )
+                ),
                 catchError((err) => {
                   logHttpError('OP serial (vinculo/mov/update)', err);
-                  throw err;
+                  return throwError(() => err); // ✅
                 })
               );
 
@@ -766,7 +790,7 @@ export default class NuevaVentaComponent implements OnInit {
               this.inventarioMovimientoService.guardar(movPayload).pipe(
                 catchError((err) => {
                   logHttpError('POST inventarioMovimiento (no-serial)', err);
-                  throw err;
+                  return throwError(() => err); // ✅
                 })
               )
             );
@@ -780,16 +804,24 @@ export default class NuevaVentaComponent implements OnInit {
 
       catchError((err) => {
         logHttpError('PIPELINE ERROR (venta)', err);
-        alert('Error confirmando la venta. Revisa consola / backend.');
-        return of(null);
-      })
-    ).subscribe((finalResp: any) => {
-      if (!finalResp) return;
 
-      alert(`✓ Venta realizada exitosamente\nFactura: ${finalResp.ventaResp?.numeroFactura ?? '(sin factura)'}\nTotal: $${this.totalValue.toFixed(2)}`);
+        this.alertSvc.close(loadingId); // ✅ primero cierro loading
+
+        const msg = this.alertSvc.getErrorMessage(err);
+        this.alertSvc.error('No se pudo confirmar la venta', msg);
+
+        return EMPTY;
+      }),
+    ).subscribe((finalResp: any) => {
+      // OJO: aquí ya no cierres loading
+
+      this.alertSvc.success(
+        'Venta realizada',
+        `Factura: ${finalResp?.ventaResp?.numeroFactura ?? '(sin factura)'}\nTotal: $${this.totalValue.toFixed(2)}`
+      );
 
       this.resetForm();
-      this.loadSeriales(); // refresca seriales disponibles
+      this.loadSeriales();
     });
   }
 
