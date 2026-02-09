@@ -4,6 +4,7 @@ import { take } from 'rxjs';
 import { DetalleCatalogoService } from 'src/app/@theme/services/detalle-catalogo.service';
 import { IvaConfigGlobalService } from 'src/app/@theme/services/iva-config-global.service';
 import { DetalleCatalogoResponseDto } from 'src/app/demo/models/detalle-catalogo.model';
+import { AlertService } from 'src/app/@theme/services/alert.service';
 
 type IvaConfig = {
   taxRate: number;      // porcentaje final (valorNumerico o custom)
@@ -23,6 +24,7 @@ type IvaConfig = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class IvaConfigComponent {
+  private alertSvc = inject(AlertService);
   private readonly detalleCatalogoService = inject(DetalleCatalogoService);
   private readonly ivaGlobal = inject(IvaConfigGlobalService);
 
@@ -166,32 +168,35 @@ export default class IvaConfigComponent {
   }
 
   onSave(): void {
-    const taxRate = this.effectiveTaxRate; // porcentaje ej: 15
+  const taxRate = this.effectiveTaxRate; // porcentaje ej: 15
 
-    // 1) Guardar GLOBAL
-    this.ivaGlobal.setConfig({
-      taxRate,
-      idDetalleCatalogo: this.isCustomMode ? null : this.selectedIvaId,
-      includeTax: this.includeTax,
-      showSeparate: this.showSeparate,
-      isCustom: this.isCustomMode,
-    });
+  // 1) Guardar GLOBAL
+  this.ivaGlobal.setConfig({
+    taxRate,
+    idDetalleCatalogo: this.isCustomMode ? null : this.selectedIvaId,
+    includeTax: this.includeTax,
+    showSeparate: this.showSeparate,
+    isCustom: this.isCustomMode,
+  });
 
-    // 2) Actualiza badge local
-    this.currentTax = taxRate;
+  // 2) Actualiza badge local
+  this.currentTax = taxRate;
 
-    // 3) (Opcional) log
-    console.log('IVA global guardado:', this.ivaGlobal.snapshot);
+  // 3) (Opcional) log
+  console.log('IVA global guardado:', this.ivaGlobal.snapshot);
 
-    // 4) Un solo alert
-    alert(
-      `✓ IVA guardado\n\n` +
-      `IVA: ${taxRate.toFixed(2)}%\n` +
-      `Modo: ${this.isCustomMode ? 'Personalizado' : this.selectedIvaLabel}\n` +
-      `Mostrar separado: ${this.showSeparate ? 'Sí' : 'No'}\n` +
-      `Incluir en precios: ${this.includeTax ? 'Sí' : 'No'}`
-    );
-  }
+  // 4) Un solo alert (reemplaza alert())
+this.alertSvc.success(
+  'IVA guardado',
+  `IVA guardado
+
+- IVA: ${taxRate.toFixed(2)}%
+- Modo: ${this.isCustomMode ? 'Personalizado' : this.selectedIvaLabel}
+- Mostrar separado: ${this.showSeparate ? 'Sí' : 'No'}
+- Incluir en precios: ${this.includeTax ? 'Sí' : 'No'}`
+);
+
+}
 
   private recalculatePreview(): void {
     const taxRate = this.effectiveTaxRate;
