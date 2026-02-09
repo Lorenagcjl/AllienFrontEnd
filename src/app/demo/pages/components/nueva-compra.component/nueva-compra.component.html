@@ -116,7 +116,7 @@
               @case ('na') { <span>N/A</span> }
               @case ('complete') {
               <button class="nc20-btn nc20-btn-success nc20-btn-small" (click)="openSerialModal($index)">
-                ✓ {{ row.controls.serials.value.length }} seriales
+                {{ row.controls.serials.value.length }} seriales
               </button>
               }
               @case ('partial') {
@@ -157,12 +157,15 @@
     <div class="nc20-actions">
       <button class="nc20-btn nc20-btn-secondary" type="button">Cancelar</button>
 
-      <button class="nc20-btn nc20-btn-primary" type="button" [disabled]="!canSave()" (click)="savePurchase()">
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-        Guardar Compra
-      </button>
+     <button
+  class="nc20-btn nc20-btn-primary"
+  type="button"
+  [disabled]="!canSave()"
+  (click)="savePurchase()"
+>
+   <i class="ti ti-device-floppy me-1"></i> Guardar Compra
+</button>
+
     </div>
   </div>
 
@@ -221,7 +224,7 @@
 
           <button class="nc20-btn nc20-btn-primary" type="button" [disabled]="!modalComplete()"
             (click)="confirmSerials()">
-            Confirmar Seriales
+           <i class="ti ti-device-floppy me-1"></i> Confirmar Seriales
           </button>
         </div>
       </div>

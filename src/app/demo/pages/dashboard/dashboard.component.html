@@ -1,215 +1,260 @@
-<div class="gps-landing">
-  <!-- Hero Section -->
-  <section class="hero-section">
-    <div class="hero-content">
-      <div class="hero-text">
-        <div class="logo-container">
-          <img src="assets/images/logoallien.jpg" alt="logo" class="hero-logo"/>
-        </div>
-        <h1 class="hero-title">
-          Sistema de Geolocalización
-          <span class="gradient-text">GPS Inteligente</span>
-        </h1>
-        <p class="hero-description">
-          Rastrea, monitorea y optimiza tus rutas en tiempo real con la tecnología GPS más avanzada del mercado.
-        </p>
-        <!-- <div class="hero-buttons">
-          <button class="btn-primary">
-            <span class="material-icons">rocket_launch</span>
-            Comenzar Ahora
-          </button>
-          <button class="btn-secondary">
-            <span class="material-icons">play_circle</span>
-            Ver Demo
-          </button>
-        </div> -->
-        
-        <div class="hero-stats">
-          <div class="stat-item">
-            <h3>99.9%</h3>
-            <p>Precisión GPS</p>
-          </div>
-          <div class="stat-item">
-            <h3>24/7</h3>
-            <p>Monitoreo</p>
-          </div>
-          <div class="stat-item">
-            <h3>15+</h3>
-            <p>Satélites</p>
-          </div>
-        </div>
+<div class="inventory-dashboard">
+  <!-- Header con Logo -->
+  <div class="dashboard-header">
+    <div class="header-left">
+      <img src="assets/images/logoallien.jpg" alt="logo" class="logo"/>
+      <div>
+        <h1>Allien GNSS</h1>
+        <p>Soluciones profesionales en geolocalización y tecnología satelital</p>
       </div>
-      
-      <div class="hero-visual">
-        <div class="gps-animation">
-          <div class="pulse-circle pulse-1"></div>
-          <div class="pulse-circle pulse-2"></div>
-          <div class="pulse-circle pulse-3"></div>
-          <div class="center-pin">
+    </div>
+    <div class="header-right">
+      <div class="date-badge">
+        <span class="material-icons">calendar_today</span>
+        <span>{{ currentDate }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon bg-primary">
+        <span class="material-icons">business</span>
+      </div>
+      <div class="stat-info">
+        <p class="stat-label">Años de Experiencia</p>
+        <h3 class="stat-value">15+</h3>
+        <span class="stat-trend positive">
+          <i class="ti ti-star"></i> Líder del mercado
+        </span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon bg-success">
+        <span class="material-icons">groups</span>
+      </div>
+      <div class="stat-info">
+        <p class="stat-label">Clientes Satisfechos</p>
+        <h3 class="stat-value">5,000+</h3>
+        <span class="stat-trend positive">
+          <i class="ti ti-arrow-up"></i> En crecimiento
+        </span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon bg-warning">
+        <span class="material-icons">public</span>
+      </div>
+      <div class="stat-info">
+        <p class="stat-label">Cobertura</p>
+        <h2 class="stat-value">Nacional</h2>
+        <span class="stat-trend positive">
+          <i class="ti ti-map"></i> Todo Ecuador
+        </span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon bg-info">
+        <span class="material-icons">support_agent</span>
+      </div>
+      <div class="stat-info">
+        <p class="stat-label">Soporte Técnico</p>
+        <h3 class="stat-value">24/7</h3>
+        <span class="stat-trend positive">
+          <i class="ti ti-phone"></i> Siempre disponible
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="dashboard-content">
+    <!-- Servicios -->
+    <div class="categories-card">
+      <div class="card-header">
+        <h2>
+          <span class="material-icons">category</span>
+          Nuestros Servicios
+        </h2>
+      </div>
+      <div class="categories-grid">
+        <div class="category-item">
+          <div class="category-icon">
+            <span class="material-icons">satellite_alt</span>
+          </div>
+          <h4>Equipos GNSS</h4>
+          <p class="category-count">Alta precisión</p>
+          <div class="category-bar">
+            <div class="bar-fill" style="width: 95%"></div>
+          </div>
+        </div>
+
+        <div class="category-item">
+          <div class="category-icon">
             <span class="material-icons">location_on</span>
           </div>
-          <div class="satellite sat-1">
-            <span class="material-icons">satellite</span>
-          </div>
-          <div class="satellite sat-2">
-            <span class="material-icons">satellite</span>
-          </div>
-          <div class="satellite sat-3">
-            <span class="material-icons">satellite</span>
+          <h4>Rastreo GPS</h4>
+          <p class="category-count">Tiempo real</p>
+          <div class="category-bar">
+            <div class="bar-fill" style="width: 90%"></div>
           </div>
         </div>
+
+        <div class="category-item">
+          <div class="category-icon">
+            <span class="material-icons">map</span>
+          </div>
+          <h4>Topografía</h4>
+          <p class="category-count">Profesional</p>
+          <div class="category-bar">
+            <div class="bar-fill" style="width: 85%"></div>
+          </div>
+        </div>
+
+        <div class="category-item">
+          <div class="category-icon">
+            <span class="material-icons">engineering</span>
+          </div>
+          <h4>Consultoría</h4>
+          <p class="category-count">Especializada</p>
+          <div class="category-bar">
+            <div class="bar-fill" style="width: 80%"></div>
+          </div>
+        </div>
+
+        <div class="category-item">
+          <div class="category-icon">
+            <span class="material-icons">school</span>
+          </div>
+          <h4>Capacitación</h4>
+          <p class="category-count">Certificada</p>
+          <div class="category-bar">
+            <div class="bar-fill" style="width: 75%"></div>
+          </div>
+        </div>
+
+        <div class="category-item">
+          <div class="category-icon">
+            <span class="material-icons">build</span>
+          </div>
+          <h4>Mantenimiento</h4>
+          <p class="category-count">Garantizado</p>
+          <div class="category-bar">
+            <div class="bar-fill" style="width: 88%"></div>
+          </div>
+        </div>
       </div>
     </div>
-  </section>
 
-  <!-- Features Section -->
-  <section class="features-section">
-    <div class="section-header">
-      <h2>Características Principales</h2>
-      <p>Todo lo que necesitas para un rastreo GPS completo</p>
-    </div>
-
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon bg-primary">
-          <span class="material-icons">my_location</span>
+    <!-- Info Sidebar -->
+    <div class="info-sidebar">
+      <!-- Información de la Empresa -->
+      <div class="info-card">
+        <h3>
+          <span class="material-icons">info</span>
+          Sobre Nosotros
+        </h3>
+        <div class="company-info">
+          <p>
+            <strong>Allien GNSS</strong> es una empresa ecuatoriana líder en soluciones de 
+            geolocalización y tecnología GNSS (Sistema Global de Navegación por Satélite).
+          </p>
+          <div class="info-item">
+            <span class="material-icons">verified</span>
+            <div>
+              <strong>Misión</strong>
+              <p>Proporcionar soluciones tecnológicas de precisión en geolocalización</p>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="material-icons">emoji_events</span>
+            <div>
+              <strong>Visión</strong>
+              <p>Ser la empresa referente en tecnología GNSS en Latinoamérica</p>
+            </div>
+          </div>
         </div>
-        <h3>Rastreo en Tiempo Real</h3>
-        <p>Localización precisa con actualización continua cada segundo</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon bg-success">
-          <span class="material-icons">route</span>
+      <!-- Valores -->
+      <div class="info-card">
+        <h3>
+          <span class="material-icons">star</span>
+          Nuestros Valores
+        </h3>
+        <div class="values-list">
+          <div class="value-item">
+            <span class="material-icons">check_circle</span>
+            <span>Calidad y Precisión</span>
+          </div>
+          <div class="value-item">
+            <span class="material-icons">check_circle</span>
+            <span>Innovación Constante</span>
+          </div>
+          <div class="value-item">
+            <span class="material-icons">check_circle</span>
+            <span>Compromiso con el Cliente</span>
+          </div>
+          <div class="value-item">
+            <span class="material-icons">check_circle</span>
+            <span>Excelencia Técnica</span>
+          </div>
+          <div class="value-item">
+            <span class="material-icons">check_circle</span>
+            <span>Responsabilidad Social</span>
+          </div>
         </div>
-        <h3>Optimización de Rutas</h3>
-        <p>Calcula la ruta más eficiente y ahorra tiempo y combustible</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon bg-warning">
-          <span class="material-icons">history</span>
+      <!-- Contacto -->
+      <div class="info-card contact-card">
+        <h3>
+          <span class="material-icons">contact_mail</span>
+          Contacto
+        </h3>
+        <div class="contact-list">
+          <div class="contact-item">
+            <span class="material-icons">phone</span>
+            <div>
+              <strong>Teléfono</strong>
+              <p>+593 2 XXX-XXXX</p>
+            </div>
+          </div>
+          <div class="contact-item">
+            <span class="material-icons">email</span>
+            <div>
+              <strong>Email</strong>
+              <p>info@alliengnss.com</p>
+            </div>
+          </div>
+          <div class="contact-item">
+            <span class="material-icons">location_on</span>
+            <div>
+              <strong>Ubicación</strong>
+              <p>Quito, Ecuador</p>
+            </div>
+          </div>
         </div>
-        <h3>Historial Completo</h3>
-        <p>Accede a todo el historial de ubicaciones y trayectorias</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon bg-info">
-          <span class="material-icons">notifications_active</span>
-        </div>
-        <h3>Alertas Inteligentes</h3>
-        <p>Notificaciones automáticas por geocercas y eventos</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon bg-danger">
-          <span class="material-icons">analytics</span>
-        </div>
-        <h3>Reportes Detallados</h3>
-        <p>Análisis completo de distancias, tiempos y velocidades</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon bg-purple">
-          <span class="material-icons">devices</span>
-        </div>
-        <h3>Multi-Plataforma</h3>
-        <p>Accede desde web, móvil o tablet en cualquier momento</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- How It Works Section -->
-  <section class="how-works-section">
-    <div class="section-header">
-      <h2>¿Cómo Funciona?</h2>
-      <p>Tres simples pasos para comenzar</p>
-    </div>
-
-    <div class="steps-container">
-      <div class="step-card">
-        <div class="step-number">01</div>
-        <div class="step-icon">
-          <span class="material-icons">person_add</span>
-        </div>
-        <h3>Regístrate</h3>
-        <p>Crea tu cuenta en menos de 2 minutos</p>
-      </div>
-
-      <div class="step-connector"></div>
-
-      <div class="step-card">
-        <div class="step-number">02</div>
-        <div class="step-icon">
-          <span class="material-icons">settings</span>
-        </div>
-        <h3>Configura</h3>
-        <p>Activa el GPS y personaliza tus preferencias</p>
-      </div>
-
-      <div class="step-connector"></div>
-
-      <div class="step-card">
-        <div class="step-number">03</div>
-        <div class="step-icon">
-          <span class="material-icons">explore</span>
-        </div>
-        <h3>Rastrea</h3>
-        <p>Monitorea en tiempo real desde cualquier lugar</p>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- Stats Section -->
-  <section class="stats-section">
-    <div class="stats-container">
-      <div class="stat-box">
-        <span class="material-icons">public</span>
-        <h3>150+</h3>
-        <p>Países Cubiertos</p>
-      </div>
-      <div class="stat-box">
-        <span class="material-icons">groups</span>
-        <h3>50K+</h3>
-        <p>Usuarios Activos</p>
-      </div>
-      <div class="stat-box">
-        <span class="material-icons">navigation</span>
-        <h3>1M+</h3>
-        <p>Rutas Trazadas</p>
-      </div>
-      <div class="stat-box">
-        <span class="material-icons">speed</span>
-        <h3>5ms</h3>
-        <p>Latencia Promedio</p>
+  <!-- Información Adicional 
+  <div class="system-info">
+    <div class="info-box">
+      <span class="material-icons">verified_user</span>
+      <div>
+        <h4>Sistema de Gestión Allien GNSS</h4>
+        <p>
+          Plataforma integral para la gestión de equipos, proyectos y servicios de geolocalización. 
+          Diseñada para optimizar los procesos internos y brindar un mejor servicio a nuestros clientes.
+        </p>
       </div>
     </div>
-  </section>
-
-  <!-- CTA Section -->
-  <!-- <section class="cta-section">
-    <div class="cta-content">
-      <h2>¿Listo para comenzar?</h2>
-      <p>Únete a miles de usuarios que confían en nuestra tecnología GPS</p>
-      <button class="btn-cta">
-        <span class="material-icons">arrow_forward</span>
-        Prueba Gratis por 30 Días
-      </button>
-    </div>
-    <div class="cta-visual">
-      <div class="floating-card card-1">
-        <span class="material-icons">map</span>
-        <p>Mapas HD</p>
-      </div>
-      <div class="floating-card card-2">
-        <span class="material-icons">shield</span>
-        <p>100% Seguro</p>
-      </div>
-      <div class="floating-card card-3">
-        <span class="material-icons">cloud_done</span>
-        <p>En la Nube</p>
-      </div>
-    </div>
-  </section> -->
+  </div>
+  -->
 </div>

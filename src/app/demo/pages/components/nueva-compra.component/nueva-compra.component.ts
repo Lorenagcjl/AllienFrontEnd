@@ -223,7 +223,7 @@ export default class NuevaCompraComponent {
   async removeProductRow(index: number): Promise<void> {
   const ok = await this.alertSvc.confirm(
     'Quitar producto',
-    '¿Deseas eliminar este producto?',
+    '¿Deseas eliminar este producto del carrito?',
     'Sí, quitar',
     'Cancelar'
   );

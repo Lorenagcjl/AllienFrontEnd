@@ -154,7 +154,7 @@
                     [class.nv-btn--secondary]="row.serials.length === 0" (click)="openSerialModal(row)"
                     [disabled]="!row.productId">
                     <ng-container *ngIf="row.serials.length === row.quantity && row.quantity > 0">
-                      ✓ {{ row.serials.length }} seleccionados
+                       {{ row.serials.length }} seleccionados
                     </ng-container>
                     <ng-container *ngIf="row.serials.length > 0 && row.serials.length !== row.quantity">
                       ⚠ {{ row.serials.length }}/{{ row.quantity }}
@@ -214,12 +214,15 @@
         <div class="nv-summary-actions">
           <button type="button" class="nv-btn nv-btn--secondary">Cancelar</button>
 
-          <button type="button" class="nv-btn nv-btn--primary" [disabled]="!canConfirmSale()" (click)="confirmSale()">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Confirmar Venta
-          </button>
+          <button
+  type="button"
+  class="nv-btn nv-btn--primary"
+  [disabled]="!canConfirmSale()"
+  (click)="confirmSale()"
+>
+   <i class="ti ti-device-floppy me-1"></i> Confirmar Venta
+</button>
+
         </div>
       </div>
     </div>
@@ -268,7 +271,7 @@
         <button type="button" class="nv-btn nv-btn--secondary" (click)="closeSerialModal()">Cancelar</button>
         <button type="button" class="nv-btn nv-btn--primary" [disabled]="modalSelectedCount() !== modalRequiredQty"
           (click)="confirmSerials()">
-          Confirmar Selección
+         <i class="ti ti-device-floppy me-1"></i> Confirmar Selección
         </button>
       </div>
     </div>

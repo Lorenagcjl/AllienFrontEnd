@@ -54,9 +54,12 @@
 
     <div class="modal-actions-custom">
       <button mat-button type="button" (click)="onClose()" [disabled]="cargando">Cancelar</button>
-      <button mat-raised-button color="primary" (click)="save()" [disabled]="form.invalid || cargando">
-        {{ cargando ? 'Guardando...' : 'Guardar Detalle' }}
-      </button>
+       <button mat-raised-button
+        color="primary"
+        (click)="save()"
+        [disabled]="form.invalid || cargando">
+    <i class="ti ti-device-floppy me-1"></i> {{ cargando ? 'Guardando...' : (detalleSeleccionado ? 'Actualizar Detalle' : 'Guardar Detalle') }}
+</button>
     </div>
 
   </div>

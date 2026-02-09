@@ -186,12 +186,14 @@
     <!-- Acciones -->
     <div class="inv-mov__actions">
       <button type="button" class="inv-mov__btn inv-mov__btn-secondary" (click)="cancel()">Cancelar</button>
-      <button type="button" class="inv-mov__btn inv-mov__btn-primary" (click)="saveMovement()">
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-        Guardar Movimiento
-      </button>
+      <button
+  type="button"
+  class="inv-mov__btn inv-mov__btn-primary"
+  (click)="saveMovement()"
+>
+   <i class="ti ti-device-floppy me-1"></i> Guardar Movimiento
+</button>
+
     </div>
   </div>
 </div>
@@ -215,12 +217,20 @@
           No hay seriales disponibles para este producto.
         </div>
 
-        <label class="inv-mov__serial-item" *ngFor="let s of modalSerials(); trackBy: trackBySerial"
-          [class.inv-mov__serial-selected]="isSerialSelected(s)">
-          <input type="checkbox" class="inv-mov__serial-checkbox" [checked]="isSerialSelected(s)"
-            (change)="toggleSerial(s)" />
-          <span class="inv-mov__serial-code">{{ s }}</span>
-        </label>
+       <label
+  class="inv-mov__serial-item"
+  *ngFor="let s of modalSerials(); trackBy: trackBySerial"
+  [class.inv-mov__serial-selected]="isSerialSelected(s)"
+>
+  <input
+    type="checkbox"
+    class="inv-mov__serial-checkbox"
+    [checked]="isSerialSelected(s)"
+    (change)="toggleSerial(s, $event)"
+  />
+  <span class="inv-mov__serial-code">{{ s }}</span>
+</label>
+
       </div>
     </div>
 
@@ -236,7 +246,7 @@
           Cancelar
         </button>
         <button type="button" class="inv-mov__btn inv-mov__btn-primary" (click)="confirmSerials()">
-          Confirmar Selección
+         <i class="ti ti-device-floppy me-1"></i> Confirmar Selección
         </button>
       </div>
     </div>

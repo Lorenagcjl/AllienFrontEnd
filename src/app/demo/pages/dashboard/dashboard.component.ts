@@ -151,4 +151,10 @@ export default class DashboardComponent {
       number: '+$763,43'
     }
   ];
+  currentDate = new Date().toLocaleDateString('es-EC', { 
+  weekday: 'long', 
+  year: 'numeric', 
+  month: 'long', 
+  day: 'numeric' 
+});
 }

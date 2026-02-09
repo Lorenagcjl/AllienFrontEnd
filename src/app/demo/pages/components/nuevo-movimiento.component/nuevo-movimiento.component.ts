@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, concatMap, forkJoin, map, Observable, of, take } from 'rxjs';
 import { InventarioMovimientoService } from 'src/app/@theme/services/inventariomovimiento.service';
@@ -51,7 +51,7 @@ export default class NuevoMovimientoComponent {
   private readonly movimientoDetalleService = inject(MovimientoDetalleService);
   private readonly movimientoSeriesService = inject(MovimientoSeriesService);
   private readonly inventarioMovimientoService = inject(InventarioMovimientoService);
-
+private readonly cdr = inject(ChangeDetectorRef);
   private readonly ubicacionService = inject(UbicacionService);
   private readonly productoService = inject(ProductoService);
   private readonly productoSerialService = inject(ProductoSerialService);
@@ -339,22 +339,24 @@ export default class NuevoMovimientoComponent {
  async removeProductRow(index: number): Promise<void> {
   const ok = await this.alertSvc.confirm(
     'Quitar producto',
-    '¿Deseas eliminar este producto?',
+    '¿Deseas eliminar este producto del movimiento?',
     'Sí, quitar',
     'Cancelar'
   );
   if (!ok) return;
 
+  // cerrar modal antes si corresponde
+  const m = this._modalRowIndex();
+  if (m === index) this.closeSerialModal();
+
+  // ✅ ejecuta el remove
   this.productsFA.removeAt(index);
 
-  if (this._modalRowIndex() === index) {
-    this.closeSerialModal();
-  }
+  // ajustar índice del modal
+  if (m !== null && m > index) this._modalRowIndex.set(m - 1);
 
-  const m = this._modalRowIndex();
-  if (m !== null && m > index) {
-    this._modalRowIndex.set(m - 1);
-  }
+  // ✅ si estás en OnPush, fuerza repaint
+  this.cdr.detectChanges();
 }
 
   // ===== Autocomplete =====
@@ -481,13 +483,22 @@ export default class NuevoMovimientoComponent {
   });
 }
 
-  toggleSerial(serial: string): void {
+  toggleSerial(serial: string, ev: Event): void {
+  const input = ev.target as HTMLInputElement;
+  const next = input.checked;
+
   const idx = this._modalRowIndex();
-  if (idx === null) return;
+  if (idx === null) {
+    input.checked = false;
+    return;
+  }
 
   const row = this.productsFA.at(idx);
   const productoId = row.controls.productId.value;
-  if (productoId == null) return;
+  if (productoId == null) {
+    input.checked = false;
+    return;
+  }
 
   const usados = this.serialesUsadosPorProducto(productoId, idx);
   if (usados.has(serial)) {
@@ -495,23 +506,25 @@ export default class NuevoMovimientoComponent {
       'Serial duplicado',
       'Ese serial ya fue seleccionado en otra fila para este producto.'
     );
+    input.checked = false; // ✅ revierte el check
     return;
   }
 
   const required = this.modalRequiredCount();
   const set = new Set(this._modalSelected());
 
-  if (set.has(serial)) {
-    set.delete(serial);
-  } else {
+  if (next) {
     if (set.size >= required) {
       this.alertSvc.warning(
         'Límite de seriales',
         `Solo puedes seleccionar ${required} seriales`
       );
+      input.checked = false; // ✅ revierte el check
       return;
     }
     set.add(serial);
+  } else {
+    set.delete(serial);
   }
 
   this._modalSelected.set(set);
