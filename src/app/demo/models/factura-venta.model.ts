@@ -1,7 +1,12 @@
 export interface FacturaVentaResponse {
   idVenta: number;
   numeroFactura: string;
-  fechaVenta: string; // ISO
+  fechaVenta: string;
+
+  subtotal?: number;
+  ivaPorcentaje?: number;
+  ivaValor?: number;
+
   total: number;
   observaciones?: string;
 

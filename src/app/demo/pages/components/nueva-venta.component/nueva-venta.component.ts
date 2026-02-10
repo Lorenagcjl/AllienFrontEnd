@@ -186,7 +186,7 @@ export default class NuevaVentaComponent implements OnInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe(cfg => {
         this.ivaRatePercent = Number(cfg?.taxRate ?? 0);  // 15
-        this.includeTax = !!cfg?.includeTax;
+        //this.includeTax = !!cfg?.includeTax;
         this.cdr.detectChanges();
       });
   }
@@ -678,11 +678,21 @@ export default class NuevaVentaComponent implements OnInit {
     // 1) VENTA
     const ventaPayload: any = {
       numeroFactura: (this.invoiceNumber ?? '').trim() || null,
-      total: 0, // o this.totalValue si tu backend no recalcula
+
+      subtotal: Number(this.subtotalValue.toFixed(2)),
+      ivaPorcentaje: Number((this.ivaRatePercent ?? 0).toFixed(2)), // ej: 15
+      ivaValor: Number(this.taxValue.toFixed(2)),
+      total: Number(this.totalValue.toFixed(2)),
+
       observaciones: (this.observaciones ?? '').trim(),
       fkCliente: { idCliente: this.selectedClientId! },
       fkUsuario: { idUsuario },
     };
+
+    console.log('✅ ventaPayload a enviar:', JSON.stringify(ventaPayload, null, 2));
+    console.log('subtotalValue:', this.subtotalValue);
+    console.log('taxValue:', this.taxValue);
+    console.log('totalValue:', this.totalValue);
 
     this.ventaService.guardarVenta(ventaPayload, idUsuario).pipe(
       take(1),

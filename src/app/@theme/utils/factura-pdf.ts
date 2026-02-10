@@ -233,22 +233,62 @@ export function generarFacturaPdf(f: FacturaVentaResponse) {
   }
 
   // ==========================================
-  // TOTAL
+  // TOTALES (SUBTOTAL + IVA + TOTAL)
   // ==========================================
 
-  const totalBoxY = y2 + 10;
+  const totalesBoxX = pageWidth - marginX - 220;
+  const totalesBoxY = y2 + 10;
+  const totalesBoxWidth = 220;
 
-  // Recuadro del total
+  // Fondo gris claro para el área de totales
+  doc.setFillColor(250, 250, 250);
+  doc.roundedRect(totalesBoxX, totalesBoxY, totalesBoxWidth, 95, 3, 3, 'F');
+
+  // Borde del recuadro
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(1);
+  doc.roundedRect(totalesBoxX, totalesBoxY, totalesBoxWidth, 95, 3, 3, 'S');
+
+  let totalY = totalesBoxY + 20;
+
+  // SUBTOTAL
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(80, 80, 80);
+  doc.text('Subtotal:', totalesBoxX + 15, totalY);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(money(f.subtotal ?? 0), totalesBoxX + totalesBoxWidth - 15, totalY, { align: 'right' });
+
+  // IVA (con porcentaje)
+  totalY += 18;
+  doc.setFont('helvetica', 'bold');
+  const ivaPorcentajeText = f.ivaPorcentaje !== undefined ? ` (${f.ivaPorcentaje}%)` : '';
+  doc.text(`IVA${ivaPorcentajeText}:`, totalesBoxX + 15, totalY);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(money(f.ivaValor ?? 0), totalesBoxX + totalesBoxWidth - 15, totalY, { align: 'right' });
+
+  // Línea separadora antes del total
+  totalY += 10;
+  doc.setDrawColor(41, 128, 185);
+  doc.setLineWidth(1);
+  doc.line(totalesBoxX + 15, totalY, totalesBoxX + totalesBoxWidth - 15, totalY);
+
+  // TOTAL FINAL (destacado)
+  totalY += 18;
+
+  // Fondo azul para el total
   doc.setFillColor(41, 128, 185);
-  doc.roundedRect(pageWidth - marginX - 180, totalBoxY, 180, 40, 3, 3, 'F');
+  doc.roundedRect(totalesBoxX + 10, totalY - 12, totalesBoxWidth - 20, 30, 2, 2, 'F');
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
-  doc.text('TOTAL A PAGAR:', pageWidth - marginX - 170, totalBoxY + 18);
+  doc.text('TOTAL A PAGAR:', totalesBoxX + 20, totalY + 5);
 
-  doc.setFontSize(16);
-  doc.text(money(f.total), pageWidth - marginX - 170, totalBoxY + 35);
+  doc.setFontSize(14);
+  doc.text(money(f.total), totalesBoxX + totalesBoxWidth - 20, totalY + 5, { align: 'right' });
 
   // ==========================================
   // PIE DE PÁGINA
