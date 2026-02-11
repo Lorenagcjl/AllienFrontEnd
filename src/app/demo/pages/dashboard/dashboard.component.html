@@ -2,7 +2,7 @@
   <!-- Header con Logo -->
   <div class="dashboard-header">
     <div class="header-left">
-      <img src="assets/images/logoallien.jpg" alt="logo" class="logo"/>
+      <img src="assets/images/logoallien.jpg" alt="logo" class="logo" />
       <div>
         <h1>Inventario GNSS</h1>
         <p>Sistema de gestión y control de stock en tiempo real</p>
@@ -11,9 +11,7 @@
     <div class="header-right">
       <div class="location-selector">
         <span class="material-icons">location_on</span>
-        <select
-          [ngModel]="ubicacionSeleccionadaId"
-          (ngModelChange)="onCambiarUbicacion($event)"
+        <select [ngModel]="ubicacionSeleccionadaId" (ngModelChange)="onCambiarUbicacion($event)"
           class="location-select">
           <option [ngValue]="null">Todas las ubicaciones</option>
           <option *ngFor="let u of ubicaciones" [ngValue]="u.idUbicacion">
@@ -98,7 +96,8 @@
       </div>
 
       <div class="stock-list" *ngIf="stock.length > 0; else emptyStock">
-        <div class="stock-item" *ngFor="let item of stock">
+        <div class="stock-item" *ngFor="let item of stock" (click)="verSerialesDeItem(item)"
+          [class.selected]="productoSeleccionado?.idProducto === item.idProducto && productoSeleccionado?.idUbicacion === item.idUbicacion">
           <div class="stock-product">
             <div class="product-icon" [class.low-stock]="item.stock < 3">
               <span class="material-icons">{{ getProductIcon(item.producto) }}</span>
@@ -113,7 +112,8 @@
           </div>
 
           <div class="stock-quantity">
-            <div class="quantity-badge" [class.low]="item.stock < 3" [class.medium]="item.stock >= 3 && item.stock < 10" [class.high]="item.stock >= 10">
+            <div class="quantity-badge" [class.low]="item.stock < 3" [class.medium]="item.stock >= 3 && item.stock < 10"
+              [class.high]="item.stock >= 10">
               <span class="quantity-number">{{ item.stock }}</span>
               <span class="quantity-label">unidades</span>
             </div>
@@ -135,6 +135,43 @@
 
     <!-- Info Sidebar -->
     <div class="info-sidebar">
+      <!-- Seriales del producto seleccionado -->
+      <div class="info-card seriales-card" *ngIf="serialesVisibles">
+        <div class="seriales-header">
+          <div>
+            <h3 style="margin:0;">
+              <span class="material-icons">qr_code</span>
+              Seriales - {{ productoSeleccionado?.producto }}
+            </h3>
+            <p class="seriales-subtitle">{{ productoSeleccionado?.ubicacion }}</p>
+          </div>
+
+          <button class="seriales-close" type="button" (click)="cerrarSeriales()">
+            Cerrar
+          </button>
+        </div>
+
+        <div *ngIf="serialesCargando" class="seriales-loading">
+          Cargando seriales...
+        </div>
+
+        <div *ngIf="!serialesCargando && serialesFiltrados.length; else sinSeriales" class="seriales-list">
+          <div class="serial-item" *ngFor="let s of serialesFiltrados; trackBy: trackBySerial">
+            <span class="material-icons">qr_code_2</span>
+            <div class="serial-text">
+              <strong>{{ s.serial }}</strong>
+              <small>{{ s.producto }}</small>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #sinSeriales>
+          <div class="seriales-empty">
+            No hay seriales disponibles para este producto.
+          </div>
+        </ng-template>
+      </div>
+
       <!-- Resumen por Ubicación -->
       <div class="info-card">
         <h3>
@@ -151,7 +188,8 @@
               <span class="ubicacion-total">{{ resumen.total }} u.</span>
             </div>
             <div class="ubicacion-products">
-              <span class="product-count">{{ resumen.productos }} {{ resumen.productos === 1 ? 'producto' : 'productos' }}</span>
+              <span class="product-count">{{ resumen.productos }} {{ resumen.productos === 1 ? 'producto' : 'productos'
+                }}</span>
             </div>
             <div class="ubicacion-bar">
               <div class="bar-fill" [style.width.%]="resumen.percentage"></div>
@@ -199,3 +237,32 @@
     </div>
   </div>
 </div>
+<!-- <div class="info-card" *ngIf="serialesVisibles">
+  <h3>
+    <span class="material-icons">qr_code</span>
+    Seriales - {{ productoSeleccionado?.producto }}
+  </h3>
+
+  <p style="margin-top:-8px; color:#718096;">
+    {{ productoSeleccionado?.ubicacion }}
+  </p>
+
+  <button (click)="cerrarSeriales()" style="margin-bottom:12px;">
+    Cerrar
+  </button>
+
+  <div *ngIf="serialesCargando">Cargando seriales...</div>
+
+  <div *ngIf="!serialesCargando && serialesFiltrados.length; else sinSeriales">
+    <div class="top-item" *ngFor="let s of serialesFiltrados; trackBy: trackBySerial">
+      <div class="top-info">
+        <strong>{{ s.serial }}</strong>
+        <p>{{ s.producto }}</p>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #sinSeriales>
+    <p>No hay seriales disponibles para este producto.</p>
+  </ng-template>
+</div> -->

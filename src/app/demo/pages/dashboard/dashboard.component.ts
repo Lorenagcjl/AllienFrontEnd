@@ -20,6 +20,8 @@ export default class DashboardComponent implements OnInit {
   private ubicacionService = inject(UbicacionService);
   private inventarioService = inject(InventarioRepostService);
   private cdr = inject(ChangeDetectorRef);
+  private serialesCache = new Map<number, SerialEnStockDto[]>();
+  trackBySerial = (_: number, s: SerialEnStockDto) => s.idProductoSerial;
 
 
   ubicaciones: Ubicacion[] = [];
@@ -166,4 +168,56 @@ export default class DashboardComponent implements OnInit {
   getStockBajo(): StockUbicacionDto[] {
     return this.stock.filter(item => item.stock > 0 && item.stock < 3);
   }
+
+  serialesVisibles = false;
+  serialesCargando = false;
+  productoSeleccionado?: { idProducto: number; producto: string; ubicacion: string; idUbicacion: number };
+
+  serialesFiltrados: SerialEnStockDto[] = [];
+
+  verSerialesDeItem(item: StockUbicacionDto): void {
+    this.productoSeleccionado = {
+      idProducto: item.idProducto,
+      producto: item.producto,
+      ubicacion: item.ubicacion,
+      idUbicacion: item.idUbicacion
+    };
+
+    this.serialesVisibles = true;
+    this.serialesCargando = true;
+
+    const cached = this.serialesCache.get(item.idUbicacion);
+    if (cached) {
+      this.seriales = cached;
+      this.serialesFiltrados = cached.filter(x => x.idProducto === item.idProducto);
+      this.serialesCargando = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.inventarioService.serialesDisponiblesEnUbicacion(item.idUbicacion)
+      .subscribe({
+        next: (s) => {
+          const data = s ?? [];
+          this.serialesCache.set(item.idUbicacion, data);
+
+          this.seriales = data;
+          this.serialesFiltrados = data.filter(x => x.idProducto === item.idProducto);
+
+          this.serialesCargando = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.serialesCargando = false;
+          this.alertService.error('Error', this.alertService.getErrorMessage(err, 'No se pudieron cargar seriales'));
+        }
+      });
+  }
+
+  cerrarSeriales(): void {
+    this.serialesVisibles = false;
+    this.serialesFiltrados = [];
+    this.productoSeleccionado = undefined;
+  }
+
 }
