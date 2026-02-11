@@ -567,3 +567,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+.nc20-error {
+  border: 1px solid #e74c3c;
+}
+
+.nc20-field-error {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #e74c3c;
+}

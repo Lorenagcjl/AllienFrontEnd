@@ -133,10 +133,9 @@
                 (ngModelChange)="onQuantityChange(row)" />
             </td>
 
-            <!-- Precio -->
+            <!-- Precio (NO editable) -->
             <td>
-              <input class="nv-price-input" type="number" min="0" step="0.01" [(ngModel)]="row.price"
-                (ngModelChange)="onPriceChange(row)" />
+              <input class="nv-price-input" type="number" [value]="row.price" disabled />
             </td>
 
             <!-- Subtotal -->
@@ -154,7 +153,7 @@
                     [class.nv-btn--secondary]="row.serials.length === 0" (click)="openSerialModal(row)"
                     [disabled]="!row.productId">
                     <ng-container *ngIf="row.serials.length === row.quantity && row.quantity > 0">
-                       {{ row.serials.length }} seleccionados
+                      {{ row.serials.length }} seleccionados
                     </ng-container>
                     <ng-container *ngIf="row.serials.length > 0 && row.serials.length !== row.quantity">
                       ⚠ {{ row.serials.length }}/{{ row.quantity }}
@@ -214,14 +213,9 @@
         <div class="nv-summary-actions">
           <button type="button" class="nv-btn nv-btn--secondary">Cancelar</button>
 
-          <button
-  type="button"
-  class="nv-btn nv-btn--primary"
-  [disabled]="!canConfirmSale()"
-  (click)="confirmSale()"
->
-   <i class="ti ti-device-floppy me-1"></i> Confirmar Venta
-</button>
+          <button type="button" class="nv-btn nv-btn--primary" [disabled]="!canConfirmSale()" (click)="confirmSale()">
+            <i class="ti ti-device-floppy me-1"></i> Confirmar Venta
+          </button>
 
         </div>
       </div>
@@ -271,7 +265,7 @@
         <button type="button" class="nv-btn nv-btn--secondary" (click)="closeSerialModal()">Cancelar</button>
         <button type="button" class="nv-btn nv-btn--primary" [disabled]="modalSelectedCount() !== modalRequiredQty"
           (click)="confirmSerials()">
-         <i class="ti ti-device-floppy me-1"></i> Confirmar Selección
+          <i class="ti ti-device-floppy me-1"></i> Confirmar Selección
         </button>
       </div>
     </div>

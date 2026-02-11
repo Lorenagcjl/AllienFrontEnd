@@ -408,11 +408,6 @@ export default class NuevaVentaComponent implements OnInit {
     this.touchRows();
   }
 
-  // ✅ si el usuario edita el precio manualmente
-  onPriceChange(_row: CartRow) {
-    this.touchRows();
-  }
-
   // ===== Cantidad =====
   onQuantityChange(row: CartRow) {
     const p = this.getRowProduct(row);
@@ -706,11 +701,14 @@ export default class NuevaVentaComponent implements OnInit {
           const p = this.getRowProduct(row);
           if (!p) throw new Error('Fila sin producto seleccionado');
 
+          const precioVigente = Number((p.precioVenta ?? 0).toFixed(2));
+          const subtotalCalc = Number((row.quantity * precioVigente).toFixed(2));
+
           const detallePayload: any = {
             cantidad: row.quantity,
-            precioUnitario: row.price,
+            precioUnitario: precioVigente,
             porcentajeComision: p.porcentajeComision ?? 0,
-            subtotal: this.rowSubtotal(row),
+            subtotal: subtotalCalc,
             fkVenta: { idVenta },
             fkProducto: { idProducto: p.idProducto },
             fkUbicacion: { idUbicacion },

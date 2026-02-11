@@ -54,6 +54,7 @@
             <th style="width: 10%;">Con Serial</th>
             <th style="width: 10%;">Cantidad</th>
             <th style="width: 12%;">Costo Unit.</th>
+            <th style="width: 12%;">Precio Venta</th>
             <th style="width: 20%;">Seriales</th>
             <th style="width: 5%;"></th>
           </tr>
@@ -62,7 +63,7 @@
         <tbody>
           @if (isEmptyState()) {
           <tr>
-            <td colspan="6" class="nc20-empty-state">
+            <td colspan="7" class="nc20-empty-state">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
@@ -108,7 +109,20 @@
 
             <td>
               <input type="number" class="nc20-cost-input" min="0" step="0.01" placeholder="0.00"
-                [formControl]="row.controls.cost" />
+                [formControl]="row.controls.cost"
+                [class.nc20-error]="row.controls.cost.hasError('costoMayorPrecioVenta') && (row.controls.cost.dirty || row.controls.cost.touched)" />
+
+              @if (row.controls.cost.hasError('costoMayorPrecioVenta') && (row.controls.cost.dirty ||
+              row.controls.cost.touched)) {
+              <div class="nc20-field-error">
+                No puedes ingresar un costo mayor al precio de venta ({{ row.controls.precioVenta.value }}).
+              </div>
+              }
+            </td>
+
+            <td>
+              <input type="number" class="nc20-number-input" [value]="row.controls.precioVenta.value ?? null"
+                disabled />
             </td>
 
             <td>
@@ -157,14 +171,9 @@
     <div class="nc20-actions">
       <button class="nc20-btn nc20-btn-secondary" type="button">Cancelar</button>
 
-     <button
-  class="nc20-btn nc20-btn-primary"
-  type="button"
-  [disabled]="!canSave()"
-  (click)="savePurchase()"
->
-   <i class="ti ti-device-floppy me-1"></i> Guardar Compra
-</button>
+      <button class="nc20-btn nc20-btn-primary" type="button" [disabled]="!canSave()" (click)="savePurchase()">
+        <i class="ti ti-device-floppy me-1"></i> Guardar Compra
+      </button>
 
     </div>
   </div>
@@ -189,8 +198,9 @@
             <label>Serial {{ $index + 1 }}</label>
 
             <div class="nc20-serial-input-wrapper">
-              <input #serialEl type="text" class="nc20-serial-input" [class.nc20-duplicate]="modalDuplicateIndexes().has(i)"
-                [value]="modalSerials()[i] ?? ''" placeholder="Ingrese número de serie" (input)="setModalSerial(i, serialEl.value)"
+              <input #serialEl type="text" class="nc20-serial-input"
+                [class.nc20-duplicate]="modalDuplicateIndexes().has(i)" [value]="modalSerials()[i] ?? ''"
+                placeholder="Ingrese número de serie" (input)="setModalSerial(i, serialEl.value)"
                 (paste)="handlePasteSerials($event, i)" />
 
               <button class="nc20-btn-scan" type="button" (click)="simulateScan(i)" title="Simular escaneo">
@@ -224,7 +234,7 @@
 
           <button class="nc20-btn nc20-btn-primary" type="button" [disabled]="!modalComplete()"
             (click)="confirmSerials()">
-           <i class="ti ti-device-floppy me-1"></i> Confirmar Seriales
+            <i class="ti ti-device-floppy me-1"></i> Confirmar Seriales
           </button>
         </div>
       </div>
