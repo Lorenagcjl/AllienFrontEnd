@@ -16,20 +16,23 @@ import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 import { Movimiento } from 'src/app/demo/models/movimiento.model';
 import { MovimientoFormComponent } from './movimiento-form.component';
 import MovimientoDetalleComponent from '../movimiento-detalle/movimiento-detalle';
+import { MovimientosService } from 'src/app/@theme/services/movimientos.service';
+import { finalize } from 'rxjs';
+import { generarGuiaPdf } from 'src/app/@theme/utils/guia-pdf';
 
 @Component({
   selector: 'app-movimiento',
   standalone: true,
   imports: [
     CommonModule,
-    SharedModule, 
-    MatFormFieldModule, 
-    MatInputModule, 
-    MatTableModule, 
-    MatSortModule, 
-    MatPaginatorModule, 
-    MatDialogModule, 
-    MatProgressBarModule, 
+    SharedModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatTableModule,
+    MatSortModule,
+    MatPaginatorModule,
+    MatDialogModule,
+    MatProgressBarModule,
     MovimientoFormComponent,
     DatePipe
   ],
@@ -41,11 +44,12 @@ export default class MovimientoComponent implements OnInit, AfterViewInit {
   private alertService = inject(AlertService);
   private movimientoService = inject(MovimientoService);
   private ubicacionService = inject(UbicacionService);
+  private movimientosService = inject(MovimientosService);
 
   modalOpen = false;
   movimientoParaEditar?: Movimiento;
   cargando: boolean = false;
-  
+
   // Añadimos 'estado' a las columnas
   displayedColumns: string[] = ['idMovimiento', 'fechaMovimiento', 'tipo', 'origen', 'destino', 'usuario', 'acciones'];
   dataSource = new MatTableDataSource<Movimiento>([]);
@@ -72,7 +76,7 @@ export default class MovimientoComponent implements OnInit, AfterViewInit {
     });
   }
 
- cargarMovimientos() {
+  cargarMovimientos() {
     this.cargando = true;
     this.movimientoService.listar().subscribe({
       next: (data) => {
@@ -154,5 +158,27 @@ export default class MovimientoComponent implements OnInit, AfterViewInit {
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  imprimirGuia(movimiento: Movimiento) {
+    const id = movimiento.idMovimiento;
+
+    if (!id) {
+      this.alertService.error('Error', 'El movimiento no tiene idMovimiento.');
+      return;
+    }
+
+    this.cargando = true;
+
+    this.movimientosService.guiaMovimiento(id)
+      .pipe(finalize(() => this.cargando = false))
+      .subscribe({
+        next: (guia) => {
+          generarGuiaPdf(guia);
+        },
+        error: () => {
+          this.alertService.error('Error', 'No se pudo generar la guía de Movimiento');
+        }
+      });
   }
 }

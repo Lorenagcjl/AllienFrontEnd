@@ -32,7 +32,7 @@
 
     <ng-container matColumnDef="tipo">
       <th mat-header-cell *matHeaderCellDef mat-sort-header> Tipo </th>
-      <td mat-cell *matCellDef="let row"> 
+      <td mat-cell *matCellDef="let row">
         <span class="badge" [ngClass]="row.tipo === 'TRASLADO' ? 'bg-light-info text-info' : 'bg-light-success text-success'">
           {{row.tipo}}
         </span>
@@ -54,7 +54,7 @@
       <td mat-cell *matCellDef="let row"> {{row.fkUsuario?.nombreUsuario}} </td>
     </ng-container>
 
-    
+
 
     <ng-container matColumnDef="acciones">
       <th mat-header-cell *matHeaderCellDef> Acciones </th>
@@ -69,6 +69,11 @@
 
         <button mat-icon-button color="warn" (click)="eliminar(row.idMovimiento)" matTooltip="Eliminar" [disabled]="cargando">
           <i class="ti ti-trash f-18"></i>
+        </button>
+
+        <button mat-icon-button color="accent" (click)="imprimirGuia(row); $event.stopPropagation()"
+          matTooltip="Generar Factura PDF" [disabled]="cargando">
+          <i class="ti ti-file-text f-18"></i>
         </button>
       </td>
     </ng-container>
@@ -93,9 +98,9 @@
 </div>
 
 @if (modalOpen) {
-  <app-movimiento-form 
-    [movimientoSeleccionado]="movimientoParaEditar" 
-    (closed)="cerrarModal()" 
+  <app-movimiento-form
+    [movimientoSeleccionado]="movimientoParaEditar"
+    (closed)="cerrarModal()"
     (saved)="onSaved($event)">
   </app-movimiento-form>
 }
