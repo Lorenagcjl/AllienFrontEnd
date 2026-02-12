@@ -61,6 +61,14 @@ const routes: Routes = [
         path: 'historial-precios',
         loadComponent: () => import('./historial-precios.component/historial-precios.component')
       },
+      {
+        path: 'comisiones-usuarios',
+        loadComponent: () => import('./comisiones-usuarios.component/comisiones-usuarios.component')
+      },
+      {
+        path: 'comisiones-mi-usuarios',
+        loadComponent: () => import('./comisiones-mi-usuario.component/comisiones-mi-usuario.component')
+      },
       // {
       //   path: 'movimiento-detalle',
       //   loadComponent: () => import('./movimiento-detalle/movimiento-detalle')

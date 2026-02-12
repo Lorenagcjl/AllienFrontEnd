@@ -136,40 +136,39 @@
     <!-- Info Sidebar -->
     <div class="info-sidebar">
       <!-- Seriales del producto seleccionado -->
-      <div class="info-card seriales-card" *ngIf="serialesVisibles">
-        <div class="seriales-header">
-          <div>
-            <h3 style="margin:0;">
-              <span class="material-icons">qr_code</span>
-              Seriales - {{ productoSeleccionado?.producto }}
-            </h3>
-            <p class="seriales-subtitle">{{ productoSeleccionado?.ubicacion }}</p>
+      <div class="info-card seriales-card" [class.show]="serialesVisibles">
+        <!-- Puedes ocultar el contenido mientras está cerrado -->
+        <div class="seriales-inner" [class.show]="serialesVisibles">
+          <div class="seriales-header">
+            <div>
+              <h3 style="margin:0;">
+                <span class="material-icons">qr_code</span>
+                Seriales - {{ productoSeleccionado?.producto }}
+              </h3>
+              <p class="seriales-subtitle">{{ productoSeleccionado?.ubicacion }}</p>
+            </div>
+
+            <button class="seriales-close" type="button" (click)="cerrarSeriales()">
+              Cerrar
+            </button>
           </div>
 
-          <button class="seriales-close" type="button" (click)="cerrarSeriales()">
-            Cerrar
-          </button>
-        </div>
+          <div *ngIf="serialesCargando" class="seriales-loading">Cargando seriales...</div>
 
-        <div *ngIf="serialesCargando" class="seriales-loading">
-          Cargando seriales...
-        </div>
-
-        <div *ngIf="!serialesCargando && serialesFiltrados.length; else sinSeriales" class="seriales-list">
-          <div class="serial-item" *ngFor="let s of serialesFiltrados; trackBy: trackBySerial">
-            <span class="material-icons">qr_code_2</span>
-            <div class="serial-text">
-              <strong>{{ s.serial }}</strong>
-              <small>{{ s.producto }}</small>
+          <div *ngIf="!serialesCargando && serialesFiltrados.length; else sinSeriales" class="seriales-list">
+            <div class="serial-item" *ngFor="let s of serialesFiltrados; trackBy: trackBySerial">
+              <span class="material-icons">qr_code_2</span>
+              <div class="serial-text">
+                <strong>{{ s.serial }}</strong>
+                <small>{{ s.producto }}</small>
+              </div>
             </div>
           </div>
-        </div>
 
-        <ng-template #sinSeriales>
-          <div class="seriales-empty">
-            No hay seriales disponibles para este producto.
-          </div>
-        </ng-template>
+          <ng-template #sinSeriales>
+            <div class="seriales-empty">No hay seriales disponibles para este producto.</div>
+          </ng-template>
+        </div>
       </div>
 
       <!-- Resumen por Ubicación -->

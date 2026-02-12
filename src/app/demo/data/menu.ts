@@ -121,6 +121,20 @@ export const menus: Navigation[] = [
         icon: '#custom-level',
         children: [
           {
+            id: 'comisionesMiUsuarios',
+            title: 'Comisiones generadas',
+            type: 'item',
+            url: '/component/comisiones-mi-usuarios',
+            roles: ['Administrador', 'Empleado']
+          },
+          {
+            id: 'comisionesUsuarios',
+            title: 'Comision de cada usuario',
+            type: 'item',
+            url: '/component/comisiones-usuarios',
+            roles: ['Administrador', 'Empleado']
+          },
+          {
             id: 'historialPrecioVenta',
             title: 'Historial Precio Venta',
             type: 'item',

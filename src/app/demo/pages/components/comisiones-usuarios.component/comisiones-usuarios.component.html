@@ -1,0 +1,99 @@
+<div class="row align-items-end mb-3">
+  <div class="col-12 col-md-4 mb-2 mb-md-0">
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Usuario</mat-label>
+      <mat-select [(ngModel)]="idUsuarioSeleccionado" [disabled]="cargandoUsuarios || cargando">
+        <mat-option [value]="null">Todos</mat-option>
+
+        <mat-option *ngFor="let u of usuarios" [value]="u.idUsuario">
+          {{ u.primerNombre }} {{ u.primerApellido }} — {{ u.nombreUsuario }} (ID: {{u.idUsuario}})
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- DESDE -->
+  <div class="col-12 col-md-3 mb-2 mb-md-0">
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Desde</mat-label>
+      <input matInput [matDatepicker]="dpDesde" [(ngModel)]="desdeFecha" [max]="hastaFecha" [disabled]="cargando"
+        (dateChange)="onFechasChange()" />
+      <mat-datepicker-toggle matIconSuffix [for]="dpDesde"></mat-datepicker-toggle>
+      <mat-datepicker #dpDesde></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <!-- HASTA -->
+  <div class="col-12 col-md-3 mb-2 mb-md-0">
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Hasta</mat-label>
+      <input matInput [matDatepicker]="dpHasta" [(ngModel)]="hastaFecha" [max]="hoy" [disabled]="cargando"
+        (dateChange)="onFechasChange()" />
+      <mat-datepicker-toggle matIconSuffix [for]="dpHasta"></mat-datepicker-toggle>
+      <mat-datepicker #dpHasta></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="col-12 col-md-2 d-grid">
+    <button mat-raised-button color="primary" (click)="buscar()" [disabled]="cargando || !fechasValidas()">
+      Buscar
+    </button>
+  </div>
+</div>
+
+<div class="row mb-2">
+  <div class="col-12">
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Buscar en resultados</mat-label>
+      <input matInput (keyup)="applyFilter($event)" placeholder="Ej. juan, 1500, admin..." [disabled]="cargando">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+  </div>
+</div>
+
+<div class="mat-elevation-z8 position-relative">
+  @if (cargando) {
+  <mat-progress-bar mode="indeterminate" class="position-absolute top-0 start-0 z-index-1"></mat-progress-bar>
+  }
+
+  <table mat-table [dataSource]="dataSource" matSort class="w-100" [class.loading-table]="cargando">
+
+    <ng-container matColumnDef="idUsuario">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+      <td mat-cell *matCellDef="let row">{{ row.idUsuario }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="nombreUsuario">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Usuario</th>
+      <td mat-cell *matCellDef="let row">
+        <div class="fw-semibold">{{ row.nombreUsuario }}</div>
+        <div class="text-muted small">{{ row.nombres }}</div>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="totalVendido">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Total vendido</th>
+      <td mat-cell *matCellDef="let row" class="fw-bold">
+        {{ row.totalVendido | currency:'USD':'symbol':'1.2-2' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="totalComision">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Total comisión</th>
+      <td mat-cell *matCellDef="let row" class="fw-bold">
+        {{ row.totalComision | currency:'USD':'symbol':'1.2-2' }}
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell text-center py-4" [attr.colspan]="displayedColumns.length">
+        No hay resultados con los filtros seleccionados.
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5,10,25]" showFirstLastButtons></mat-paginator>
+</div>

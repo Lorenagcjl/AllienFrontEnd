@@ -691,3 +691,36 @@
   outline: 2px solid #667eea;
   background: #edf2f7;
 }
+
+.seriales-card {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  overflow: hidden;
+  padding: 0; // importante para que no ocupe espacio cerrado
+  margin: 0; // opcional
+  transition: max-height 260ms ease, opacity 180ms ease, transform 180ms ease, padding 220ms ease;
+}
+
+.seriales-card.show {
+  max-height: 520px; // ajusta según cuántos seriales muestras
+  opacity: 1;
+  transform: translateY(0);
+  padding: 20px; // el padding normal de tus info-card
+}
+
+/* para evitar “flash” del contenido mientras abre/cierra */
+.seriales-inner {
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.seriales-inner.show {
+  opacity: 1;
+  transition-delay: 80ms;
+}
+
+.seriales-list {
+  max-height: 260px;
+  overflow: auto;
+}
