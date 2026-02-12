@@ -21,8 +21,16 @@
         <div class="col-md-6">
           <mat-form-field appearance="outline" class="w-100">
             <mat-label>Tipo</mat-label>
-            <input matInput formControlName="tipo" placeholder="Ej. Almacén">
+
+            <mat-select formControlName="tipo" [disabled]="tiposUbicacion.length === 0">
+              @for (t of tiposUbicacion; track t.idDetalleCatalogo) {
+              <mat-option [value]="t.descripcion">{{ t.descripcion }}</mat-option>
+              }
+            </mat-select>
+
+            @if (form.get('tipo')?.invalid && form.get('tipo')?.touched) {
             <mat-error>Requerido</mat-error>
+            }
           </mat-form-field>
         </div>
 

@@ -10,6 +10,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { DetalleCatalogoService } from 'src/app/@theme/services/detalle-catalogo.service';
+import { DetalleCatalogoResponseDto } from 'src/app/demo/models/detalle-catalogo.model';
+import { forkJoin } from 'rxjs';
 
 function nowLocalDateTimeString(): string {
   return new Date().toISOString().slice(0, 19);
@@ -35,6 +38,7 @@ export class ProductoFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly productoService = inject(ProductoService);
   private readonly alert = inject(AlertService);
+  private readonly detalleCatalogoService = inject(DetalleCatalogoService);
 
   @Input() producto?: Producto;
 
@@ -44,6 +48,9 @@ export class ProductoFormModalComponent implements OnInit {
   get editando(): boolean {
     return !!this.producto?.idProducto && this.producto.idProducto > 0;
   }
+
+  tipos: DetalleCatalogoResponseDto[] = [];
+  marcas: DetalleCatalogoResponseDto[] = [];
 
   productoForm = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(2)]],
@@ -57,25 +64,105 @@ export class ProductoFormModalComponent implements OnInit {
     fechaCreacion: [nowLocalDateTimeString(), [Validators.required]],
   });
 
-  ngOnInit(): void {
-    if (this.producto) {
-      this.productoForm.patchValue({
-        nombre: this.producto.nombre ?? '',
-        marca: this.producto.marca ?? '',
-        tipo: this.producto.tipo ?? '',
-        foto: this.producto.foto ?? '',
-        descripcion: this.producto.descripcion ?? '',
-        precioVenta: this.producto.precioVenta ?? null,
-        esConSerial: this.producto.esConSerial ?? null,
-        porcentajeComision: this.producto.porcentajeComision ?? null,
-        fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
-      });
+  // ngOnInit(): void {
+  //   this.cargarCatalogos();
+  //   if (this.producto) {
+  //     this.productoForm.patchValue({
+  //       nombre: this.producto.nombre ?? '',
+  //       marca: this.producto.marca ?? '',
+  //       tipo: this.producto.tipo ?? '',
+  //       foto: this.producto.foto ?? '',
+  //       descripcion: this.producto.descripcion ?? '',
+  //       precioVenta: this.producto.precioVenta ?? null,
+  //       esConSerial: this.producto.esConSerial ?? null,
+  //       porcentajeComision: this.producto.porcentajeComision ?? null,
+  //       fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
+  //     });
 
-      this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
-    } else {
-      this.productoForm.patchValue({ fechaCreacion: nowLocalDateTimeString() });
-      this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
-    }
+  //     this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
+  //   } else {
+  //     this.productoForm.patchValue({ fechaCreacion: nowLocalDateTimeString() });
+  //     this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
+  //   }
+  // }
+
+  // private cargarCatalogos(): void {
+  //   forkJoin({
+  //     tipos: this.detalleCatalogoService.listarPorNombreCatalogo('TIPOPRODUCTOS'),
+  //     marcas: this.detalleCatalogoService.listarPorNombreCatalogo('MARCAPRODUCTO'),
+  //   }).subscribe({
+  //     next: ({ tipos, marcas }) => {
+  //       this.tipos = (tipos ?? []).filter(x => x.esActivo).sort((a, b) => a.orden - b.orden);
+  //       this.marcas = (marcas ?? []).filter(x => x.esActivo).sort((a, b) => a.orden - b.orden);
+  //     },
+  //     error: (err) => {
+  //       this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudieron cargar catálogos.'));
+  //     }
+  //   });
+  // }
+  ngOnInit(): void {
+    this.cargarCatalogosYLuegoInicializarForm();
+  }
+
+  private cargarCatalogosYLuegoInicializarForm(): void {
+    forkJoin({
+      tipos: this.detalleCatalogoService.listarPorNombreCatalogo('TIPOPRODUCTOS'),
+      marcas: this.detalleCatalogoService.listarPorNombreCatalogo('MARCAPRODUCTO'),
+    }).subscribe({
+      next: ({ tipos, marcas }) => {
+        this.tipos = (tipos ?? []).filter(x => x.esActivo).sort((a, b) => a.orden - b.orden);
+        this.marcas = (marcas ?? []).filter(x => x.esActivo).sort((a, b) => a.orden - b.orden);
+
+        // ✅ Ahora que ya existen options, inicializamos el form
+        if (this.producto) {
+          const marca = (this.producto.marca ?? '').trim();
+          const tipo = (this.producto.tipo ?? '').trim();
+
+          this.productoForm.patchValue({
+            nombre: this.producto.nombre ?? '',
+            marca,
+            tipo,
+            foto: this.producto.foto ?? '',
+            descripcion: this.producto.descripcion ?? '',
+            precioVenta: this.producto.precioVenta ?? null,
+            esConSerial: this.producto.esConSerial ?? null,
+            porcentajeComision: this.producto.porcentajeComision ?? null,
+            fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
+          });
+
+          // ✅ fuerza repintado del trigger
+          this.productoForm.get('marca')?.setValue(marca, { emitEvent: false });
+          this.productoForm.get('tipo')?.setValue(tipo, { emitEvent: false });
+
+          this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
+        } else {
+          this.productoForm.patchValue({ fechaCreacion: nowLocalDateTimeString() });
+          this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
+        }
+      },
+      error: (err) => {
+        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudieron cargar catálogos.'));
+
+        // Opcional: igual llenar el form aunque falle catálogo (pero select quizá no pinte)
+        if (this.producto) {
+          this.productoForm.patchValue({
+            nombre: this.producto.nombre ?? '',
+            marca: (this.producto.marca ?? '').trim(),
+            tipo: (this.producto.tipo ?? '').trim(),
+            foto: this.producto.foto ?? '',
+            descripcion: this.producto.descripcion ?? '',
+            precioVenta: this.producto.precioVenta ?? null,
+            esConSerial: this.producto.esConSerial ?? null,
+            porcentajeComision: this.producto.porcentajeComision ?? null,
+            fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
+          });
+          this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
+        } else {
+          this.productoForm.patchValue({ fechaCreacion: nowLocalDateTimeString() });
+          this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
+        }
+      }
+    });
   }
 
   @HostListener('document:keydown.escape')

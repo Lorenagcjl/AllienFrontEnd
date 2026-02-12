@@ -24,7 +24,13 @@
         <div class="col-md-6">
           <mat-form-field appearance="outline" class="w-100">
             <mat-label>Marca</mat-label>
-            <input matInput formControlName="marca" placeholder="Ej. Asus">
+
+            <mat-select formControlName="marca" [disabled]="marcas.length === 0">
+              @for (m of marcas; track m.idDetalleCatalogo) {
+              <mat-option [value]="m.descripcion">{{ m.descripcion }}</mat-option>
+              }
+            </mat-select>
+
             @if (productoForm.get('marca')?.invalid && productoForm.get('marca')?.touched) {
             <mat-error>Marca requerida</mat-error>
             }
@@ -34,7 +40,13 @@
         <div class="col-md-6">
           <mat-form-field appearance="outline" class="w-100">
             <mat-label>Tipo</mat-label>
-            <input matInput formControlName="tipo" placeholder="Ej. Electrónica">
+
+            <mat-select formControlName="tipo" [disabled]="tipos.length === 0">
+              @for (t of tipos; track t.idDetalleCatalogo) {
+              <mat-option [value]="t.descripcion">{{ t.descripcion }}</mat-option>
+              }
+            </mat-select>
+
             @if (productoForm.get('tipo')?.invalid && productoForm.get('tipo')?.touched) {
             <mat-error>Tipo requerido</mat-error>
             }

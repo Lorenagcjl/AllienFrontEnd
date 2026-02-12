@@ -9,6 +9,8 @@ import { AlertService } from 'src/app/@theme/services/alert.service';
 import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
 import { Ubicacion } from 'src/app/demo/models/ubicacion.model';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { DetalleCatalogoService } from 'src/app/@theme/services/detalle-catalogo.service';
+import { DetalleCatalogoResponseDto } from 'src/app/demo/models/detalle-catalogo.model';
 
 @Component({
   selector: 'app-ubicacion-form-modal',
@@ -28,12 +30,14 @@ export class UbicacionFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly ubicacionService = inject(UbicacionService);
   private readonly alert = inject(AlertService);
+  private readonly detalleCatalogoService = inject(DetalleCatalogoService);
 
   @Input() ubicacion?: Ubicacion;
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<boolean>();
 
   cargando = false;
+  tiposUbicacion: DetalleCatalogoResponseDto[] = [];
 
   form: FormGroup = this.fb.group({
     nombre: ['', [Validators.required]],
@@ -42,15 +46,71 @@ export class UbicacionFormModalComponent implements OnInit {
     esPuntoVenta: [false],
   });
 
+  // ngOnInit(): void {
+  //   this.cargarTiposUbicacion();
+
+  //   if (this.ubicacion) {
+  //     this.form.patchValue({
+  //       nombre: this.ubicacion.nombre ?? '',
+  //       tipo: this.ubicacion.tipo ?? '',
+  //       descripcion: this.ubicacion.descripcion ?? '',
+  //       esPuntoVenta: this.ubicacion.esPuntoVenta ?? false,
+  //     });
+  //   }
+  // }
+
+  // private cargarTiposUbicacion(): void {
+  //   this.detalleCatalogoService.listarPorNombreCatalogo('TIPOUBICACIONES').subscribe({
+  //     next: (items) => {
+  //       this.tiposUbicacion = (items ?? [])
+  //         .filter(x => x.esActivo)
+  //         .sort((a, b) => a.orden - b.orden);
+  //     },
+  //     error: (err) => {
+  //       this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudieron cargar los tipos de ubicación.'));
+  //     }
+  //   });
+  // }
   ngOnInit(): void {
-    if (this.ubicacion) {
-      this.form.patchValue({
-        nombre: this.ubicacion.nombre ?? '',
-        tipo: this.ubicacion.tipo ?? '',
-        descripcion: this.ubicacion.descripcion ?? '',
-        esPuntoVenta: this.ubicacion.esPuntoVenta ?? false,
-      });
-    }
+    this.cargarTiposUbicacion();
+  }
+
+  private cargarTiposUbicacion(): void {
+    this.detalleCatalogoService.listarPorNombreCatalogo('TIPOUBICACIONES').subscribe({
+      next: (items) => {
+        this.tiposUbicacion = (items ?? [])
+          .filter(x => x.esActivo)
+          .sort((a, b) => a.orden - b.orden);
+
+        // ✅ Ahora sí, ya existen las opciones: el mat-select puede pintar el seleccionado
+        if (this.ubicacion) {
+          const tipo = (this.ubicacion.tipo ?? '').trim();
+
+          this.form.patchValue({
+            nombre: this.ubicacion.nombre ?? '',
+            tipo,
+            descripcion: this.ubicacion.descripcion ?? '',
+            esPuntoVenta: this.ubicacion.esPuntoVenta ?? false,
+          });
+
+          // ✅ Fuerza repintado del trigger (por si hay espacios o edge cases)
+          this.form.get('tipo')?.setValue(tipo, { emitEvent: false });
+        }
+      },
+      error: (err) => {
+        this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudieron cargar los tipos de ubicación.'));
+
+        // Opcional: si falla el catálogo, igual rellena el form para que el usuario vea datos
+        if (this.ubicacion) {
+          this.form.patchValue({
+            nombre: this.ubicacion.nombre ?? '',
+            tipo: (this.ubicacion.tipo ?? '').trim(),
+            descripcion: this.ubicacion.descripcion ?? '',
+            esPuntoVenta: this.ubicacion.esPuntoVenta ?? false,
+          });
+        }
+      }
+    });
   }
 
   @HostListener('document:keydown.escape')
