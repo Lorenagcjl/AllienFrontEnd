@@ -110,14 +110,16 @@ export default class ProductoComponent implements AfterViewInit {
     const id = row.idProducto;
     if (!id) return;
 
-    this.cargando = true;
+    // ✅ abre inmediatamente con lo que ya tienes (sin foto)
+    this.abrirFormulario({ ...row, foto: '' } as Producto);
+
+    // ✅ luego trae el completo (incluye foto)
     this.productoService.obtenerPorId(id).subscribe({
       next: (productoCompleto) => {
-        this.cargando = false;
-        this.abrirFormulario(productoCompleto); // ✅ ya trae foto
+        // ✅ actualiza el input del modal
+        this.productoSeleccionado = productoCompleto;
       },
       error: (err) => {
-        this.cargando = false;
         this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudo cargar el producto para editar.'));
       }
     });

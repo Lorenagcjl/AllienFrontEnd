@@ -40,10 +40,26 @@ export class ProductoFormModalComponent implements OnInit {
   private readonly alert = inject(AlertService);
   private readonly detalleCatalogoService = inject(DetalleCatalogoService);
 
-  @Input() producto?: Producto;
+  private _producto?: Producto;
+
+  @Input() set producto(value: Producto | undefined) {
+    this._producto = value;
+    // ✅ si ya cargaron catálogos, refresca el form
+    this.rellenarFormularioSiAplica();
+  }
+  get producto(): Producto | undefined {
+    return this._producto;
+  }
+
 
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<boolean>();
+
+  previewUrl: string | null = null;
+
+  private setPreviewFromBase64(base64: string): void {
+    this.previewUrl = base64 ? `data:image/*;base64,${base64}` : null;
+  }
 
   get editando(): boolean {
     return !!this.producto?.idProducto && this.producto.idProducto > 0;
@@ -101,10 +117,10 @@ export class ProductoFormModalComponent implements OnInit {
   //   });
   // }
   ngOnInit(): void {
-    this.cargarCatalogosYLuegoInicializarForm();
+    this.cargarCatalogos();
   }
 
-  private cargarCatalogosYLuegoInicializarForm(): void {
+  private cargarCatalogos(): void {
     forkJoin({
       tipos: this.detalleCatalogoService.listarPorNombreCatalogo('TIPOPRODUCTOS'),
       marcas: this.detalleCatalogoService.listarPorNombreCatalogo('MARCAPRODUCTO'),
@@ -113,56 +129,66 @@ export class ProductoFormModalComponent implements OnInit {
         this.tipos = (tipos ?? []).filter(x => x.esActivo).sort((a, b) => a.orden - b.orden);
         this.marcas = (marcas ?? []).filter(x => x.esActivo).sort((a, b) => a.orden - b.orden);
 
-        // ✅ Ahora que ya existen options, inicializamos el form
-        if (this.producto) {
-          const marca = (this.producto.marca ?? '').trim();
-          const tipo = (this.producto.tipo ?? '').trim();
-
-          this.productoForm.patchValue({
-            nombre: this.producto.nombre ?? '',
-            marca,
-            tipo,
-            foto: this.producto.foto ?? '',
-            descripcion: this.producto.descripcion ?? '',
-            precioVenta: this.producto.precioVenta ?? null,
-            esConSerial: this.producto.esConSerial ?? null,
-            porcentajeComision: this.producto.porcentajeComision ?? null,
-            fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
-          });
-
-          // ✅ fuerza repintado del trigger
-          this.productoForm.get('marca')?.setValue(marca, { emitEvent: false });
-          this.productoForm.get('tipo')?.setValue(tipo, { emitEvent: false });
-
-          this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
-        } else {
-          this.productoForm.patchValue({ fechaCreacion: nowLocalDateTimeString() });
-          this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
-        }
+        // ✅ ahora sí puede pintar marca/tipo si venía editando
+        this.rellenarFormularioSiAplica();
       },
       error: (err) => {
         this.alert.error('Error', this.alert.getErrorMessage(err, 'No se pudieron cargar catálogos.'));
-
-        // Opcional: igual llenar el form aunque falle catálogo (pero select quizá no pinte)
-        if (this.producto) {
-          this.productoForm.patchValue({
-            nombre: this.producto.nombre ?? '',
-            marca: (this.producto.marca ?? '').trim(),
-            tipo: (this.producto.tipo ?? '').trim(),
-            foto: this.producto.foto ?? '',
-            descripcion: this.producto.descripcion ?? '',
-            precioVenta: this.producto.precioVenta ?? null,
-            esConSerial: this.producto.esConSerial ?? null,
-            porcentajeComision: this.producto.porcentajeComision ?? null,
-            fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
-          });
-          this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
-        } else {
-          this.productoForm.patchValue({ fechaCreacion: nowLocalDateTimeString() });
-          this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
-        }
+        // aún así intenta rellenar (aunque select puede no pintar)
+        this.rellenarFormularioSiAplica(true);
       }
     });
+  }
+
+  private rellenarFormularioSiAplica(ignorarCatalogos: boolean = false): void {
+    // Si estás editando y aún NO hay catálogos, espera (evita el bug del mat-select)
+    if (!ignorarCatalogos) {
+      if (this.tipos.length === 0 || this.marcas.length === 0) return;
+    }
+
+    if (this.producto) {
+      const marca = (this.producto.marca ?? '').trim();
+      const tipo = (this.producto.tipo ?? '').trim();
+      const foto = this.producto.foto ?? '';
+
+      this.productoForm.patchValue({
+        nombre: this.producto.nombre ?? '',
+        marca,
+        tipo,
+        foto,
+        descripcion: this.producto.descripcion ?? '',
+        precioVenta: this.producto.precioVenta ?? null,
+        esConSerial: this.producto.esConSerial ?? null,
+        porcentajeComision: this.producto.porcentajeComision ?? null,
+        fechaCreacion: this.producto.fechaCreacion ?? nowLocalDateTimeString(),
+      });
+
+      // ✅ repinta selects
+      this.productoForm.get('marca')?.setValue(marca, { emitEvent: false });
+      this.productoForm.get('tipo')?.setValue(tipo, { emitEvent: false });
+
+      // ✅ repinta preview sin recomputar en template
+      this.setPreviewFromBase64(foto);
+
+      // ✅ precio bloqueado en editar
+      this.productoForm.get('precioVenta')?.disable({ emitEvent: false });
+    } else {
+      // modo nuevo
+      this.productoForm.reset({
+        nombre: '',
+        marca: '',
+        tipo: '',
+        foto: '',
+        descripcion: '',
+        precioVenta: null,
+        esConSerial: null,
+        porcentajeComision: null,
+        fechaCreacion: nowLocalDateTimeString(),
+      });
+
+      this.previewUrl = null;
+      this.productoForm.get('precioVenta')?.enable({ emitEvent: false });
+    }
   }
 
   @HostListener('document:keydown.escape')
@@ -282,7 +308,9 @@ export class ProductoFormModalComponent implements OnInit {
       this.productoForm.get('foto')?.markAsDirty();
       this.productoForm.get('foto')?.markAsTouched();
 
-      input.value = ''; // ✅ permite volver a seleccionar el mismo archivo
+      this.setPreviewFromBase64(base64); // ✅
+
+      input.value = '';
     };
     reader.readAsDataURL(file);
   }
@@ -294,6 +322,8 @@ export class ProductoFormModalComponent implements OnInit {
     this.productoForm.patchValue({ foto: '' });
     this.productoForm.get('foto')?.markAsDirty();
     this.productoForm.get('foto')?.markAsTouched();
+    this.previewUrl = null; // ✅
   }
+
 
 }

@@ -91,7 +91,7 @@
               class="file-input-hidden" />
 
             <!-- Botón personalizado para subir -->
-            @if (!productoForm.value.foto) {
+            @if (!previewUrl) {
             <div class="file-upload-button" (click)="fileInput.click()" role="button" tabindex="0">
               <i class="ti ti-photo-plus"></i>
               <span>Seleccionar imagen</span>
@@ -111,13 +111,11 @@
             }
 
             <!-- Previsualización de la imagen -->
-            @if (productoForm.value.foto) {
+            @if (previewUrl) {
             <div class="photo-preview-container">
               <div class="photo-preview-wrapper">
-                <img [src]="'data:image/*;base64,' + productoForm.value.foto" alt="Preview del producto"
-                  class="photo-preview-image" />
+                <img [src]="previewUrl" alt="Preview del producto" class="photo-preview-image" />
 
-                <!-- Overlay con botones de acción -->
                 <div class="photo-overlay">
                   <button type="button" class="photo-action-button change-button" (click)="fileInput.click()"
                     matTooltip="Cambiar imagen">
