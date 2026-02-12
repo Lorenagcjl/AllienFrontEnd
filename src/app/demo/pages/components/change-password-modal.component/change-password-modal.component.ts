@@ -27,11 +27,22 @@ export class ChangePasswordModalComponent {
   cargando = false;
   hideActual = true;
   hideNueva = true;
+  hideConfirmar = true;
 
-  form: FormGroup = this.fb.group({
-    claveActual: ['', Validators.required],
-    claveNueva: ['', [Validators.required, Validators.minLength(6)]],
-  });
+  form: FormGroup = this.fb.group(
+    {
+      claveActual: ['', Validators.required],
+      claveNueva: ['', [Validators.required, Validators.minLength(6)]],
+      confirmarNueva: ['', Validators.required],
+    },
+    { validators: this.passwordMatchValidator }
+  );
+
+  private passwordMatchValidator(group: FormGroup) {
+    const a = group.get('claveNueva')?.value;
+    const b = group.get('confirmarNueva')?.value;
+    return a && b && a === b ? null : { passwordMismatch: true };
+  }
 
   @HostListener('document:keydown.escape')
   onEsc(): void {
@@ -66,7 +77,10 @@ export class ChangePasswordModalComponent {
     this.cargando = true;
     const loadingId = this.alertService.loading('Procesando...', 'Actualizando contraseña');
 
-    const payload = this.form.value;
+    const payload = {
+      claveActual: this.form.value.claveActual,
+      claveNueva: this.form.value.claveNueva,
+    };
 
     this.usuarioService.cambiarPassword(this.idUsuario, payload).subscribe({
       next: () => {

@@ -2,16 +2,22 @@
   <!-- Header con Logo -->
   <div class="dashboard-header">
     <div class="header-left">
-      <img src="assets/images/logoallien.jpg" alt="logo" class="logo"/>
+      <img src="assets/images/logoallien.jpg" alt="logo" class="logo" />
       <div>
-        <h1>Allien GNSS</h1>
-        <p>Soluciones profesionales en geolocalización y tecnología satelital</p>
+        <h1>Inventario GNSS</h1>
+        <p>Sistema de gestión y control de stock en tiempo real</p>
       </div>
     </div>
     <div class="header-right">
-      <div class="date-badge">
-        <span class="material-icons">calendar_today</span>
-        <span>{{ currentDate }}</span>
+      <div class="location-selector">
+        <span class="material-icons">location_on</span>
+        <select [ngModel]="ubicacionSeleccionadaId" (ngModelChange)="onCambiarUbicacion($event)"
+          class="location-select">
+          <option [ngValue]="null">Todas las ubicaciones</option>
+          <option *ngFor="let u of ubicaciones" [ngValue]="u.idUbicacion">
+            {{ u.nombre }}
+          </option>
+        </select>
       </div>
     </div>
   </div>
@@ -20,52 +26,56 @@
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-icon bg-primary">
-        <span class="material-icons">business</span>
+        <span class="material-icons">inventory_2</span>
       </div>
       <div class="stat-info">
-        <p class="stat-label">Años de Experiencia</p>
-        <h3 class="stat-value">15+</h3>
+        <p class="stat-label">Total Productos</p>
+        <h3 class="stat-value">{{ getTotalProductos() }}</h3>
         <span class="stat-trend positive">
-          <i class="ti ti-star"></i> Líder del mercado
+          <span class="material-icons">category</span>
+          Tipos únicos
         </span>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon bg-success">
-        <span class="material-icons">groups</span>
+        <span class="material-icons">warehouse</span>
       </div>
       <div class="stat-info">
-        <p class="stat-label">Clientes Satisfechos</p>
-        <h3 class="stat-value">5,000+</h3>
+        <p class="stat-label">Stock Total</p>
+        <h3 class="stat-value">{{ getTotalStock() }}</h3>
         <span class="stat-trend positive">
-          <i class="ti ti-arrow-up"></i> En crecimiento
+          <span class="material-icons">trending_up</span>
+          Unidades disponibles
         </span>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon bg-warning">
-        <span class="material-icons">public</span>
+        <span class="material-icons">place</span>
       </div>
       <div class="stat-info">
-        <p class="stat-label">Cobertura</p>
-        <h2 class="stat-value">Nacional</h2>
+        <p class="stat-label">Ubicaciones</p>
+        <h3 class="stat-value">{{ getTotalUbicaciones() }}</h3>
         <span class="stat-trend positive">
-          <i class="ti ti-map"></i> Todo Ecuador
+          <span class="material-icons">domain</span>
+          {{ ubicacionSeleccionadaId ? 'Filtrado' : 'Activas' }}
         </span>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="stat-icon bg-info">
-        <span class="material-icons">support_agent</span>
+        <span class="material-icons">{{ getStockStatus().icon }}</span>
       </div>
       <div class="stat-info">
-        <p class="stat-label">Soporte Técnico</p>
-        <h3 class="stat-value">24/7</h3>
+        <p class="stat-label">Estado</p>
+        <h3 class="stat-value" [style.fontSize.px]="20">{{ getStockStatus().label }}</h3>
         <span class="stat-trend positive">
-          <i class="ti ti-phone"></i> Siempre disponible
+          <span class="material-icons">check_circle</span>
+          {{ getStockStatus().subtitle }}
         </span>
       </div>
     </div>
@@ -73,188 +83,156 @@
 
   <!-- Main Content -->
   <div class="dashboard-content">
-    <!-- Servicios -->
+    <!-- Productos en Stock -->
     <div class="categories-card">
       <div class="card-header">
         <h2>
-          <span class="material-icons">category</span>
-          Nuestros Servicios
+          <span class="material-icons">inventory</span>
+          Productos en Stock
         </h2>
+        <span class="header-badge">
+          {{ stock.length }} {{ stock.length === 1 ? 'producto' : 'productos' }}
+        </span>
       </div>
-      <div class="categories-grid">
-        <div class="category-item">
-          <div class="category-icon">
-            <span class="material-icons">satellite_alt</span>
-          </div>
-          <h4>Equipos GNSS</h4>
-          <p class="category-count">Alta precisión</p>
-          <div class="category-bar">
-            <div class="bar-fill" style="width: 95%"></div>
-          </div>
-        </div>
 
-        <div class="category-item">
-          <div class="category-icon">
-            <span class="material-icons">location_on</span>
+      <div class="stock-list" *ngIf="stock.length > 0; else emptyStock">
+        <div class="stock-item" *ngFor="let item of stock" (click)="verSerialesDeItem(item)"
+          [class.selected]="productoSeleccionado?.idProducto === item.idProducto && productoSeleccionado?.idUbicacion === item.idUbicacion">
+          <div class="stock-product">
+            <div class="product-icon" [class.low-stock]="item.stock < 3">
+              <span class="material-icons">{{ getProductIcon(item.producto) }}</span>
+            </div>
+            <div class="product-info">
+              <h4>{{ item.producto }}</h4>
+              <p class="product-location">
+                <span class="material-icons">place</span>
+                {{ item.ubicacion }}
+              </p>
+            </div>
           </div>
-          <h4>Rastreo GPS</h4>
-          <p class="category-count">Tiempo real</p>
-          <div class="category-bar">
-            <div class="bar-fill" style="width: 90%"></div>
-          </div>
-        </div>
 
-        <div class="category-item">
-          <div class="category-icon">
-            <span class="material-icons">map</span>
-          </div>
-          <h4>Topografía</h4>
-          <p class="category-count">Profesional</p>
-          <div class="category-bar">
-            <div class="bar-fill" style="width: 85%"></div>
-          </div>
-        </div>
-
-        <div class="category-item">
-          <div class="category-icon">
-            <span class="material-icons">engineering</span>
-          </div>
-          <h4>Consultoría</h4>
-          <p class="category-count">Especializada</p>
-          <div class="category-bar">
-            <div class="bar-fill" style="width: 80%"></div>
-          </div>
-        </div>
-
-        <div class="category-item">
-          <div class="category-icon">
-            <span class="material-icons">school</span>
-          </div>
-          <h4>Capacitación</h4>
-          <p class="category-count">Certificada</p>
-          <div class="category-bar">
-            <div class="bar-fill" style="width: 75%"></div>
-          </div>
-        </div>
-
-        <div class="category-item">
-          <div class="category-icon">
-            <span class="material-icons">build</span>
-          </div>
-          <h4>Mantenimiento</h4>
-          <p class="category-count">Garantizado</p>
-          <div class="category-bar">
-            <div class="bar-fill" style="width: 88%"></div>
+          <div class="stock-quantity">
+            <div class="quantity-badge" [class.low]="item.stock < 3" [class.medium]="item.stock >= 3 && item.stock < 10"
+              [class.high]="item.stock >= 10">
+              <span class="quantity-number">{{ item.stock }}</span>
+              <span class="quantity-label">unidades</span>
+            </div>
+            <div class="stock-bar">
+              <div class="bar-fill" [style.width.%]="getStockPercentage(item.stock)"></div>
+            </div>
           </div>
         </div>
       </div>
+
+      <ng-template #emptyStock>
+        <div class="empty-state">
+          <span class="material-icons">inventory_2</span>
+          <h3>No hay productos en stock</h3>
+          <p>{{ ubicacionSeleccionadaId ? 'Esta ubicación no tiene productos' : 'No se encontraron productos' }}</p>
+        </div>
+      </ng-template>
     </div>
 
     <!-- Info Sidebar -->
     <div class="info-sidebar">
-      <!-- Información de la Empresa -->
-      <div class="info-card">
-        <h3>
-          <span class="material-icons">info</span>
-          Sobre Nosotros
-        </h3>
-        <div class="company-info">
-          <p>
-            <strong>Allien GNSS</strong> es una empresa ecuatoriana líder en soluciones de 
-            geolocalización y tecnología GNSS (Sistema Global de Navegación por Satélite).
-          </p>
-          <div class="info-item">
-            <span class="material-icons">verified</span>
+      <!-- Seriales del producto seleccionado -->
+      <div class="info-card seriales-card" [class.show]="serialesVisibles">
+        <!-- Puedes ocultar el contenido mientras está cerrado -->
+        <div class="seriales-inner" [class.show]="serialesVisibles">
+          <div class="seriales-header">
             <div>
-              <strong>Misión</strong>
-              <p>Proporcionar soluciones tecnológicas de precisión en geolocalización</p>
+              <h3 style="margin:0;">
+                <span class="material-icons">qr_code</span>
+                Seriales - {{ productoSeleccionado?.producto }}
+              </h3>
+              <p class="seriales-subtitle">{{ productoSeleccionado?.ubicacion }}</p>
+            </div>
+
+            <button class="seriales-close" type="button" (click)="cerrarSeriales()">
+              Cerrar
+            </button>
+          </div>
+
+          <div *ngIf="serialesCargando" class="seriales-loading">Cargando seriales...</div>
+
+          <div *ngIf="!serialesCargando && serialesFiltrados.length; else sinSeriales" class="seriales-list">
+            <div class="serial-item" *ngFor="let s of serialesFiltrados; trackBy: trackBySerial">
+              <span class="material-icons">qr_code_2</span>
+              <div class="serial-text">
+                <strong>{{ s.serial }}</strong>
+                <small>{{ s.producto }}</small>
+              </div>
             </div>
           </div>
-          <div class="info-item">
-            <span class="material-icons">emoji_events</span>
-            <div>
-              <strong>Visión</strong>
-              <p>Ser la empresa referente en tecnología GNSS en Latinoamérica</p>
+
+          <ng-template #sinSeriales>
+            <div class="seriales-empty">No hay seriales disponibles para este producto.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Resumen por Ubicación -->
+      <div class="info-card">
+        <h3>
+          <span class="material-icons">analytics</span>
+          Resumen por Ubicación
+        </h3>
+        <div class="ubicaciones-summary">
+          <div class="ubicacion-item" *ngFor="let resumen of getResumenPorUbicacion()">
+            <div class="ubicacion-header">
+              <div class="ubicacion-name">
+                <span class="material-icons">location_city</span>
+                <strong>{{ resumen.nombre }}</strong>
+              </div>
+              <span class="ubicacion-total">{{ resumen.total }} u.</span>
+            </div>
+            <div class="ubicacion-products">
+              <span class="product-count">{{ resumen.productos }} {{ resumen.productos === 1 ? 'producto' : 'productos'
+                }}</span>
+            </div>
+            <div class="ubicacion-bar">
+              <div class="bar-fill" [style.width.%]="resumen.percentage"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Valores -->
+      <!-- Top Productos -->
       <div class="info-card">
         <h3>
-          <span class="material-icons">star</span>
-          Nuestros Valores
+          <span class="material-icons">emoji_events</span>
+          Top Productos
         </h3>
-        <div class="values-list">
-          <div class="value-item">
-            <span class="material-icons">check_circle</span>
-            <span>Calidad y Precisión</span>
-          </div>
-          <div class="value-item">
-            <span class="material-icons">check_circle</span>
-            <span>Innovación Constante</span>
-          </div>
-          <div class="value-item">
-            <span class="material-icons">check_circle</span>
-            <span>Compromiso con el Cliente</span>
-          </div>
-          <div class="value-item">
-            <span class="material-icons">check_circle</span>
-            <span>Excelencia Técnica</span>
-          </div>
-          <div class="value-item">
-            <span class="material-icons">check_circle</span>
-            <span>Responsabilidad Social</span>
+        <div class="top-productos">
+          <div class="top-item" *ngFor="let top of getTopProductos(); let i = index">
+            <div class="rank-badge" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
+              {{ i + 1 }}
+            </div>
+            <div class="top-info">
+              <strong>{{ top.nombre }}</strong>
+              <p>{{ top.total }} unidades totales</p>
+            </div>
+            <span class="material-icons">trending_up</span>
           </div>
         </div>
       </div>
 
-      <!-- Contacto -->
-      <div class="info-card contact-card">
+      <!-- Alertas de Stock -->
+      <div class="info-card alert-card" *ngIf="getStockBajo().length > 0">
         <h3>
-          <span class="material-icons">contact_mail</span>
-          Contacto
+          <span class="material-icons">warning</span>
+          Alertas de Stock Bajo
         </h3>
-        <div class="contact-list">
-          <div class="contact-item">
-            <span class="material-icons">phone</span>
+        <div class="alerts-list">
+          <div class="alert-item" *ngFor="let alerta of getStockBajo()">
+            <span class="material-icons">error_outline</span>
             <div>
-              <strong>Teléfono</strong>
-              <p>+593 2 XXX-XXXX</p>
-            </div>
-          </div>
-          <div class="contact-item">
-            <span class="material-icons">email</span>
-            <div>
-              <strong>Email</strong>
-              <p>info@alliengnss.com</p>
-            </div>
-          </div>
-          <div class="contact-item">
-            <span class="material-icons">location_on</span>
-            <div>
-              <strong>Ubicación</strong>
-              <p>Quito, Ecuador</p>
+              <strong>{{ alerta.producto }}</strong>
+              <p>{{ alerta.ubicacion }}: Solo {{ alerta.stock }} unidades</p>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Información Adicional 
-  <div class="system-info">
-    <div class="info-box">
-      <span class="material-icons">verified_user</span>
-      <div>
-        <h4>Sistema de Gestión Allien GNSS</h4>
-        <p>
-          Plataforma integral para la gestión de equipos, proyectos y servicios de geolocalización. 
-          Diseñada para optimizar los procesos internos y brindar un mejor servicio a nuestros clientes.
-        </p>
-      </div>
-    </div>
-  </div>
-  -->
 </div>

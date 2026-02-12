@@ -15,7 +15,7 @@
 
           <h4 class="text-center m-t-20 m-b-25 f-20 f-w-500">Inicia Sesión</h4>
 
-          <form [formGroup]="loginForm" class="text-start">
+          <form [formGroup]="loginForm" class="text-start" (ngSubmit)="login()">
 
             <label class="f-w-500">Correo Electrónico</label>
             <mat-form-field appearance="outline" class="w-100 m-t-5">
@@ -38,13 +38,7 @@
 
 
             <div class="grid">
-              <button
-                mat-flat-button
-                color="primary"
-                class="b-rad-20 m-t-15"
-                (click)="login()"
-                [disabled]="loginForm.invalid"
-              >
+              <button mat-flat-button color="primary" class="b-rad-20 m-t-15" type="submit" [disabled]="loginForm.invalid">
                 Ingresar
               </button>
             </div>

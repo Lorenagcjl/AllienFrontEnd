@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormControl, Validators, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { LoginService } from 'src/app/@theme/services/login.service';
@@ -18,6 +18,7 @@ export default class LoginComponent {
   private router = inject(Router);
   private loginService = inject(LoginService);
   private alertService = inject(AlertService);
+  private cdr = inject(ChangeDetectorRef);
 
   mostrarCambioPassword = false;
   idUsuarioLogin?: number;
@@ -53,7 +54,13 @@ export default class LoginComponent {
 
         if (usuario.esNuevo) {
           this.idUsuarioLogin = usuario.idUsuario;
-          this.mostrarCambioPassword = true;
+
+          // Renderiza el @if y abre en el siguiente tick
+          queueMicrotask(() => {
+            this.mostrarCambioPassword = true;
+            this.cdr.detectChanges();
+          });
+
           return;
         }
 
@@ -68,9 +75,7 @@ export default class LoginComponent {
 
   onPasswordChanged() {
     this.mostrarCambioPassword = false;
-
     this.alertService.toast('success', 'Contraseña actualizada. Inicio de sesión exitoso');
-
     const role = localStorage.getItem('role') ?? '';
     this.navegarSegunRol(role);
   }

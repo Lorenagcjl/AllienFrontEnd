@@ -1,160 +1,222 @@
 // angular import
-import { Component, viewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-// project import
-import { SharedModule } from 'src/app/demo/shared/shared.module';
-import { ChartDB } from 'src/app/fake-data/chartDB';
-
-// third party
-import { ApexOptions, ChartComponent, NgApexchartsModule } from 'ng-apexcharts';
+import { FormsModule } from '@angular/forms';
+import { AlertService } from 'src/app/@theme/services/alert.service';
+import { UbicacionService } from 'src/app/@theme/services/ubicacion.service';
+import { InventarioRepostService } from 'src/app/@theme/services/inventario-repost.service';
+import { SerialEnStockDto, StockUbicacionDto } from '../../models/reportes-inventario.model';
+import { Ubicacion } from '../../models/ubicacion.model';
+import { switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, SharedModule, NgApexchartsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './empl-dashboard.component.html',
   styleUrls: ['./empl-dashboard.component.scss']
 })
-export default class DashboardComponent {
-  // public props
-  chart = viewChild<ChartComponent>('chart');
-  earningChart: Partial<ApexOptions>;
-  pageViewChart: Partial<ApexOptions>;
-  totalTaskChart: Partial<ApexOptions>;
-  downloadChart: Partial<ApexOptions>;
-  monthlyRevenueChart: Partial<ApexOptions>;
-  totalTasksChart: Partial<ApexOptions>;
-  pendingTasksChart: Partial<ApexOptions>;
-  totalIncomeChart: Partial<ApexOptions>;
+export default class DashboardComponent implements OnInit {
+  private alertService = inject(AlertService);
+  private ubicacionService = inject(UbicacionService);
+  private inventarioService = inject(InventarioRepostService);
+  private cdr = inject(ChangeDetectorRef);
+  private serialesCache = new Map<number, SerialEnStockDto[]>();
+  trackBySerial = (_: number, s: SerialEnStockDto) => s.idProductoSerial;
 
-  // eslint-disable-next-line
-  chartDB: any;
 
-  // graph color change with theme color mode change
-  preset = ['#4680FF'];
-  monthlyColor = ['#4680FF', '#8996a4'];
-  incomeColors = ['#4680FF', '#E58A00', '#2CA87F', '#b5ccff'];
+  ubicaciones: Ubicacion[] = [];
+  ubicacionSeleccionadaId: number | null = null;
+  stock: StockUbicacionDto[] = [];
+  seriales: SerialEnStockDto[] = [];
+  cargarSeriales = false;
 
-  // constructor
-  constructor() {
-    this.chartDB = ChartDB;
-    const {
-      earningChart,
-      totalTaskChart,
-      downloadChart,
-      totalTasksChart,
-      pageViewChart,
-      monthlyRevenueChart,
-      pendingTasksChart,
-      totalIncomeChart
-    } = this.chartDB;
-    this.earningChart = earningChart;
-    this.pageViewChart = pageViewChart;
-    this.totalTaskChart = totalTaskChart;
-    this.downloadChart = downloadChart;
-    this.monthlyRevenueChart = monthlyRevenueChart;
-    this.totalTasksChart = totalTasksChart;
-    this.pendingTasksChart = pendingTasksChart;
-    this.totalIncomeChart = totalIncomeChart;
+  ngOnInit(): void {
+    this.cargarInicial();
   }
 
-  // public method
-  project = [
-    {
-      title: 'Invoice Generator'
-    },
-    {
-      title: 'Package Upgrades'
-    },
-    {
-      title: 'Figma Auto Layout'
-    }
-  ];
+  cargarInicial(): void {
+    this.inventarioService.stockPorUbicacion()
+      .pipe(
+        switchMap((stockGlobal) => {
+          this.stock = stockGlobal ?? [];
+          this.cdr.detectChanges(); // opcional: si también te pasaba con stock inicial
+          return this.ubicacionService.listarUbicaciones();
+        })
+      )
+      .subscribe({
+        next: (ubs) => {
+          this.ubicaciones = ubs ?? [];
+          this.ubicacionSeleccionadaId = null;
 
-  List_transaction = [
-    {
-      icon: 'AI',
-      name: 'Apple Inc.',
-      time: '#ABLE-PRO-T00232',
-      amount: '$210,000',
-      amount_position: 'ti ti-arrow-down-left',
-      percentage: '10.6%',
-      amount_type: 'text-warn-500'
-    },
-    {
-      icon: 'SM',
-      tooltip: '10,000 Tracks',
-      name: 'Spotify Music',
-      time: '#ABLE-PRO-T10232',
-      amount: '- 10,000',
-      amount_position: 'ti ti-arrow-up-right',
-      percentage: '30.6%',
-      amount_type: 'text-success-500'
-    },
-    {
-      icon: 'MD',
-      bg: 'text-primary-500 bg-primary-50',
-      tooltip: '143 Posts',
-      name: 'Medium',
-      time: '06:30 pm',
-      amount: '-26',
-      amount_position: 'ti ti-arrows-left-right',
-      percentage: '5%',
-      amount_type: 'text-warning-500'
-    },
-    {
-      icon: 'U',
-      tooltip: '143 Posts',
-      name: 'Uber',
-      time: '08:40 pm',
-      amount: '+210,000',
-      amount_position: 'ti ti-arrow-up-right',
-      percentage: '10.6%',
-      amount_type: 'text-success-500'
-    },
-    {
-      icon: 'OC',
-      bg: 'text-warning-500 bg-warning-50',
-      tooltip: '143 Posts',
-      name: 'Ola Cabs',
-      time: '07:40 pm',
-      amount: '+210,000',
-      amount_position: 'ti ti-arrow-up-right',
-      percentage: '10.6%',
-      amount_type: 'text-success-500'
-    }
-  ];
+          this.cdr.detectChanges(); // <- CLAVE para que el select pinte de inmediato
+        },
+        error: (err) => {
+          this.alertService.error('Error', this.alertService.getErrorMessage(err, 'No se pudo cargar el dashboard'));
+        }
+      });
+  }
 
-  income_card = [
-    {
-      background: 'bg-primary-500',
-      item: 'Income',
-      value: '$23,876',
-      number: '+$763,43'
-    },
-    {
-      background: 'bg-warning-500',
-      item: 'Rent',
-      value: '$23,876',
-      number: '+$763,43'
-    },
-    {
-      background: 'bg-success-500',
-      item: 'Download',
-      value: '$23,876',
-      number: '+$763,43'
-    },
-    {
-      background: 'bg-primary-200',
-      item: 'Views',
-      value: '$23,876',
-      number: '+$763,43'
+  onCambiarUbicacion(id: number | null): void {
+    this.ubicacionSeleccionadaId = id;
+
+    const stock$ = id
+      ? this.inventarioService.stockPorUnaUbicacion(id)
+      : this.inventarioService.stockPorUbicacion();
+
+    stock$.subscribe({
+      next: (data) => {
+        this.stock = data ?? [];
+        this.seriales = [];
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.alertService.error('Error', this.alertService.getErrorMessage(err, 'No se pudo cargar el stock'));
+      }
+    });
+
+    if (this.cargarSeriales && id) {
+      this.inventarioService.serialesDisponiblesEnUbicacion(id)
+        .subscribe({
+          next: (s) => {
+            this.seriales = s ?? [];
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            this.alertService.error('Error', this.alertService.getErrorMessage(err, 'No se pudieron cargar seriales'));
+          }
+        });
     }
-  ];
-   currentDate = new Date().toLocaleDateString('es-EC', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-});
+  }
+
+  // Métodos de cálculo
+  getTotalProductos(): number {
+    const productosUnicos = new Set(this.stock.map(s => s.idProducto));
+    return productosUnicos.size;
+  }
+
+  getTotalStock(): number {
+    return this.stock.reduce((sum, item) => sum + item.stock, 0);
+  }
+
+  getTotalUbicaciones(): number {
+    if (this.ubicacionSeleccionadaId) return 1;
+    const ubicacionesUnicas = new Set(this.stock.map(s => s.idUbicacion));
+    return ubicacionesUnicas.size;
+  }
+
+  getStockStatus(): { icon: string; label: string; subtitle: string } {
+    const total = this.getTotalStock();
+    if (total === 0) return { icon: 'error', label: 'Sin stock', subtitle: 'Requiere atención' };
+    if (total < 10) return { icon: 'warning', label: 'Stock bajo', subtitle: 'Considerar reposición' };
+    if (total < 50) return { icon: 'check_circle', label: 'Stock normal', subtitle: 'En buen estado' };
+    return { icon: 'verified', label: 'Stock óptimo', subtitle: 'Excelente nivel' };
+  }
+
+  getStockPercentage(stock: number): number {
+    const max = Math.max(...this.stock.map(s => s.stock), 10);
+    return (stock / max) * 100;
+  }
+
+  getProductIcon(producto: string): string {
+    const productLower = producto.toLowerCase();
+    if (productLower.includes('trip')) return 'satellite_alt';
+    if (productLower.includes('tripod')) return 'camera_outdoor';
+    if (productLower.includes('gps')) return 'gps_fixed';
+    return 'inventory_2';
+  }
+
+  getResumenPorUbicacion(): any[] {
+    const ubicacionesMap = new Map<number, { nombre: string; total: number; productos: number }>();
+
+    this.stock.forEach(item => {
+      if (!ubicacionesMap.has(item.idUbicacion)) {
+        ubicacionesMap.set(item.idUbicacion, {
+          nombre: item.ubicacion,
+          total: 0,
+          productos: 0
+        });
+      }
+      const ub = ubicacionesMap.get(item.idUbicacion)!;
+      ub.total += item.stock;
+      ub.productos++;
+    });
+
+    const totalGeneral = this.getTotalStock();
+    return Array.from(ubicacionesMap.values())
+      .map(ub => ({
+        ...ub,
+        percentage: totalGeneral > 0 ? (ub.total / totalGeneral) * 100 : 0
+      }))
+      .sort((a, b) => b.total - a.total);
+  }
+
+  getTopProductos(): any[] {
+    const productosMap = new Map<number, { nombre: string; total: number }>();
+
+    this.stock.forEach(item => {
+      if (!productosMap.has(item.idProducto)) {
+        productosMap.set(item.idProducto, { nombre: item.producto, total: 0 });
+      }
+      productosMap.get(item.idProducto)!.total += item.stock;
+    });
+
+    return Array.from(productosMap.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+  }
+
+  getStockBajo(): StockUbicacionDto[] {
+    return this.stock.filter(item => item.stock > 0 && item.stock < 3);
+  }
+
+  serialesVisibles = false;
+  serialesCargando = false;
+  productoSeleccionado?: { idProducto: number; producto: string; ubicacion: string; idUbicacion: number };
+
+  serialesFiltrados: SerialEnStockDto[] = [];
+
+  verSerialesDeItem(item: StockUbicacionDto): void {
+    this.productoSeleccionado = {
+      idProducto: item.idProducto,
+      producto: item.producto,
+      ubicacion: item.ubicacion,
+      idUbicacion: item.idUbicacion
+    };
+
+    this.serialesVisibles = true;
+    this.serialesCargando = true;
+
+    const cached = this.serialesCache.get(item.idUbicacion);
+    if (cached) {
+      this.seriales = cached;
+      this.serialesFiltrados = cached.filter(x => x.idProducto === item.idProducto);
+      this.serialesCargando = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.inventarioService.serialesDisponiblesEnUbicacion(item.idUbicacion)
+      .subscribe({
+        next: (s) => {
+          const data = s ?? [];
+          this.serialesCache.set(item.idUbicacion, data);
+
+          this.seriales = data;
+          this.serialesFiltrados = data.filter(x => x.idProducto === item.idProducto);
+
+          this.serialesCargando = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.serialesCargando = false;
+          this.alertService.error('Error', this.alertService.getErrorMessage(err, 'No se pudieron cargar seriales'));
+        }
+      });
+  }
+
+  cerrarSeriales(): void {
+    this.serialesVisibles = false;
+    this.serialesFiltrados = [];
+    this.productoSeleccionado = undefined;
+  }
 }
