@@ -109,100 +109,119 @@ export const menus: Navigation[] = [
     ]
   },
   {
-    id: 'producto',
-    title: 'CRUD',
-    type: 'group',
-    icon: 'icon-navigation',
-    children: [
-      {
-        id: 'menu-levels',
-        title: 'Productos Crud',
-        type: 'collapse',
-        icon: '#custom-level',
-        children: [
-          {
-            id: 'comisionesMiUsuarios',
-            title: 'Comisiones generadas',
-            type: 'item',
-            url: '/component/comisiones-mi-usuarios',
-            roles: ['Administrador', 'Empleado']
-          },
-          {
-            id: 'comisionesUsuarios',
-            title: 'Comision de cada usuario',
-            type: 'item',
-            url: '/component/comisiones-usuarios',
-            roles: ['Administrador', 'Empleado']
-          },
-          {
-            id: 'historialPrecioVenta',
-            title: 'Historial Precio Venta',
-            type: 'item',
-            url: '/component/historial-precios',
-            roles: ['Administrador', 'Empleado']
-          },
-          {
-            id: 'productoSerial',
-            title: 'Producto Serial',
-            type: 'item',
-            url: '/component/producto-serial',
-            roles: ['Administrador', 'Empleado']
-          },
-          {
-            id: 'compraProducto',
-            title: 'Compra Producto',
-            type: 'item',
-            url: '/component/compra-producto',
-            roles: ['Administrador', 'Empleado']
-          },
-          {
-            id: 'compraProductoDetalle',
-            title: 'Detalle Compra Producto',
-            type: 'item',
-            url: '/component/compra-producto-detalle',
-            roles: ['Administrador', 'Empleado']
-          },
-          {
-        id: 'venta',
-        title: 'Ventas',
-        type: 'item',
-        url: '/component/venta',
-        roles: ['Administrador', 'Empleado']
-      },
-      {
-        id: 'movimiento',
-        title: 'Movimiento',
-        type: 'item',
-        url: '/component/movimiento',
-        roles: ['Administrador']
-      },
-      {
-        id: 'movimiento-detalle',
-        title: 'Movimiento Detalle',
-        type: 'item',
-        url: '/component/movimiento-detalle',
-        roles: ['Administrador']
-      },
+  id: 'gestion',
+  title: 'Gestión',
+  type: 'group',
+  icon: 'icon-navigation',
+  children: [
 
-      {
-        id: 'venta-detalle-serial',
-        title: 'Venta Detalle Serial',
-        type: 'item',
-        url: '/component/venta-detalle-serial',
-        roles: ['Administrador']
-      },
+    // =========================
+    // OPERATIVO (ADMIN + EMPLEADO)
+    // =========================
+    {
+      id: 'gestion-operativa',
+      title: 'Gestión Operativa',
+      type: 'collapse',
+      icon: '#custom-level',
+      roles: ['Administrador', 'Empleado'],
+      children: [
+        {
+          id: 'comisionesMiUsuarios',
+          title: 'Comisiones generadas',
+          type: 'item',
+          url: '/component/comisiones-mi-usuarios',
+          roles: ['Administrador', 'Empleado']
+        },
+        
+        {
+          id: 'historialPrecioVenta',
+          title: 'Historial de precios',
+          type: 'item',
+          url: '/component/historial-precios',
+          roles: ['Administrador', 'Empleado']
+        },
+        {
+          id: 'venta',
+          title: 'Ventas',
+          type: 'item',
+          url: '/component/venta',
+          roles: ['Administrador', 'Empleado']
+        },
+        {
+          id: 'movimiento',
+          title: 'Movimiento',
+          type: 'item',
+          url: '/component/movimiento',
+          roles: ['Administrador', 'Empleado']
+        },
+        {
+          id: 'inventariomovimiento',
+          title: 'Inventario movimiento',
+          type: 'item',
+          url: '/component/inventariomovimiento',
+          roles: ['Administrador', 'Empleado']
+        }
+      ]
+    },
 
-      {
-        id: 'inventariomovimiento',
-        title: 'Inventario Movimiento',
-        type: 'item',
-        url: '/component/inventariomovimiento',
-        roles: ['Administrador']
-      }
-        ]
-      }
-    ]
-  },
+    // =========================
+    // ADMINISTRATIVO (SOLO ADMIN)
+    // =========================
+    {
+      id: 'gestion-admin',
+      title: 'Gestión Administrativa',
+      type: 'collapse',
+      icon: '#custom-level',
+      roles: ['Administrador'],
+      children: [
+        {
+          id: 'comisionesUsuarios',
+          title: 'Comisión por usuario',
+          type: 'item',
+          url: '/component/comisiones-usuarios',
+          roles: ['Administrador']
+        },
+        {
+          id: 'compraProducto',
+          title: 'Compra de producto',
+          type: 'item',
+          url: '/component/compra-producto',
+          roles: ['Administrador']
+        },
+        {
+          id: 'compraProductoDetalle',
+          title: 'Detalle compra producto',
+          type: 'item',
+          url: '/component/compra-producto-detalle',
+          roles: ['Administrador']
+        },
+        {
+          id: 'productoSerial',
+          title: 'Producto serial',
+          type: 'item',
+          url: '/component/producto-serial',
+          roles: ['Administrador']
+        },
+        
+        {
+          id: 'movimiento-detalle',
+          title: 'Movimiento detalle',
+          type: 'item',
+          url: '/component/movimiento-detalle',
+          roles: ['Administrador']
+        },
+        {
+          id: 'venta-detalle-serial',
+          title: 'Venta detalle serial',
+          type: 'item',
+          url: '/component/venta-detalle-serial',
+          roles: ['Administrador']
+        }
+      ]
+    }
+
+  ]
+},
   {
     id: 'other',
     title: 'Admin Catalogos',
